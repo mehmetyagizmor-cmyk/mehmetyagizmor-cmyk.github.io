@@ -1,0 +1,1281 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Çay Ocağı Tycoon</title>
+<style>
+:root{--bg:#2b1d14;--panel:#3d2a1e;--panel2:#4a3426;--text:#f6ead8;--muted:#c9b39a;--accent:#e8a23a;--good:#6cc070;--bad:#e05a4f;--line:#5c4232}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:#1e140d;border-bottom:2px solid var(--line)}
+h1{margin:0;font-size:20px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.stat{background:var(--panel);padding:6px 12px;border-radius:999px;font-weight:700;border:0;color:var(--text);font:inherit;font-weight:700}
+button.stat{cursor:pointer}
+button.stat:hover{background:var(--panel2)}
+.stat.money{color:var(--accent)}
+.clockwrap{display:flex;align-items:center;gap:8px}
+.clock{width:140px;height:10px;background:var(--panel);border-radius:6px;overflow:hidden}
+.clock>div{height:100%;background:var(--accent);transition:width .1s linear}
+main{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:16px;max-width:1300px;margin:0 auto;transition:filter .6s}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+section{background:var(--panel);border-radius:14px;padding:14px;border:1px solid var(--line)}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+h2{margin:0 0 10px;font-size:16px;color:var(--accent)}
+h2 small{color:var(--muted);font-weight:500}
+h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.hint{color:var(--muted);font-size:13px;margin:-4px 0 10px}
+.scene{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#1a110b}
+#scene{width:100%;height:100%;display:block;cursor:pointer;touch-action:manipulation}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#0009;text-align:center;color:var(--muted)}
+.overlay[hidden]{display:none}
+.big{background:var(--accent);color:#2b1d14;border:0;border-radius:12px;padding:14px 26px;font-size:18px;font-weight:800;cursor:pointer}
+.big:hover{filter:brightness(1.1)}
+.item{font-size:22px;background:#0003;border-radius:8px;padding:2px 5px;display:inline-block}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.prod{position:relative;background:var(--panel2);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit}
+.prod:hover{border-color:var(--accent)}
+.prod:active{transform:scale(.94)}
+.prod.full{opacity:.45}
+.prod .em{font-size:30px}
+.prod small{color:var(--muted)}
+.prod .up{color:var(--good);font-weight:700}
+.prod kbd{position:absolute;top:4px;left:6px;font-size:11px;color:var(--muted)}
+.row{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+.row>div{flex:1;min-width:200px}
+.slots{display:flex;gap:6px;flex-wrap:wrap;min-height:44px;background:#0002;border-radius:10px;padding:6px}
+.chip{position:relative;background:var(--panel2);border-radius:8px;padding:4px 8px;font-size:22px;overflow:hidden}
+.chip .who{font-size:12px;position:absolute;top:0;right:2px}
+.chip .prog{position:absolute;left:0;bottom:0;height:4px;background:var(--accent)}
+.tray .item{cursor:pointer}
+.tray .slot{width:38px;height:36px;border:2px dashed var(--line);border-radius:8px}
+.shop-item{display:flex;align-items:center;gap:10px;padding:8px;background:var(--panel2);border-radius:10px;margin-bottom:6px}
+.shop-item.hl{border:2px solid var(--accent)}
+.shop-item .em{font-size:26px;width:34px;text-align:center}
+.shop-item .info{flex:1;min-width:0}
+.shop-item small{display:block;color:var(--muted);font-size:12px}
+.lvl{color:var(--accent);font-size:12px}
+.shop-item button{background:var(--accent);color:#2b1d14;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;min-width:72px;font:inherit;font-weight:800}
+.shop-item button:disabled{background:#0004;color:var(--muted);cursor:not-allowed}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+#toast.show{opacity:1}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:16px;z-index:40;overflow:auto}
+.modal.show{display:flex}
+.modal .box{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:22px;max-width:440px;width:100%;margin:auto}
+.modal .box.wide{max-width:600px}
+.modal h2{font-size:22px}
+.modal table{width:100%;border-collapse:collapse;margin:10px 0 16px}
+.modal td{padding:5px 0;border-bottom:1px solid var(--line)}
+.modal td:last-child{text-align:right;font-weight:700}
+.modal ol{padding-left:20px;line-height:1.6}
+.editor{display:grid;grid-template-columns:170px 1fr;gap:18px;margin-bottom:16px}
+@media(max-width:540px){.editor{grid-template-columns:1fr;justify-items:center}}
+#preview{width:170px;height:212px;border-radius:12px;background:var(--panel2)}
+.field{margin-bottom:10px;width:100%}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.field input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit}
+.sw{display:flex;gap:6px;flex-wrap:wrap}
+.sw button{width:28px;height:28px;border-radius:50%;border:2px solid #0006;cursor:pointer;padding:0}
+.sw button.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.sw button.txt{width:auto;border-radius:8px;padding:0 10px;background:var(--panel2);color:var(--text);font:inherit;font-size:13px}
+#events{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+#events:empty{display:none}
+.ev{background:#0003;border:1px solid var(--accent);border-radius:999px;padding:4px 10px;font-size:13px}
+.ev small{color:var(--muted)}
+#eventCard{position:fixed;top:72px;left:50%;transform:translate(-50%,-320px);background:var(--panel);border:2px solid var(--accent);border-radius:14px;padding:12px 18px;z-index:55;display:flex;gap:12px;align-items:center;width:max-content;max-width:min(420px,calc(100vw - 32px));box-shadow:0 8px 30px #000a;transition:transform .45s cubic-bezier(.3,1.4,.5,1);pointer-events:none}
+#eventCard.show{transform:translate(-50%,0)}
+#eventCard .em{font-size:40px}
+#eventCard small{display:block;color:var(--muted);margin-top:2px}
+.stat.bump{animation:bumpA .4s}
+@keyframes bumpA{40%{transform:scale(1.2);color:#fff}}
+.stat.shake{animation:shakeA .4s}
+@keyframes shakeA{25%{transform:translateX(-4px);color:var(--bad)}75%{transform:translateX(4px);color:var(--bad)}}
+body.blackout main{filter:brightness(.55) saturate(.7)}
+footer{text-align:center;padding:10px 16px 24px;color:var(--muted);font-size:12px}
+footer button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:4px 10px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="shopTitle">🍵 Çay Ocağı</h1>
+  <div class="stats">
+    <button class="stat" id="ownerBtn" title="Dükkân sahibini düzenle"></button>
+    <span class="stat money" id="money"></span>
+    <span class="stat" id="rep"></span>
+    <span class="stat" id="day"></span>
+    <button class="stat" id="mute" title="Sesi aç/kapat"></button>
+    <span class="clockwrap"><span id="time">08:00</span><span class="clock"><div id="clockfill"></div></span></span>
+  </div>
+</header>
+
+<main>
+  <div class="col">
+    <section>
+      <h2>🏪 Dükkân <small id="levelName"></small></h2>
+      <p class="hint">Müşteriye tıkla → tepsideki uygun ürünler servis edilir. Yeşil balon = servis edebilirsin.</p>
+      <div id="events"></div>
+      <div class="scene">
+        <canvas id="scene"></canvas>
+        <div class="overlay" id="closedOverlay">
+          <div style="font-size:42px">🔒</div>
+          <div>Dükkân kapalı. Hazır olunca aç!</div>
+          <button class="big" data-open id="openBtn">☀️ Dükkânı Aç</button>
+        </div>
+      </div>
+    </section>
+    <section>
+      <h2>🔥 Tezgâh</h2>
+      <p class="hint">Ürüne tıkla (veya 1-6 tuşları) → ocakta hazırlanır → tepsiye düşer. Tepsideki ürüne tıklarsan çöpe atarsın.</p>
+      <div class="products" id="products"></div>
+      <div class="row">
+        <div><h3>Ocak</h3><div class="slots" id="queue"></div></div>
+        <div><h3 id="trayTitle">Tepsi</h3><div class="slots tray" id="tray"></div></div>
+      </div>
+    </section>
+  </div>
+  <section>
+    <h2>🛒 Dükkân Geliştir</h2>
+    <div id="shop"></div>
+  </section>
+</main>
+
+<footer><button id="reset">Oyunu sıfırla</button></footer>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toast"></div>
+<div id="eventCard"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const fmt = n => Math.floor(n).toLocaleString('tr-TR');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ---------- Oyun verileri ----------
+const PRODUCTS = [
+  {id:'cay',    name:'Çay',          emoji:'🍵', price:10, time:1.5, cost:0},
+  {id:'simit',  name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:100},
+  {id:'kahve',  name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:350},
+  {id:'tost',   name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:900},
+  {id:'sahlep', name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:2000},
+  {id:'baklava',name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:4000},
+];
+const P = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+
+// Dükkân seviyeleri: hem para hem zaman (gün) ister; görünümü ve alanı değiştirir
+const SHOP_LEVELS = [
+  {name:'Mahalle Çay Ocağı', tables:3, right:600, cost:0,    day:0},
+  {name:'Kıraathane',        tables:5, right:750, cost:600,  day:3},
+  {name:'Nostaljik Kafe',    tables:7, right:950, cost:2500, day:6},
+  {name:'Ünlü Mekân',        tables:8, right:950, cost:8000, day:10},
+];
+
+const UPGRADES = [
+  {id:'masa',    emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:80,  mult:1.8},
+  {id:'tepsi',   emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:60,  mult:1.6, max:5},
+  {id:'semaver', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:120, mult:1.7, max:6},
+  {id:'dekor',   emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:150, mult:1.9, max:5},
+  {id:'tabela',  emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:200, mult:2.0, max:5},
+  {id:'cirak',   emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:500, mult:2.2, max:3},
+  {id:'garson',  emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:800, mult:2.2, max:3},
+];
+
+const DAY_EVENTS = [
+  {id:'mac',    emoji:'⚽', name:'Maç Günü',      desc:'Kalabalık! Müşteriler 2 kat sık gelir ama sabırsızdır. Herkes çay ister.',
+   spawn:0.5, patience:0.8, fav:['cay']},
+  {id:'yagmur', emoji:'🌧️', name:'Yağmurlu Gün',  desc:'Az müşteri gelir ama daha sabırlıdır. Sıcak içecekler %30 pahalı.',
+   spawn:1.6, patience:1.3, fav:['cay','sahlep','kahve'], priceMult:{cay:1.3, sahlep:1.3, kahve:1.3}},
+  {id:'bayram', emoji:'🎉', name:'Bayram',        desc:'Herkes keyifli: bahşişler 2 katı!', tip:2, spawn:0.85},
+  {id:'pazar',  emoji:'🧺', name:'Pazar Kuruldu', desc:'Pazarcılar acıktı: simit ve tost %50 pahalı.',
+   fav:['simit','tost'], priceMult:{simit:1.5, tost:1.5}},
+];
+const LIVE_EVENTS = [
+  {id:'vip',        emoji:'👑', name:'VIP Müşteri',        desc:'Önemli biri geldi! Büyük sipariş, 3 kat ödeme. Kızdırırsan -10⭐', seats:1},
+  {id:'influencer', emoji:'📸', name:'Influencer',         desc:'Mutlu ayrılırsa +10⭐, kızarsa -10⭐!', seats:1},
+  {id:'turist',     emoji:'🚌', name:'Turist Kafilesi',    desc:'Boş masalar bir anda doldu!', seats:2},
+  {id:'elektrik',   emoji:'🔌', name:'Elektrik Kesintisi', desc:'Ocak 15 saniye yarı hızda çalışır.', dur:15},
+  {id:'happy',      emoji:'⏰', name:'Mutlu Saat',          desc:'20 saniye boyunca bahşişler 3 katı!', dur:20},
+];
+
+// Karakter görünümleri
+const SKINS  = ['#f8d9bf','#eab68f','#c98b5f','#8d5a3b'];
+const HAIRS  = ['#24160f','#5a3420','#a0622d','#e0b85f','#9b9b9b','#c2412d'];
+const SHIRTS = ['#c0392b','#2e86c1','#27ae60','#8e44ad','#e67e22','#34495e','#e84393','#16a085'];
+const STYLES = ['Kısa','Uzun','Kel','Topuz','Kıvırcık'];
+const randomLook = () => ({skin:pick(SKINS), hair:pick(HAIRS), style:Math.floor(Math.random() * STYLES.length),
+  shirt:pick(SHIRTS), beard:Math.random() < 0.25});
+const DEFAULT_OWNER = {name:'Usta', shopName:'Çay Ocağı', skin:SKINS[1], hair:HAIRS[0], style:0, shirt:SHIRTS[0], beard:true};
+const CIRAK_LOOKS = [
+  {skin:SKINS[0], hair:HAIRS[2], style:4, shirt:'#3a7bd5', beard:false},
+  {skin:SKINS[2], hair:HAIRS[0], style:3, shirt:'#2ecc71', beard:false},
+  {skin:SKINS[1], hair:HAIRS[3], style:0, shirt:'#f39c12', beard:false},
+];
+const GARSON_LOOKS = [
+  {skin:SKINS[1], hair:HAIRS[1], style:0, shirt:'#f4f4f4', beard:true,  vest:true},
+  {skin:SKINS[3], hair:HAIRS[0], style:1, shirt:'#f4f4f4', beard:false, vest:true},
+  {skin:SKINS[0], hair:HAIRS[4], style:2, shirt:'#f4f4f4', beard:true,  vest:true},
+];
+const DAY_LEN = 120; // saniye (08:00 - 20:00)
+
+// ---------- Kayıt ----------
+const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null});
+function load(){
+  try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return Object.assign(fresh(), d); } catch(e) {}
+  return fresh();
+}
+function save(){ try { localStorage.setItem('cayocagi', JSON.stringify(S)); } catch(e) {} }
+
+let S = load();
+let R;
+let status = 'closed'; // 'running' | 'closed'
+
+const lv = id => S.lv[id] || 0;
+const shopLevel = () => SHOP_LEVELS[lv('dukkan')];
+const maxLv = u => u.id === 'masa' ? shopLevel().tables - 2 : u.max;
+// Eski kayıtlar: masa sayısı dükkân seviyesine sığmıyorsa dükkânı büyüt
+while (2 + lv('masa') > shopLevel().tables && lv('dukkan') < SHOP_LEVELS.length - 1) S.lv.dukkan = lv('dukkan') + 1;
+
+const owner = () => S.owner || DEFAULT_OWNER;
+const numTables = () => 2 + lv('masa');
+const trayCap = () => 3 + lv('tepsi');
+const DE = () => R.dayEvent || {};
+const effect = id => R.effects.some(e => e.id === id);
+const speed = () => (1 + 0.15 * lv('semaver')) * (effect('elektrik') ? 0.5 : 1);
+const prepTime = id => P[id].time / speed();
+const itemPrice = id => Math.round(P[id].price * ((DE().priceMult || {})[id] || 1));
+const upCost = u => Math.round(u.base * Math.pow(u.mult, lv(u.id)));
+
+// ---------- Sahne geometrisi ----------
+const W = 960, H = 540, FLOOR = 200, AISLE = 525, DOOR_TOP = 440;
+const COLS = [360, 510, 660, 810], ROWS = [320, 470];
+const SLOTS = [];
+COLS.forEach(x => ROWS.forEach(y => SLOTS.push({x, y})));
+const rightWall = () => shopLevel().right;
+const garsonHome = i => ({x:288, y:380 + i * 45});
+const CIRAK_X = [72, 184, 34];
+
+function pathIn(seat){
+  const s = SLOTS[seat];
+  return [{x:s.x + 75, y:AISLE}, {x:s.x + 75, y:s.y - 6}, {x:s.x, y:s.y - 6}];
+}
+function pathOut(seat){
+  const s = SLOTS[seat];
+  return [{x:s.x + 75, y:s.y - 6}, {x:s.x + 75, y:AISLE}, {x:rightWall() + 60, y:AISLE}];
+}
+function moveAlong(e, dt, sp){
+  if (!e.path.length) return true;
+  const t = e.path[0], dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy), step = sp * dt;
+  if (d <= step){ e.x = t.x; e.y = t.y; e.path.shift(); }
+  else { e.x += dx / d * step; e.y += dy / d * step; }
+  if (Math.abs(dx) > 1) e.flip = dx < 0;
+  e.walk = (e.walk || 0) + dt * 13;
+  return !e.path.length;
+}
+
+function newGarson(i){ const h = garsonHome(i); return {i, x:h.x, y:h.y, state:'idle', path:[], carry:null, cid:null, walk:0}; }
+
+function newDay(){
+  R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
+       dayEvent:null, effects:[], eventIn:rand(20, 35),
+       garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
+       stats:{served:0, lost:0, earned:0, tips:0}};
+}
+newDay();
+
+// ---------- Tepsi & müşteri yardımcıları ----------
+function trayAdd(p){ R.tray.push(p); R.trayT.push(R.t); SFX.prepDone(); }
+function trayRemove(i){ R.tray.splice(i, 1); R.trayT.splice(i, 1); }
+const active = c => !c.leaving;
+const seated = c => c.state === 'seated' && !c.leaving;
+function inProgress(){ return R.queue.length + R.helpers.filter(Boolean).length; }
+function hasRoom(){ return R.tray.length + inProgress() < trayCap(); }
+const canServe = c => seated(c) && c.order.some(o => !o.done && R.tray.includes(o.p));
+
+function needed(){
+  const n = {};
+  R.customers.filter(active).forEach(c => c.order.forEach(o => { if (!o.done) n[o.p] = (n[o.p] || 0) + 1; }));
+  R.tray.forEach(p => n[p] && n[p]--);
+  R.queue.forEach(x => n[x.p] && n[x.p]--);
+  R.helpers.forEach(x => x && n[x.p] && n[x.p]--);
+  R.garsons.forEach(g => g.carry && n[g.carry] && n[g.carry]--);
+  return n;
+}
+
+function spawnInterval(){
+  const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
+  return base * (DE().spawn || 1) * (1 - 0.08 * lv('dukkan'));
+}
+
+function freeSeats(){
+  const taken = new Set(R.customers.filter(active).map(c => c.seat));
+  const free = [];
+  for (let i = 0; i < numTables(); i++) if (!taken.has(i)) free.push(i);
+  return free;
+}
+
+// special: 'vip' | 'influencer' | 'turist' | undefined
+function spawnCustomer(special, delayPx = 0){
+  const free = freeSeats();
+  if (!free.length) return null;
+  const maxItems = Math.min(4, 2 + Math.floor(S.day / 4));
+  let count = 1 + Math.floor(Math.random() * maxItems);
+  if (special === 'vip') count = Math.min(4, Math.max(3, S.unlocked.length));
+  const fav = (DE().fav || []).filter(p => S.unlocked.includes(p));
+  const order = [];
+  for (let i = 0; i < count; i++){
+    const p = fav.length && Math.random() < 0.55 ? pick(fav) : pick(S.unlocked);
+    order.push({p, done:false});
+  }
+  let max = (18 + count * 6 + lv('dekor') * 4 + S.rep / 100 * 5) * (DE().patience || 1);
+  if (special === 'vip') max *= 0.9;
+  const look = randomLook();
+  if (special === 'vip'){ look.shirt = '#1d1d2b'; look.suit = true; look.hat = 'crown'; }
+  if (special === 'influencer'){ look.shirt = '#ff6fae'; look.prop = 'phone'; }
+  if (special === 'turist'){ look.shirt = '#21b3a5'; look.hat = 'sun'; look.prop = 'camera'; }
+  const seat = pick(free);
+  const c = {id:R.nextId++, seat, look, order, patience:max, max, special,
+             state:'in', x:rightWall() + 40 + delayPx, y:AISLE, path:pathIn(seat), walk:0};
+  R.customers.push(c);
+  SFX.arrive();
+  return c;
+}
+
+function leave(c, mood){
+  c.leaving = {mood};
+  c.state = 'out';
+  c.path = pathOut(c.seat);
+}
+
+function serve(c, silent){
+  if (!seated(c)) return false;
+  let delivered = 0;
+  for (const o of c.order){
+    if (o.done) continue;
+    const i = R.tray.indexOf(o.p);
+    if (i >= 0){ trayRemove(i); o.done = true; o.doneAt = now(); delivered++; if (silent) break; }
+  }
+  if (!delivered){ if (!silent){ toast('Tepside bu müşterinin istediği bir şey yok'); SFX.error(); } return false; }
+  if (c.order.every(o => o.done)) pay(c); else SFX.serve();
+  return true;
+}
+
+function pay(c){
+  const ratio = c.patience / c.max;
+  let base = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
+  if (c.special === 'vip') base *= 3;
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (effect('happy') ? 3 : 1);
+  const tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
+  S.money += base + tip; S.total += base + tip;
+  R.stats.served++; R.stats.earned += base; R.stats.tips += tip;
+  S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
+  const s = SLOTS[c.seat];
+  floatText(s.x, s.y - 100, `+₺${base + tip}`, '#ffc94a');
+  if (c.special === 'influencer') floatText(s.x, s.y - 130, '📸 +10⭐', '#e08bff', 0.3);
+  coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
+  bump('#money', 'bump');
+  SFX.pay();
+  leave(c, 'happy');
+}
+
+// ---------- Özel olaylar ----------
+function startDayEvent(){
+  if (S.day < 2 || Math.random() > 0.55) return;
+  R.dayEvent = pick(DAY_EVENTS);
+  const ev = R.dayEvent;
+  setTimeout(() => announce(ev, 'Bugün'), 700);
+}
+
+function triggerLiveEvent(){
+  const free = freeSeats().length;
+  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id));
+  if (!options.length) return;
+  const ev = pick(options);
+  if (ev.dur) R.effects.push({id:ev.id, left:ev.dur, ev});
+  if (ev.id === 'vip' || ev.id === 'influencer') spawnCustomer(ev.id);
+  if (ev.id === 'turist') for (let i = 0; i < free; i++) spawnCustomer('turist', i * 40);
+  announce(ev);
+}
+
+let cardTimer;
+function announce(ev, prefix){
+  $('#eventCard').innerHTML = `<div class="em">${ev.emoji}</div><div><b>${prefix ? prefix + ': ' : ''}${ev.name}</b><small>${ev.desc}</small></div>`;
+  $('#eventCard').classList.add('show');
+  clearTimeout(cardTimer); cardTimer = setTimeout(() => $('#eventCard').classList.remove('show'), 4000);
+  ev.id === 'elektrik' ? SFX.blackout() : SFX.event();
+}
+
+// ---------- Oyun döngüsü (mantık) ----------
+function tick(dt){
+  R.t += dt;
+  if (R.t >= DAY_LEN){ endDay(); return; }
+
+  R.spawnIn -= dt;
+  if (R.spawnIn <= 0){ spawnCustomer(); R.spawnIn = spawnInterval() * rand(0.6, 1.4); }
+
+  if (S.day >= 2 && DAY_LEN - R.t > 15){
+    R.eventIn -= dt;
+    if (R.eventIn <= 0){ triggerLiveEvent(); R.eventIn = rand(25, 45); }
+  }
+  R.effects.forEach(e => e.left -= dt);
+  R.effects = R.effects.filter(e => e.left > 0);
+
+  // Oyuncunun ocağı
+  if (R.queue.length){
+    const x = R.queue[0]; x.prog += dt;
+    if (x.prog >= prepTime(x.p)){ trayAdd(x.p); R.queue.shift(); }
+  }
+
+  // Çıraklar
+  for (let i = 0; i < lv('cirak'); i++){
+    const h = R.helpers[i];
+    if (!h){
+      if (!hasRoom()) continue;
+      const n = needed(); const p = Object.keys(n).find(k => n[k] > 0);
+      if (p) R.helpers[i] = {p, prog:0};
+    } else {
+      h.prog += dt * 0.7;
+      if (h.prog >= prepTime(h.p)){ trayAdd(h.p); R.helpers[i] = null; }
+    }
+  }
+
+  // Garsonlar: tepsiden alır, masaya yürür, teslim eder, geri döner
+  for (const gs of R.garsons){
+    if (gs.state === 'idle'){
+      const targets = R.customers.filter(seated).sort((a, b) => a.patience - b.patience);
+      for (const c of targets){
+        const want = {};
+        c.order.forEach(o => { if (!o.done) want[o.p] = (want[o.p] || 0) + 1; });
+        R.garsons.forEach(o => o.cid === c.id && o.carry && want[o.carry]--);
+        const p = Object.keys(want).find(k => want[k] > 0 && R.tray.includes(k));
+        if (!p) continue;
+        trayRemove(R.tray.indexOf(p));
+        const s = SLOTS[c.seat], home = garsonHome(gs.i);
+        gs.carry = p; gs.cid = c.id; gs.state = 'go';
+        gs.path = [{x:home.x, y:AISLE}, {x:s.x + 75, y:AISLE}, {x:s.x + 75, y:s.y + 10}, {x:s.x + 42, y:s.y + 10}];
+        break;
+      }
+    } else if (gs.state === 'go'){
+      if (moveAlong(gs, dt, 190)){
+        const c = R.customers.find(c => c.id === gs.cid);
+        const o = c && seated(c) && c.order.find(o => !o.done && o.p === gs.carry);
+        if (o){
+          o.done = true; o.doneAt = now();
+          if (c.order.every(o => o.done)) pay(c); else SFX.serve();
+        } else if (R.tray.length < trayCap()) { R.tray.push(gs.carry); R.trayT.push(R.t); }
+        gs.carry = null; gs.cid = null; gs.state = 'back';
+        const home = garsonHome(gs.i), s = {x:gs.x, y:gs.y};
+        gs.path = [{x:s.x + 33, y:s.y}, {x:s.x + 33, y:AISLE}, {x:home.x, y:AISLE}, home];
+      }
+    } else if (gs.state === 'back'){
+      if (moveAlong(gs, dt, 190)){ gs.state = 'idle'; gs.flip = false; }
+    }
+  }
+
+  // Müşteriler
+  for (const c of [...R.customers]){
+    if (c.state === 'in'){
+      if (moveAlong(c, dt, 150)){ c.state = 'seated'; c.flip = false; }
+    } else if (c.state === 'out'){
+      if (moveAlong(c, dt, 150)) R.customers = R.customers.filter(x => x !== c);
+    } else {
+      c.patience -= dt;
+      if (c.patience <= 0){
+        c.patience = 0;
+        const penalty = c.special === 'vip' || c.special === 'influencer' ? 10 : 4;
+        const s = SLOTS[c.seat];
+        floatText(s.x, s.y - 100, `💢 -${penalty}⭐`, '#ff6b5e');
+        S.rep = Math.max(0, S.rep - penalty);
+        R.stats.lost++;
+        bump('#rep', 'shake');
+        SFX.angry();
+        leave(c, 'angry');
+      }
+    }
+  }
+}
+
+function endDay(){
+  status = 'closed';
+  SFX.dayEnd();
+  const rent = 10 * S.day;
+  S.money = Math.max(0, S.money - rent);
+  const st = R.stats;
+  showModal(`
+    <h2>🌙 ${S.day}. gün bitti!</h2>
+    ${R.dayEvent ? `<p class="hint">Günün olayı: ${R.dayEvent.emoji} ${R.dayEvent.name}</p>` : ''}
+    <table>
+      <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
+      <tr><td>Kızıp giden müşteri</td><td>${st.lost}</td></tr>
+      <tr><td>Satış</td><td>₺${fmt(st.earned)}</td></tr>
+      <tr><td>Bahşiş</td><td>₺${fmt(st.tips)}</td></tr>
+      <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
+      <tr><td><b>Net kâr</b></td><td>₺${fmt(st.earned + st.tips - rent)}</td></tr>
+    </table>
+    <p class="hint">Dükkân kapalıyken geliştirme satın alabilirsin.</p>
+    <button class="big" id="modalOk">Tamam</button>`);
+  S.day++;
+  newDay();
+  save();
+}
+
+// =====================================================================
+//                              ÇİZİM
+// =====================================================================
+const scene = $('#scene');
+const g = scene.getContext('2d');
+const EMOJI = '"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';
+const now = () => performance.now() / 1000;
+const tableBorn = {};      // yeni eklenen masanın "belirme" animasyonu
+let levelUpAt = -10;       // dükkân büyüyünce parlama
+let particles = [];
+
+function fitCanvas(c, ctx, w, h){
+  const dpr = window.devicePixelRatio || 1;
+  const k = c.clientWidth / w * dpr;
+  if (!k) return;
+  c.width = Math.round(w * k); c.height = Math.round(h * k);
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+}
+new ResizeObserver(() => fitCanvas(scene, g, W, H)).observe(scene);
+
+function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
+function ell(ctx, x, y, rx, ry){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
+function line(ctx, x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function emoji(ctx, ch, x, y, size){
+  ctx.font = `${size}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, x, y);
+}
+function mix(a, b, t){
+  const pa = a.match(/\w\w/g).map(h => parseInt(h, 16)), pb = b.match(/\w\w/g).map(h => parseInt(h, 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const easeBack = t => { const c = 1.7; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+
+// ---------- Mini insan ----------
+// o: {x, y(ayak), look, sit, walk(faz|null), mood, apron, bob, flip, scale, carry(emoji)}
+function drawPerson(ctx, o){
+  const L = o.look;
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  if (o.scale) ctx.scale(o.scale, o.scale);
+  const moving = o.walk != null;
+  const sw = moving ? Math.sin(o.walk) * 4 : 0;
+  const lift = moving ? -Math.abs(Math.sin(o.walk)) * 2 : (o.bob || 0);
+  const base = o.sit ? -6 : -18;        // gövdenin alt kenarı
+  const hy = base - 40;                 // kafa merkezi
+
+  if (!o.sit){
+    ctx.fillStyle = 'rgba(0,0,0,.22)'; ell(ctx, 0, 0, 14, 4); ctx.fill();
+  }
+  ctx.translate(0, lift);
+  if (o.flip) ctx.scale(-1, 1);
+
+  if (!o.sit){
+    ctx.fillStyle = L.suit ? '#1d1d2b' : '#3a3346';
+    rr(ctx, -9, -18 - Math.max(0, sw), 7, 18, 3); ctx.fill();
+    rr(ctx, 2, -18 - Math.max(0, -sw), 7, 18, 3); ctx.fill();
+    ctx.fillStyle = '#1f1a17';
+    rr(ctx, -10, -4 - Math.max(0, sw), 9, 5, 2); ctx.fill();
+    rr(ctx, 1, -4 - Math.max(0, -sw), 9, 5, 2); ctx.fill();
+  }
+
+  // uzun saç (arka)
+  if (L.style === 1){ ctx.fillStyle = L.hair; rr(ctx, -15, hy - 4, 30, 28, 9); ctx.fill(); }
+
+  // kollar
+  const arm = (side, ang) => {
+    ctx.save(); ctx.translate(side * 13, base - 25); ctx.rotate(ang);
+    ctx.fillStyle = L.shirt; rr(ctx, -3, 0, 6, 17, 3); ctx.fill();
+    ctx.fillStyle = L.skin; ell(ctx, 0, 18, 3.5, 3.5); ctx.fill();
+    ctx.restore();
+  };
+  arm(-1, moving ? sw * 0.08 : 0.1);
+  if (o.carry || L.prop === 'phone') arm(1, -2.5); else arm(1, moving ? -sw * 0.08 : -0.1);
+
+  // gövde
+  ctx.fillStyle = L.shirt; rr(ctx, -12, base - 28, 24, 28, 7); ctx.fill();
+  if (L.vest){ ctx.fillStyle = '#26262e'; rr(ctx, -12, base - 26, 7, 26, 4); ctx.fill(); rr(ctx, 5, base - 26, 7, 26, 4); ctx.fill();
+    ctx.fillStyle = '#b3202b'; ell(ctx, -3, base - 26, 3, 2); ctx.fill(); ell(ctx, 3, base - 26, 3, 2); ctx.fill(); }
+  if (L.suit){ ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-6, base - 28); ctx.lineTo(0, base - 18); ctx.lineTo(6, base - 28); ctx.fill();
+    ctx.fillStyle = '#e8b923'; ctx.fillRect(-1.5, base - 24, 3, 12); }
+  if (o.apron){ ctx.fillStyle = '#fbf6ee'; rr(ctx, -9, base - 20, 18, 22, 3); ctx.fill();
+    ctx.strokeStyle = '#fbf6ee'; ctx.lineWidth = 2; line(ctx, -7, base - 20, -9, base - 28); line(ctx, 7, base - 20, 9, base - 28); }
+  if (L.prop === 'camera'){ ctx.fillStyle = '#222'; rr(ctx, -6, base - 16, 12, 8, 2); ctx.fill(); ctx.fillStyle = '#6cf'; ell(ctx, 0, base - 12, 2.5, 2.5); ctx.fill(); }
+
+  // kafa
+  ctx.fillStyle = L.skin;
+  ell(ctx, -14, hy + 2, 3, 4); ctx.fill(); ell(ctx, 14, hy + 2, 3, 4); ctx.fill();
+  ell(ctx, 0, hy, 14, 14); ctx.fill();
+  if (o.mood === 'angry'){ ctx.fillStyle = 'rgba(255,40,40,.18)'; ell(ctx, 0, hy, 14, 14); ctx.fill(); }
+
+  // saç (ön)
+  ctx.fillStyle = L.hair;
+  const cap = () => { ctx.beginPath(); ctx.arc(0, hy - 1, 15, Math.PI, Math.PI * 2); ctx.fill(); };
+  if (L.style === 0) cap();
+  if (L.style === 1){ cap(); rr(ctx, -15, hy - 2, 5, 20, 3); ctx.fill(); rr(ctx, 10, hy - 2, 5, 20, 3); ctx.fill(); }
+  if (L.style === 2){ ell(ctx, -13, hy - 3, 3, 5); ctx.fill(); ell(ctx, 13, hy - 3, 3, 5); ctx.fill(); }
+  if (L.style === 3){ cap(); ell(ctx, 0, hy - 17, 7, 7); ctx.fill(); }
+  if (L.style === 4){ for (let a = 0; a <= 6; a++){ const t = Math.PI + a / 6 * Math.PI; ell(ctx, Math.cos(t) * 12, hy - 2 + Math.sin(t) * 12, 6, 6); ctx.fill(); } }
+
+  // yüz
+  ctx.fillStyle = '#2a1a12';
+  ell(ctx, -5, hy + 2, 2, 2.4); ctx.fill(); ell(ctx, 5, hy + 2, 2, 2.4); ctx.fill();
+  ctx.fillStyle = 'rgba(255,120,120,.35)'; ell(ctx, -8.5, hy + 7, 3, 2); ctx.fill(); ell(ctx, 8.5, hy + 7, 3, 2); ctx.fill();
+  if (L.beard){ ctx.fillStyle = L.hair === '#9b9b9b' ? '#777' : L.hair; ell(ctx, 0, hy + 6, 6, 2.2); ctx.fill(); }
+  ctx.strokeStyle = '#2a1a12'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  if (o.mood === 'angry'){
+    ctx.beginPath(); ctx.arc(0, hy + 13, 4, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke();
+    line(ctx, -8, hy - 3, -3, hy - 1); line(ctx, 8, hy - 3, 3, hy - 1);
+  } else if (o.mood === 'neutral'){
+    line(ctx, -3, hy + 9.5, 3, hy + 9.5);
+  } else {
+    ctx.beginPath(); ctx.arc(0, hy + 6.5, 4, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+  }
+
+  // şapkalar
+  if (L.hat === 'crown'){
+    ctx.fillStyle = '#f5c518';
+    ctx.beginPath(); ctx.moveTo(-10, hy - 12); ctx.lineTo(-10, hy - 24); ctx.lineTo(-5, hy - 18); ctx.lineTo(0, hy - 27);
+    ctx.lineTo(5, hy - 18); ctx.lineTo(10, hy - 24); ctx.lineTo(10, hy - 12); ctx.closePath(); ctx.fill();
+  }
+  if (L.hat === 'sun'){
+    ctx.fillStyle = '#e3c27a'; ell(ctx, 0, hy - 9, 22, 5); ctx.fill(); ell(ctx, 0, hy - 13, 12, 8); ctx.fill();
+    ctx.fillStyle = '#c0392b'; ctx.fillRect(-12, hy - 12, 24, 3);
+  }
+
+  // eldeki eşyalar
+  if (o.carry){
+    ctx.fillStyle = '#cfd3d8'; ell(ctx, 24, base - 41, 13, 3.5); ctx.fill();
+    if (o.flip){ ctx.save(); ctx.scale(-1, 1); emoji(ctx, o.carry, -24, base - 52, 16); ctx.restore(); }
+    else emoji(ctx, o.carry, 24, base - 52, 16);
+  } else if (L.prop === 'phone'){
+    ctx.fillStyle = '#222'; rr(ctx, 25, base - 46, 7, 12, 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------- Oda ----------
+function drawRoom(frac){
+  const L = lv('dukkan'), RW = rightWall(), D = lv('dekor');
+
+  // Dış alan (henüz kiralanmamış kısım)
+  g.fillStyle = '#3b2a21'; g.fillRect(0, 0, W, H);
+  if (RW < W){
+    g.strokeStyle = '#2a1d16'; g.lineWidth = 2;
+    for (let y = 0, r = 0; y < H; y += 22, r++){
+      line(g, RW, y, W, y);
+      for (let x = RW + (r % 2 ? 0 : 22); x < W; x += 44) line(g, x, y, x, y + 22);
+    }
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(RW, 0, W - RW, H);
+    g.fillStyle = '#c9b39a'; g.font = `bold 15px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('🔒 Burası henüz senin değil', (RW + W) / 2, 250);
+    g.font = '13px system-ui'; g.fillText('Dükkânı büyütünce açılır', (RW + W) / 2, 272);
+  }
+
+  // Zemin
+  g.save(); g.beginPath(); g.rect(0, FLOOR, RW, H - FLOOR); g.clip();
+  if (L === 0){
+    g.fillStyle = '#8b5a35'; g.fillRect(0, FLOOR, RW, H);
+    g.strokeStyle = '#6e4527'; g.lineWidth = 2;
+    for (let y = FLOOR, r = 0; y < H; y += 26, r++){ line(g, 0, y, RW, y); for (let x = (r * 57) % 120; x < RW; x += 120) line(g, x, y, x, y + 26); }
+  } else if (L === 1){
+    for (let y = FLOOR, r = 0; y < H; y += 40, r++) for (let x = 0, c = 0; x < RW; x += 40, c++){
+      g.fillStyle = (r + c) % 2 ? '#3f3a36' : '#ddd3c1'; g.fillRect(x, y, 40, 40);
+    }
+  } else if (L === 2){
+    for (let y = FLOOR, r = 0; y < H; y += 36, r++) for (let x = 0, c = 0; x < RW; x += 36, c++){
+      const alt = (r + c) % 2;
+      g.fillStyle = alt ? '#9a6538' : '#b07a45'; g.fillRect(x, y, 36, 36);
+      g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1;
+      for (let k = 1; k < 3; k++) alt ? line(g, x + k * 12, y, x + k * 12, y + 36) : line(g, x, y + k * 12, x + 36, y + k * 12);
+    }
+  } else {
+    g.fillStyle = '#ece7df'; g.fillRect(0, FLOOR, RW, H);
+    g.strokeStyle = 'rgba(140,125,110,.35)'; g.lineWidth = 1.2;
+    for (let i = 0; i < 22; i++){
+      const x0 = (i * 137) % RW, y0 = FLOOR + (i * 89) % (H - FLOOR);
+      g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + 30, y0 + 12, x0 + 65, y0 - 6); g.stroke();
+    }
+    g.strokeStyle = '#cbc2b4'; g.lineWidth = 1.5;
+    for (let y = FLOOR; y < H; y += 70) line(g, 0, y, RW, y);
+    for (let x = 0; x < RW; x += 70) line(g, x, FLOOR, x, H);
+  }
+  // Halı
+  if (D >= 3){
+    const x = 320, y = 268, w = Math.min(RW - 20, 900) - x, h = 238;
+    g.fillStyle = '#8e2b2b'; rr(g, x, y, w, h, 6); g.fill();
+    g.strokeStyle = '#e6c98f'; g.lineWidth = 3; rr(g, x + 8, y + 8, w - 16, h - 16, 4); g.stroke();
+    g.fillStyle = 'rgba(230,201,143,.35)';
+    for (let k = x + 30; k < x + w - 20; k += 40){ g.beginPath(); g.moveTo(k, y + 20); g.lineTo(k + 8, y + 28); g.lineTo(k, y + 36); g.lineTo(k - 8, y + 28); g.fill(); }
+  }
+  const sh = g.createLinearGradient(0, FLOOR, 0, FLOOR + 45);
+  sh.addColorStop(0, 'rgba(0,0,0,.3)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = sh; g.fillRect(0, FLOOR, RW, 45);
+  g.restore();
+
+  // Duvar
+  g.save(); g.beginPath(); g.rect(0, 0, RW, FLOOR); g.clip();
+  g.fillStyle = ['#d8c3a0', '#efe3c6', '#7b2f2f', '#22344a'][L]; g.fillRect(0, 0, RW, FLOOR);
+  if (L === 0){ g.fillStyle = 'rgba(0,0,0,.05)'; for (let i = 0; i < 8; i++){ ell(g, (i * 173) % RW, 30 + (i * 61) % 120, 18, 10); g.fill(); } }
+  if (L === 1){ g.fillStyle = '#3e6b4f'; g.fillRect(0, 135, RW, 65); g.strokeStyle = '#2d5039'; g.lineWidth = 2;
+    for (let x = 0; x < RW; x += 60) g.strokeRect(x + 8, 145, 44, 45); }
+  if (L === 2){ g.fillStyle = 'rgba(255,210,120,.16)';
+    for (let y = 12, r = 0; y < 130; y += 24, r++) for (let x = (r % 2) * 16; x < RW; x += 32){ g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x + 5, y); g.lineTo(x, y + 5); g.lineTo(x - 5, y); g.fill(); }
+    g.fillStyle = '#4a2a1a'; g.fillRect(0, 135, RW, 65); }
+  if (L === 3){ g.fillStyle = '#1a2838'; g.fillRect(0, 135, RW, 65);
+    g.fillStyle = 'rgba(201,161,74,.22)'; for (let x = 20; x < RW; x += 160) g.fillRect(x, 14, 10, 121);
+    g.strokeStyle = '#c9a14a'; g.lineWidth = 3; line(g, 0, 14, RW, 14); line(g, 0, 135, RW, 135); }
+
+  // Pencereler (gün ilerledikçe gökyüzü kararır)
+  const sky = frac < 0.6 ? '#8fd0f5' : frac < 0.85 ? mix('#8fd0f5', '#f5a15a', (frac - 0.6) / 0.25) : mix('#f5a15a', '#33406a', Math.min(1, (frac - 0.85) / 0.15));
+  const n = [1, 2, 3, 3][L], x0 = 300, x1 = RW - 190, ww = 100;
+  const gap = (x1 - x0 - n * ww) / (n + 1);
+  for (let i = 0; i < n; i++){
+    const wx = x0 + gap + i * (ww + gap), wy = 28, wh = 85;
+    g.fillStyle = '#5a3a22'; g.fillRect(wx - 6, wy - 6, ww + 12, wh + 12);
+    g.fillStyle = sky; g.fillRect(wx, wy, ww, wh);
+    g.fillStyle = 'rgba(40,40,60,.35)'; g.fillRect(wx, wy + wh - 22, 28, 22); g.fillRect(wx + 34, wy + wh - 32, 30, 32); g.fillRect(wx + 70, wy + wh - 18, 30, 18);
+    g.strokeStyle = '#5a3a22'; g.lineWidth = 4; line(g, wx + ww / 2, wy, wx + ww / 2, wy + wh); line(g, wx, wy + wh / 2, wx + ww, wy + wh / 2);
+    g.fillStyle = '#6b4428'; g.fillRect(wx - 10, wy + wh + 4, ww + 20, 7);
+    if (L >= 2){ g.fillStyle = L === 3 ? '#7a1f2b' : '#b8483a';
+      g.beginPath(); g.moveTo(wx - 10, wy - 8); g.lineTo(wx + 18, wy - 8); g.lineTo(wx - 2, wy + wh + 4); g.lineTo(wx - 10, wy + wh + 4); g.fill();
+      g.beginPath(); g.moveTo(wx + ww + 10, wy - 8); g.lineTo(wx + ww - 18, wy - 8); g.lineTo(wx + ww + 2, wy + wh + 4); g.lineTo(wx + ww + 10, wy + wh + 4); g.fill(); }
+  }
+
+  // Tablo
+  if (D >= 2){
+    const fx = RW - 172, fy = 36;
+    g.fillStyle = '#c9a14a'; g.fillRect(fx - 4, fy - 4, 56, 66);
+    g.fillStyle = '#9fd3f5'; g.fillRect(fx, fy, 48, 58);
+    g.fillStyle = '#4c8c4a'; g.beginPath(); g.moveTo(fx, fy + 58); g.quadraticCurveTo(fx + 20, fy + 25, fx + 48, fy + 45); g.lineTo(fx + 48, fy + 58); g.fill();
+    g.fillStyle = '#fff3b0'; ell(g, fx + 36, fy + 14, 6, 6); g.fill();
+  }
+  // Duvar saati
+  const cx = RW - 70, cy = 72;
+  g.fillStyle = '#5a3a22'; ell(g, cx, cy, 30, 30); g.fill();
+  g.fillStyle = '#fbf6ee'; ell(g, cx, cy, 25, 25); g.fill();
+  const mins = 8 * 60 + frac * 12 * 60;
+  g.strokeStyle = '#2a1a12'; g.lineCap = 'round';
+  const ha = (mins / 60 % 12) / 12 * Math.PI * 2 - Math.PI / 2, ma = (mins % 60) / 60 * Math.PI * 2 - Math.PI / 2;
+  g.lineWidth = 3; line(g, cx, cy, cx + Math.cos(ha) * 12, cy + Math.sin(ha) * 12);
+  g.lineWidth = 2; line(g, cx, cy, cx + Math.cos(ma) * 19, cy + Math.sin(ma) * 19);
+  // Nazar boncuğu
+  if (D >= 5){ [['#1f4fa3', 11], ['#fff', 7], ['#5fb3f0', 4.5], ['#111', 2.2]].forEach(([c, r]) => { g.fillStyle = c; ell(g, RW - 26, 150, r, r); g.fill(); }); }
+
+  // Raf ve bardaklar
+  g.fillStyle = '#6b4428'; g.fillRect(28, 112, 244, 7);
+  for (let i = 0; i < 8; i++){
+    const x = 44 + i * 28;
+    g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(x - 6, 92); g.lineTo(x + 6, 92); g.lineTo(x + 3, 112); g.lineTo(x - 3, 112); g.fill();
+    g.fillStyle = '#b5481c'; g.beginPath(); g.moveTo(x - 5, 98); g.lineTo(x + 5, 98); g.lineTo(x + 3, 111); g.lineTo(x - 3, 111); g.fill();
+  }
+  if (L >= 2){ g.fillStyle = '#6b4428'; g.fillRect(28, 172, 244, 7);
+    ['#d35400', '#7f8c8d', '#27ae60', '#c0392b'].forEach((c, i) => { g.fillStyle = c; rr(g, 44 + i * 60, 148, 26, 24, 5); g.fill(); g.fillStyle = '#ddd'; g.fillRect(44 + i * 60, 145, 26, 5); }); }
+
+  // Tabela
+  drawSign();
+
+  // Sarkıt lambalar / avize
+  if (D >= 4){
+    COLS.filter(x => x < RW - 60).forEach(x => {
+      g.strokeStyle = '#222'; g.lineWidth = 1.5; line(g, x, 0, x, 42);
+      const gl = g.createRadialGradient(x, 52, 2, x, 52, 60); gl.addColorStop(0, 'rgba(255,214,130,.55)'); gl.addColorStop(1, 'rgba(255,214,130,0)');
+      g.fillStyle = gl; g.fillRect(x - 60, 0, 120, 120);
+      g.fillStyle = L === 3 ? '#c9a14a' : '#2d5039'; g.beginPath(); g.moveTo(x - 6, 42); g.lineTo(x + 6, 42); g.lineTo(x + 14, 56); g.lineTo(x - 14, 56); g.fill();
+      g.fillStyle = '#ffe9a8'; ell(g, x, 57, 5, 3); g.fill();
+    });
+  }
+  g.restore();
+
+  // Sağ duvar ve kapı
+  g.fillStyle = '#4a3020'; g.fillRect(RW - 8, 0, 10, DOOR_TOP);
+  g.fillStyle = '#6b4428'; g.fillRect(RW - 14, DOOR_TOP - 6, 22, 8);
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(RW + 2, DOOR_TOP, 8, H - DOOR_TOP);
+}
+
+function drawSign(){
+  const t = lv('tabela'), name = owner().shopName;
+  const x = 24, y = 20, w = 252, h = 62;
+  g.fillStyle = '#3a2416'; rr(g, x, y, w, h, 8); g.fill();
+  g.strokeStyle = '#c9a14a'; g.lineWidth = 2; rr(g, x + 4, y + 4, w - 8, h - 8, 6); g.stroke();
+  let size = 26;
+  g.font = `bold ${size}px Georgia, serif`;
+  while (g.measureText(name).width > w - 24 && size > 12){ size--; g.font = `bold ${size}px Georgia, serif`; }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (t > 0){
+    const col = ['#ffd36b', '#ff6bd6', '#6be3ff', '#7bff8a', '#ff8a5c'][t - 1];
+    const flicker = t >= 2 && Math.sin(now() * 7) > 0.97 ? 0.4 : 1;
+    g.shadowColor = col; g.shadowBlur = (8 + t * 5) * flicker; g.fillStyle = col;
+  } else g.fillStyle = '#f6ead8';
+  g.fillText(name, x + w / 2, y + h / 2 + 1);
+  g.shadowBlur = 0;
+  if (t >= 3){
+    for (let i = 0; i < 14; i++){
+      const on = (Math.floor(now() * 4) + i) % 2;
+      g.fillStyle = on ? '#fff3b0' : '#a0884a';
+      ell(g, x + 8 + i * (w - 16) / 13, y - 4, 2.5, 2.5); g.fill();
+      ell(g, x + 8 + i * (w - 16) / 13, y + h + 4, 2.5, 2.5); g.fill();
+    }
+  }
+}
+
+// ---------- Tezgâh ----------
+function drawCounter(){
+  const L = lv('dukkan'), t = now();
+  // Tezgâh arkasındakiler
+  for (let i = 0; i < lv('cirak'); i++){
+    const busy = !!R.helpers[i];
+    drawPerson(g, {x:CIRAK_X[i], y:282, look:CIRAK_LOOKS[i], apron:true, mood:'happy', bob:busy ? Math.sin(t * 14 + i) * 1.5 : 0});
+  }
+  const ownerBusy = R.queue.length > 0;
+  drawPerson(g, {x:128, y:282, look:owner(), apron:true, mood:'happy', bob:ownerBusy ? Math.sin(t * 14) * 1.5 : 0});
+
+  // Tezgâh
+  g.fillStyle = ['#a0703f', '#b98a55', '#6b3e22', '#e9e4dc'][L]; rr(g, 14, 247, 268, 17, 4); g.fill();
+  g.fillStyle = ['#7a4f2b', '#8a5a30', '#4a2a16', '#2a3b4f'][L]; g.fillRect(18, 263, 260, 70);
+  g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 2;
+  for (let x = 30; x < 270; x += 62) g.strokeRect(x, 272, 50, 52);
+  if (L === 3){ g.strokeStyle = '#c9a14a'; line(g, 18, 265, 278, 265); }
+  // Sahibin isim plaketi
+  g.fillStyle = '#c9a14a'; rr(g, 98, 287, 100, 20, 4); g.fill();
+  g.fillStyle = '#2b1d14'; g.font = 'bold 11px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(owner().name.slice(0, 16), 148, 297.5);
+
+  // Semaver
+  const sl = lv('semaver'), sh = 34 + sl * 3, col = sl >= 4 ? '#d9d9e0' : '#c9a14a';
+  const sx = 245, top = 250 - 8 - sh;
+  g.fillStyle = '#3a2416'; rr(g, sx - 15, 242, 30, 8, 3); g.fill();
+  g.fillStyle = col; rr(g, sx - 13, top, 26, sh, 9); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.35)'; rr(g, sx - 9, top + 5, 4, sh - 10, 2); g.fill();
+  g.fillStyle = '#333'; g.fillRect(sx + 12, 230, 6, 3);
+  g.fillStyle = '#c0392b'; ell(g, sx, top - 6, 9, 7); g.fill(); ell(g, sx, top - 13, 3, 2); g.fill();
+  R.steamTop = top - 10;
+
+  // Tepsideki ürünler tezgâhın üstünde
+  R.tray.forEach((p, i) => {
+    const age = R.t - R.trayT[i], k = age < 0.35 ? easeBack(Math.max(0, age / 0.35)) : 1;
+    g.save(); g.translate(34 + i * 22, 243); g.scale(k, k); emoji(g, P[p].emoji, 0, 0, 17); g.restore();
+  });
+}
+
+// ---------- Masa ----------
+const CHAIR = ['#6b4428', '#5a3a22', '#4a2a16', '#2a3b4f'];
+function drawTable(i, c){
+  const s = SLOTS[i], L = lv('dukkan'), t = now();
+  let k = 1;
+  if (tableBorn[i] != null){ const a = (t - tableBorn[i]) / 0.6; if (a < 1) k = easeBack(Math.max(0.01, a)); else delete tableBorn[i]; }
+  g.save(); g.translate(s.x, s.y); g.scale(k, k);
+  if (c && canServe(c)){ g.fillStyle = `rgba(108,192,112,${0.25 + Math.sin(t * 6) * 0.1})`; ell(g, 0, 8, 56, 22); g.fill(); }
+  // sandalye
+  g.fillStyle = CHAIR[L]; rr(g, -17, -60, 34, 44, 7); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.08)'; rr(g, -12, -55, 24, 30, 5); g.fill();
+  // oturan müşteri
+  if (c && c.state === 'seated'){
+    const ratio = c.patience / c.max;
+    const mood = c.leaving ? c.leaving.mood : ratio > 0.5 ? 'happy' : ratio > 0.25 ? 'neutral' : 'angry';
+    const shake = ratio < 0.25 ? Math.sin(t * 40) * 1.2 : 0;
+    drawPerson(g, {x:shake, y:-6, sit:true, look:c.look, mood});
+  }
+  // masa
+  g.fillStyle = '#2a1d16'; g.fillRect(-4, 0, 8, 24); ell(g, 0, 24, 14, 4); g.fill();
+  g.fillStyle = 'rgba(0,0,0,.25)'; ell(g, 0, 4, 42, 15); g.fill();
+  g.fillStyle = ['#a0703f', '#c0392b', '#f3ead6', '#f4f1ec'][L]; ell(g, 0, 0, 42, 14); g.fill();
+  if (L === 1){ g.fillStyle = '#fff'; for (let a = -36; a < 36; a += 12) { ell(g, a + 6, 0, 3, 3); g.fill(); } }
+  if (L === 3){ g.strokeStyle = '#c9a14a'; g.lineWidth = 2; ell(g, 0, 0, 42, 14); g.stroke(); }
+  if (L === 0){ g.strokeStyle = 'rgba(0,0,0,.2)'; g.lineWidth = 1; ell(g, 0, 0, 30, 9); g.stroke(); }
+  // teslim edilenler masada
+  if (c && c.state === 'seated'){
+    const done = c.order.filter(o => o.done);
+    done.forEach((o, j) => {
+      const age = t - o.doneAt, kk = age < 0.35 ? easeBack(Math.max(0.01, age / 0.35)) : 1;
+      g.save(); g.translate((j - (done.length - 1) / 2) * 20, -3); g.scale(kk, kk); emoji(g, P[o.p].emoji, 0, 0, 15); g.restore();
+    });
+  }
+  g.restore();
+}
+
+function drawBubble(c){
+  const s = SLOTS[c.seat], rem = c.order.filter(o => !o.done);
+  if (!rem.length) return;
+  const w = rem.length * 26 + 14, h = 32, x = s.x - w / 2, y = s.y - 118;
+  const can = canServe(c);
+  g.fillStyle = '#fffaf0'; g.strokeStyle = can ? '#4caf50' : 'rgba(0,0,0,.3)'; g.lineWidth = can ? 3 : 1.5;
+  rr(g, x, y, w, h, 10); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(s.x - 6, y + h - 1); g.lineTo(s.x, y + h + 8); g.lineTo(s.x + 6, y + h - 1); g.closePath(); g.fill();
+  rem.forEach((o, j) => emoji(g, P[o.p].emoji, x + 20 + j * 26, y + h / 2 + 1, 18));
+  // sabır çubuğu
+  const ratio = Math.max(0, c.patience / c.max);
+  g.fillStyle = 'rgba(0,0,0,.45)'; rr(g, x + 2, y - 9, w - 4, 6, 3); g.fill();
+  g.fillStyle = `hsl(${ratio * 120},75%,50%)`; rr(g, x + 2, y - 9, (w - 4) * ratio, 6, 3); g.fill();
+  if (c.special && c.special !== 'turist'){
+    const label = c.special === 'vip' ? '👑 VIP' : '📸 Influencer';
+    g.font = `bold 12px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const lw = g.measureText(label).width + 14;
+    g.fillStyle = c.special === 'vip' ? '#ffd54a' : '#d36cff'; rr(g, s.x - lw / 2, y - 28, lw, 17, 8); g.fill();
+    g.fillStyle = c.special === 'vip' ? '#2b1d14' : '#fff'; g.fillText(label, s.x, y - 19);
+  }
+}
+
+function drawPlant(x, y, big){
+  g.fillStyle = 'rgba(0,0,0,.2)'; ell(g, x, y, 16, 5); g.fill();
+  g.fillStyle = '#b5562d'; g.beginPath(); g.moveTo(x - 13, y - 26); g.lineTo(x + 13, y - 26); g.lineTo(x + 9, y); g.lineTo(x - 9, y); g.fill();
+  g.fillStyle = '#2f8a4a';
+  const leaves = big ? 7 : 5;
+  for (let i = 0; i < leaves; i++){
+    const a = -Math.PI / 2 + (i - (leaves - 1) / 2) * 0.45 + Math.sin(now() * 1.5 + i) * 0.04;
+    g.save(); g.translate(x, y - 26); g.rotate(a); ell(g, 0, -18, 6, 18); g.fill(); g.restore();
+  }
+}
+
+// ---------- Efektler ----------
+function floatText(x, y, text, color, delay = 0){
+  particles.push({type:'text', x, y, vy:-45, life:1.2, max:1.2, text, color, delay});
+}
+function coins(x, y, n){
+  for (let i = 0; i < n; i++) particles.push({type:'emoji', x, y, vx:rand(-70, 70), vy:rand(-220, -150), g:420, life:0.9, max:0.9, text:'🪙', size:16, delay:i * 0.04});
+}
+function confetti(){
+  for (let i = 0; i < 40; i++) particles.push({type:'emoji', x:rand(80, rightWall() - 40), y:rand(-40, 0), vx:rand(-30, 30), vy:rand(40, 140), g:60, life:2.2, max:2.2,
+    text:pick(['🎉', '✨', '🎊', '⭐']), size:rand(14, 22), delay:rand(0, 0.6)});
+}
+function puff(x, y){ particles.push({type:'puff', x:x + rand(-3, 3), y, vx:rand(-6, 6), vy:-28, life:1.3, max:1.3, r:4}); }
+
+function updateParticles(dt){
+  for (const p of particles){
+    if (p.delay > 0){ p.delay -= dt; continue; }
+    p.life -= dt; p.x += (p.vx || 0) * dt; p.y += p.vy * dt;
+    if (p.g) p.vy += p.g * dt;
+    if (p.type === 'puff') p.r += dt * 9;
+  }
+  particles = particles.filter(p => p.life > 0);
+}
+function drawParticles(){
+  for (const p of particles){
+    if (p.delay > 0) continue;
+    const a = Math.min(1, p.life / p.max * 1.6);
+    g.globalAlpha = a;
+    if (p.type === 'text'){
+      g.font = `900 22px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeText(p.text, p.x, p.y);
+      g.fillStyle = p.color; g.fillText(p.text, p.x, p.y);
+    } else if (p.type === 'emoji'){
+      emoji(g, p.text, p.x, p.y, p.size);
+    } else {
+      g.globalAlpha = a * 0.5; g.fillStyle = '#fff'; ell(g, p.x, p.y, p.r, p.r); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+}
+
+function bump(sel, cls){
+  const el = $(sel); el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+}
+let toastTimer;
+function toast(msg){
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+}
+
+// ---------- Sahneyi çiz ----------
+function drawScene(){
+  const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
+  drawRoom(frac);
+
+  // Derinliğe göre sıralanan nesneler (aşağıdakiler önde)
+  const items = [];
+  items.push({y:333, draw:drawCounter});
+  const seatedBy = {};
+  R.customers.forEach(c => { if (c.state === 'seated') seatedBy[c.seat] = c; });
+  for (let i = 0; i < numTables(); i++) items.push({y:SLOTS[i].y + 5, draw:() => drawTable(i, seatedBy[i])});
+  R.customers.forEach(c => {
+    if (c.state === 'seated') return;
+    const mood = c.leaving ? c.leaving.mood : 'happy';
+    items.push({y:c.y, draw:() => {
+      drawPerson(g, {x:c.x, y:c.y, look:c.look, walk:c.walk, flip:c.flip, mood});
+      if (c.leaving) emoji(g, c.leaving.mood === 'happy' ? '😋' : '💢', c.x + 16, c.y - 82, 16);
+    }});
+  });
+  R.garsons.forEach(gs => items.push({y:gs.y, draw:() =>
+    drawPerson(g, {x:gs.x, y:gs.y, look:GARSON_LOOKS[gs.i], walk:gs.state === 'idle' ? null : gs.walk, flip:gs.flip, mood:'happy',
+                   carry:gs.carry ? P[gs.carry].emoji : null})}));
+  const D = lv('dekor');
+  if (D >= 1) items.push({y:236, draw:() => drawPlant(rightWall() - 34, 236, D >= 3)});
+  if (D >= 5) items.push({y:530, draw:() => drawPlant(36, 530, true)});
+  items.sort((a, b) => a.y - b.y).forEach(it => it.draw());
+
+  R.customers.filter(seated).forEach(drawBubble);
+  drawParticles();
+
+  // Dükkân büyüyünce parlama
+  const lu = now() - levelUpAt;
+  if (lu < 0.8){ g.fillStyle = `rgba(255,240,200,${(1 - lu / 0.8) * 0.7})`; g.fillRect(0, 0, W, H); }
+  if (status !== 'running'){ g.fillStyle = 'rgba(10,14,30,.35)'; g.fillRect(0, 0, W, H); }
+}
+
+// ---------- Arayüz (DOM) ----------
+function renderUI(){
+  $('#money').textContent = '₺' + fmt(S.money);
+  $('#rep').textContent = '⭐ ' + Math.round(S.rep);
+  $('#day').textContent = 'Gün ' + S.day;
+  $('#shopTitle').textContent = '🍵 ' + owner().shopName;
+  $('#ownerBtn').textContent = '👤 ' + owner().name;
+  $('#levelName').textContent = '— ' + shopLevel().name;
+  const frac = Math.min(1, R.t / DAY_LEN);
+  $('#clockfill').style.width = frac * 100 + '%';
+  const mins = 8 * 60 + Math.floor(frac * 12 * 60);
+  $('#time').textContent = String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#closedOverlay').hidden = status === 'running';
+  $('#openBtn').textContent = `☀️ Dükkânı Aç (Gün ${S.day})`;
+
+  const room = hasRoom() && R.queue.length < 5;
+  $('#products').innerHTML = PRODUCTS.filter(p => S.unlocked.includes(p.id)).map((p, i) =>
+    `<button class="prod${room ? '' : ' full'}" data-prod="${p.id}"><kbd>${i + 1}</kbd><span class="em">${p.emoji}</span>
+     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span> · ${prepTime(p.id).toFixed(1)} sn</small></button>`).join('');
+
+  let ev = '';
+  if (status === 'running'){
+    if (R.dayEvent) ev += `<span class="ev">${R.dayEvent.emoji} <b>${R.dayEvent.name}</b> <small>bütün gün</small></span>`;
+    R.effects.forEach(e => ev += `<span class="ev">${e.ev.emoji} <b>${e.ev.name}</b> <small>${Math.ceil(e.left)} sn</small></span>`);
+  }
+  $('#events').innerHTML = ev;
+  document.body.classList.toggle('blackout', status === 'running' && effect('elektrik'));
+
+  const chip = (p, prog, who) => `<span class="chip">${P[p].emoji}<span class="who">${who}</span><span class="prog" style="width:${Math.min(1, prog) * 100}%"></span></span>`;
+  let q = R.queue.map((x, i) => chip(x.p, i === 0 ? x.prog / prepTime(x.p) : 0, ''));
+  R.helpers.forEach(x => { if (x) q.push(chip(x.p, x.prog / prepTime(x.p), '🧒')); });
+  $('#queue').innerHTML = q.join('') || '<small class="hint" style="margin:8px">Ocak boş</small>';
+
+  $('#trayTitle').textContent = `Tepsi (${R.tray.length}/${trayCap()})`;
+  let t = R.tray.map((p, i) => `<span class="item" data-trash="${i}" title="Çöpe at">${P[p].emoji}</span>`).join('');
+  for (let i = R.tray.length; i < trayCap(); i++) t += '<span class="slot"></span>';
+  $('#tray').innerHTML = t;
+
+  // Mağaza
+  let s = '<h3>Dükkân</h3>';
+  const next = SHOP_LEVELS[lv('dukkan') + 1];
+  if (next){
+    const locked = S.day < next.day;
+    s += `<div class="shop-item hl"><div class="em">🏪</div>
+      <div class="info"><b>Büyüt: ${next.name}</b><small>${locked ? `${next.day}. günden itibaren açılır` : `${next.tables} masaya kadar yer, yeni görünüm, daha çok müşteri`}</small></div>
+      <button data-grow ${locked || S.money < next.cost ? 'disabled' : ''}>${locked ? '🔒 Gün ' + next.day : '₺' + fmt(next.cost)}</button></div>`;
+  } else {
+    s += `<div class="shop-item hl"><div class="em">🏆</div><div class="info"><b>${shopLevel().name}</b><small>Dükkânın en üst seviyede!</small></div></div>`;
+  }
+  const locked = PRODUCTS.filter(p => !S.unlocked.includes(p.id));
+  if (locked.length){
+    s += '<h3>Yeni Ürünler</h3>';
+    locked.forEach(p => s += `<div class="shop-item"><div class="em">${p.emoji}</div>
+      <div class="info"><b>${p.name}</b><small>Satış fiyatı ₺${p.price}</small></div>
+      <button data-unlock="${p.id}" ${S.money < p.cost ? 'disabled' : ''}>₺${fmt(p.cost)}</button></div>`);
+  }
+  s += '<h3>Geliştirmeler</h3>';
+  UPGRADES.forEach(u => {
+    const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
+    const desc = u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
+    s += `<div class="shop-item"><div class="em">${u.emoji}</div>
+      <div class="info"><b>${u.name} <span class="lvl">${l}/${m}</span></b><small>${desc}</small></div>
+      <button data-buy="${u.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
+  });
+  $('#shop').innerHTML = s;
+}
+
+// ---------- Sesler ----------
+let actx, muted = false;
+try { muted = localStorage.getItem('cayocagi-ses') === 'kapali'; } catch(e) {}
+function tone(freq, dur, {type = 'sine', vol = 0.08, delay = 0, to = null} = {}){
+  if (muted) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    const o = actx.createOscillator(), gn = actx.createGain();
+    const t0 = actx.currentTime + delay;
+    o.type = type; o.frequency.setValueAtTime(freq, t0);
+    if (to) o.frequency.exponentialRampToValueAtTime(to, t0 + dur);
+    gn.gain.setValueAtTime(vol, t0); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.connect(gn).connect(actx.destination); o.start(t0); o.stop(t0 + dur);
+  } catch(e) {}
+}
+const SFX = {
+  arrive:   () => { tone(1320, 0.5, {vol:0.05}); tone(990, 0.6, {vol:0.05, delay:0.15}); },
+  prepStart:() => tone(220, 0.05, {type:'square', vol:0.04}),
+  prepDone: () => tone(400, 0.12, {to:900, vol:0.07}),
+  serve:    () => tone(700, 0.08, {type:'triangle', vol:0.06}),
+  pay:      () => { tone(880, 0.25, {type:'triangle'}); tone(1320, 0.3, {type:'triangle', delay:0.08}); tone(1760, 0.3, {type:'triangle', vol:0.05, delay:0.16}); },
+  angry:    () => { tone(300, 0.45, {type:'sawtooth', to:110, vol:0.06}); tone(240, 0.45, {type:'sawtooth', to:90, vol:0.04, delay:0.05}); },
+  error:    () => { tone(150, 0.1, {type:'square', vol:0.05}); tone(150, 0.1, {type:'square', vol:0.05, delay:0.13}); },
+  buy:      () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, {type:'triangle', vol:0.06, delay:i * 0.07})),
+  build:    () => [0, 0.18, 0.36].forEach(d => { tone(180, 0.08, {type:'square', vol:0.06, delay:d}); tone(90, 0.1, {vol:0.08, delay:d}); }),
+  trash:    () => tone(500, 0.2, {to:120, vol:0.05}),
+  dayEnd:   () => [784, 659, 523, 392].forEach((f, i) => tone(f, 0.35, {vol:0.06, delay:i * 0.18})),
+  event:    () => { [523, 659, 784].forEach((f, i) => tone(f, 0.15, {type:'square', vol:0.04, delay:i * 0.1})); tone(1047, 0.5, {type:'square', vol:0.04, delay:0.3}); },
+  blackout: () => { tone(120, 0.6, {type:'sawtooth', to:40, vol:0.07}); tone(60, 0.3, {type:'square', vol:0.05, delay:0.1}); },
+  open:     () => [392, 523, 659, 784].forEach((f, i) => tone(f, 0.25, {type:'triangle', vol:0.06, delay:i * 0.1})),
+  levelUp:  () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, {type:'triangle', vol:0.07, delay:i * 0.09})),
+};
+
+// ---------- Modal ----------
+function showModal(html, wide){ $('#modalBox').innerHTML = html; $('#modalBox').classList.toggle('wide', !!wide); $('#modal').classList.add('show'); }
+function hideModal(){ $('#modal').classList.remove('show'); }
+const modalOpen = () => $('#modal').classList.contains('show');
+
+function showWelcome(){
+  showModal(`
+    <h2>🍵 Hoş geldin, ${esc(owner().name)}!</h2>
+    <p><b>${esc(owner().shopName)}</b> artık senin. Hedefin onu mahallenin en meşhur mekânına çevirmek!</p>
+    <ol>
+      <li>Müşteriler kapıdan girip masalara oturur, balonda siparişlerini görürsün.</li>
+      <li><b>Tezgâhtan</b> ürüne tıkla; hazırlanıp tepsiye düşer.</li>
+      <li><b>Müşteriye tıkla</b>, tepsideki ürünler servis edilir.</li>
+      <li>Kazancınla masa ekle, çırak ve garson tut, dekorasyon yap.</li>
+      <li>Günler geçtikçe <b>dükkânını büyütüp</b> Kıraathane'ye, Kafe'ye dönüştür!</li>
+    </ol>
+    <button class="big" id="modalOk">Hadi başlayalım!</button>`);
+}
+
+// ---------- Sahip düzenleyici ----------
+let draft = null, firstSetup = false;
+const pv = document.createElement('canvas');
+function openOwnerEditor(first){
+  firstSetup = first;
+  draft = Object.assign({}, owner());
+  const sw = (k, vals, label) => `<div class="field"><label>${label}</label><div class="sw">${vals.map(v =>
+    `<button data-k="${k}" data-v="${v}" class="${draft[k] === v ? 'on' : ''}" style="background:${v}"></button>`).join('')}</div></div>`;
+  const tx = (k, opts, label) => `<div class="field"><label>${label}</label><div class="sw">${opts.map(([v, t]) =>
+    `<button class="txt${draft[k] === v ? ' on' : ''}" data-k="${k}" data-v="${v}">${t}</button>`).join('')}</div></div>`;
+  showModal(`
+    <h2>👤 ${first ? 'Dükkânın sahibi kim?' : 'Dükkân Sahibi'}</h2>
+    <div class="editor">
+      <div id="pvWrap"></div>
+      <div style="width:100%">
+        <div class="field"><label>Adın</label><input id="oName" maxlength="16" value="${esc(draft.name)}"></div>
+        <div class="field"><label>Dükkânın adı (tabelada yazar)</label><input id="oShop" maxlength="22" value="${esc(draft.shopName)}"></div>
+        ${sw('skin', SKINS, 'Ten rengi')}
+        ${sw('hair', HAIRS, 'Saç rengi')}
+        ${tx('style', STYLES.map((s, i) => [i, s]), 'Saç modeli')}
+        ${sw('shirt', SHIRTS, 'Gömlek')}
+        ${tx('beard', [[true, 'Bıyıklı'], [false, 'Bıyıksız']], 'Bıyık')}
+      </div>
+    </div>
+    <button class="big" id="ownerSave">${first ? 'Dükkânı devral' : 'Kaydet'}</button>`, true);
+  pv.id = 'preview'; $('#pvWrap').appendChild(pv);
+  fitCanvas(pv, pv.getContext('2d'), 170, 212);
+}
+function drawPreview(){
+  if (!draft || !pv.isConnected) return;
+  const c = pv.getContext('2d');
+  c.clearRect(0, 0, 170, 212);
+  c.fillStyle = '#8b5a35'; c.fillRect(0, 150, 170, 62);
+  c.fillStyle = '#d8c3a0'; c.fillRect(0, 0, 170, 150);
+  drawPerson(c, {x:85, y:196, look:draft, apron:true, mood:'happy', scale:2.1, bob:Math.sin(now() * 3) * 1});
+}
+
+$('#modal').addEventListener('click', e => {
+  if (e.target.id === 'modalOk'){ hideModal(); return; }
+  const b = e.target.closest('[data-k]');
+  if (b){
+    const k = b.dataset.k, raw = b.dataset.v;
+    draft[k] = k === 'style' ? +raw : k === 'beard' ? raw === 'true' : raw;
+    b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    SFX.serve();
+  }
+  if (e.target.id === 'ownerSave'){
+    draft.name = $('#oName').value.trim() || DEFAULT_OWNER.name;
+    draft.shopName = $('#oShop').value.trim() || DEFAULT_OWNER.shopName;
+    S.owner = draft; draft = null; save(); hideModal(); SFX.buy();
+    if (firstSetup) showWelcome();
+  }
+});
+
+// ---------- Etkileşim ----------
+function makeProduct(id){
+  if (status !== 'running') return;
+  if (!hasRoom() || R.queue.length >= 5){ toast('Tepsi dolu! Önce servis yap.'); SFX.error(); return; }
+  R.queue.push({p:id, prog:0});
+  SFX.prepStart();
+}
+
+scene.addEventListener('pointerdown', e => {
+  if (modalOpen() || status !== 'running') return;
+  const r = scene.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  const c = R.customers.find(c => seated(c) && Math.abs(x - SLOTS[c.seat].x) < 60 && y > SLOTS[c.seat].y - 130 && y < SLOTS[c.seat].y + 30);
+  if (c) serve(c);
+});
+
+document.addEventListener('pointerdown', e => {
+  if (modalOpen()) return;
+  const t = e.target.closest('[data-prod],[data-unlock],[data-buy],[data-trash],[data-open],[data-grow]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.open !== undefined){ newDay(); status = 'running'; SFX.open(); startDayEvent(); }
+  else if (d.prod) makeProduct(d.prod);
+  else if (d.trash !== undefined){ trayRemove(+d.trash); SFX.trash(); }
+  else if (d.unlock){
+    const p = P[d.unlock];
+    if (S.money >= p.cost && !S.unlocked.includes(p.id)){ S.money -= p.cost; S.unlocked.push(p.id); toast(`${p.emoji} ${p.name} menüye eklendi!`); SFX.buy(); save(); }
+  } else if (d.grow !== undefined){
+    const next = SHOP_LEVELS[lv('dukkan') + 1];
+    if (next && S.day >= next.day && S.money >= next.cost){
+      S.money -= next.cost; S.lv.dukkan = lv('dukkan') + 1;
+      levelUpAt = now(); confetti(); SFX.build(); setTimeout(SFX.levelUp, 450);
+      toast(`🏪 Dükkânın artık bir ${next.name}!`); save();
+    }
+  } else if (d.buy){
+    const u = UPGRADES.find(u => u.id === d.buy), c = upCost(u);
+    if (S.money >= c && lv(u.id) < maxLv(u)){
+      S.money -= c; S.lv[u.id] = lv(u.id) + 1;
+      if (u.id === 'masa'){ tableBorn[numTables() - 1] = now(); SFX.build(); }
+      else if (u.id === 'garson'){ R.garsons.push(newGarson(R.garsons.length)); SFX.buy(); }
+      else SFX.buy();
+      toast(`${u.emoji} ${u.name} seviye ${lv(u.id)}!`); save();
+    }
+  }
+  renderUI();
+});
+
+document.addEventListener('keydown', e => {
+  if (modalOpen() || e.target.tagName === 'INPUT') return;
+  const n = parseInt(e.key);
+  if (n >= 1 && n <= 6){
+    const list = PRODUCTS.filter(p => S.unlocked.includes(p.id));
+    if (list[n - 1]) makeProduct(list[n - 1].id);
+  }
+});
+
+const muteLabel = () => $('#mute').textContent = muted ? '🔇' : '🔊';
+muteLabel();
+$('#mute').addEventListener('click', () => {
+  muted = !muted; muteLabel();
+  try { localStorage.setItem('cayocagi-ses', muted ? 'kapali' : 'acik'); } catch(e) {}
+  SFX.serve();
+});
+$('#ownerBtn').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
+$('#reset').addEventListener('click', () => {
+  if (!confirm('Tüm ilerleme silinsin mi?')) return;
+  S = fresh(); save(); newDay(); status = 'closed'; renderUI(); openOwnerEditor(true);
+});
+
+// ---------- Ana döngü ----------
+let last = performance.now(), steamIn = 0;
+function frame(ts){
+  const dt = Math.min(0.1, (ts - last) / 1000); last = ts;
+  if (status === 'running' && !modalOpen()){
+    tick(dt);
+    steamIn -= dt;
+    if (steamIn <= 0 && inProgress() && R.steamTop){ puff(245, R.steamTop); steamIn = 0.12; }
+  }
+  updateParticles(dt);
+  drawScene();
+  drawPreview();
+  requestAnimationFrame(frame);
+}
+fitCanvas(scene, g, W, H);
+requestAnimationFrame(frame);
+setInterval(renderUI, 100);
+renderUI();
+
+if (!S.owner) openOwnerEditor(true); else showWelcome();
+</script>
+</body>
+</html>
