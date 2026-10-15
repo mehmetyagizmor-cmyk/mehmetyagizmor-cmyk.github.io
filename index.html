@@ -174,6 +174,23 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .coach{background:#e8a23a22;border:1px dashed var(--accent);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:14px;font-weight:600}
 .coach[hidden]{display:none}
 .prod.pulse{border-color:var(--good);animation:pulseA 1s infinite}
+.quests{display:flex;gap:6px;margin-bottom:10px}
+.quests:empty{display:none}
+.quest{position:relative;flex:1;min-width:0;background:#0003;border:1px solid var(--line);border-radius:10px;padding:5px 8px 7px;overflow:hidden;font-size:12px}
+.quest span{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quest b{font-size:14px;font-variant-numeric:tabular-nums}
+.quest i{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);transition:width .3s}
+.quest.done{border-color:var(--good);background:#6cc07022}
+.quest.done b{color:var(--good)}
+.quest.done i{background:var(--good)}
+.quest.fail{opacity:.5}
+.quest.fail b{color:var(--bad)}
+/* Dükkân kapalıyken görevler tam metinle, alt alta */
+body:not(.running) .quests{flex-direction:column;gap:4px}
+body:not(.running) .quest span{white-space:normal;color:var(--text)}
+body:not(.running) .quest b{display:none}
+body:not(.running) .quest.done b{display:inline}
+.qhead{font-weight:800;color:var(--accent);font-size:13px}
 @keyframes pulseA{50%{box-shadow:0 0 0 5px #6cc07055}}
 .set-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .set-row .btn2{min-width:96px}
@@ -262,6 +279,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
     <section class="panel" id="p-mutfak">
       <h2>🔥 Mutfak</h2>
       <div class="coach" id="coach" hidden></div>
+      <div class="quests" id="quests"></div>
       <p class="hint newbie">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
@@ -393,7 +411,7 @@ const DAY_LEN = 120; // saniye (08:00 - 20:00)
 
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
-  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0});
+  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0, questsDone:0, quests:null});
 function load(){
   try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return Object.assign(fresh(), d); } catch(e) {}
   return fresh();
@@ -458,7 +476,7 @@ function newDay(){
   R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
        dayEvent:null, effects:[], eventIn:rand(20, 35),
        garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
-       combo:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}};
+       combo:0, sold:{}, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}};
 }
 newDay();
 
@@ -554,6 +572,7 @@ function pay(c){
   const tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   S.money += base + tip; S.total += base + tip;
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
+  c.order.forEach(o => R.sold[o.p] = (R.sold[o.p] || 0) + 1);
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
   const s = SLOTS[c.seat];
   // Yeni kombo kademesine geçildiyse kutla
@@ -609,6 +628,7 @@ const ACH = [
   {id:'k1000',    emoji:'💰', name:'İlk Bin',            desc:'Toplam ₺1.000 kazan',                      goal:1000,  val:() => S.total,                 reward:100},
   {id:'k25000',   emoji:'💎', name:'Sermayedar',         desc:'Toplam ₺25.000 kazan',                     goal:25000, val:() => S.total,                 reward:1500},
   {id:'menu',     emoji:'📋', name:'Tam Menü',           desc:'Tüm ürünleri menüye ekle',                 goal:PRODUCTS.length, val:() => S.unlocked.length, reward:1000},
+  {id:'gorev',    emoji:'📋', name:'Görev Adamı',        desc:'30 günlük görev tamamla',                  goal:30,    val:() => S.questsDone || 0,       reward:1000},
   {id:'kombo',    emoji:'🔥', name:'Kombo Ustası',       desc:'Art arda 15 müşteriyi mutlu et (15 kombo)', goal:15,  val:() => S.bestCombo || 0,        reward:600},
   {id:'tarif',    emoji:'📈', name:'Usta Tarif',         desc:'Bir ürünün tarifini 5 yıldıza çıkar',      goal:MAX_RECIPE, val:() => Math.max(0, ...Object.values(S.rec || {})), reward:1500},
   {id:'kiraat',   emoji:'🏪', name:'Kıraathane Sahibi',  desc:"Dükkânı Kıraathane'ye büyüt",              goal:1,     val:() => lv('dukkan'),            reward:300},
@@ -628,6 +648,53 @@ function checkAch(){
     if (status === 'running') confetti();
     save();
   }
+}
+
+// ---------- Günlük görevler ----------
+// Her gün 3 farklı türde görev; zorluk ve ödül gün sayısıyla büyür
+const QUESTS = {
+  sell:   {make:d => { const p = pick(S.unlocked); return {p, n:Math.min(12, 3 + Math.floor(d / 4))}; },
+           label:q => `${P[q.p].emoji} ${q.n} ${P[q.p].name} sat`, short:q => `${P[q.p].emoji} ${P[q.p].name}`, prog:q => R.sold[q.p] || 0},
+  serve:  {make:d => ({n:Math.min(35, 6 + d)}),                   label:q => `👥 ${q.n} müşteriye servis yap`, short:() => '👥 Servis', prog:() => R.stats.served},
+  combo:  {make:d => ({n:Math.min(15, 3 + Math.floor(d / 3))}),   label:q => `🔥 ${q.n} kombo yap`,            short:() => '🔥 Kombo',  prog:() => R.stats.bestCombo},
+  tips:   {make:d => ({n:Math.round((40 + d * 18) / 10) * 10}),   label:q => `💰 ₺${fmt(q.n)} bahşiş topla`,    short:() => '💰 Bahşiş', prog:() => R.stats.tips},
+  nolose: {make:d => ({n:Math.min(20, 5 + Math.floor(d / 2))}),   label:q => `😊 Kimseyi kızdırmadan ${q.n} servis`, short:() => '😊 Kızdırma',
+           prog:() => R.stats.lost ? -1 : R.stats.served}, // -1 = başarısız
+};
+function ensureQuests(){
+  if (S.day < 2 || (S.quests && S.quests.day === S.day)) return;
+  const types = Object.keys(QUESTS).sort(() => Math.random() - 0.5).slice(0, 3);
+  const reward = Math.round((40 + S.day * 12) * (1 + 0.3 * lv('dukkan')) / 10) * 10;
+  S.quests = {day:S.day, bonus:false, list:types.map(t => Object.assign({t, reward, done:false}, QUESTS[t].make(S.day)))};
+  save();
+}
+const questProg = q => q.done ? q.n : status === 'running' ? QUESTS[q.t].prog(q) : 0;
+function checkQuests(){
+  if (status !== 'running' || !S.quests || S.quests.day !== S.day) return;
+  for (const q of S.quests.list){
+    if (q.done || questProg(q) < q.n) continue;
+    q.done = true; S.money += q.reward; S.questsDone = (S.questsDone || 0) + 1;
+    toast(`📋 Görev tamam: ${QUESTS[q.t].label(q)} · +₺${fmt(q.reward)}`); SFX.pay(); bump('#money', 'bump');
+    save();
+  }
+  if (!S.quests.bonus && S.quests.list.every(q => q.done)){
+    S.quests.bonus = true;
+    const bonus = Math.round(S.quests.list[0].reward * 1.5);
+    S.money += bonus; S.rep = Math.min(100, S.rep + 5);
+    announce({emoji:'📋', name:'Bugünün tüm görevleri tamam!', desc:`Bonus +₺${fmt(bonus)} · +5⭐`, ach:true});
+    confetti(); save();
+  }
+}
+function questsHTML(){
+  if (!S.quests || S.quests.day !== S.day) return '';
+  const head = status === 'running' ? '' : `<div class="qhead">📋 Bugünün görevleri · her biri +₺${fmt(S.quests.list[0].reward)}</div>`;
+  return head + S.quests.list.map(q => {
+    const p = questProg(q), failed = p < 0;
+    const cls = q.done ? ' done' : failed ? ' fail' : '';
+    const val = q.t === 'tips' ? `₺${fmt(Math.max(0, p))}/₺${fmt(q.n)}` : `${Math.max(0, Math.min(p, q.n))}/${q.n}`;
+    return `<div class="quest${cls}" title="${QUESTS[q.t].label(q)}"><span>${status === 'running' ? QUESTS[q.t].short(q) : QUESTS[q.t].label(q)}</span><b>${q.done ? '✓' : failed ? '✗' : val}</b>
+      <i style="width:${q.done ? 100 : Math.max(0, Math.min(1, p / q.n)) * 100}%"></i></div>`;
+  }).join('');
 }
 
 // ---------- Günlük ödül ----------
@@ -763,6 +830,7 @@ function endDay(){
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
       <tr><td>Kızıp giden müşteri</td><td>${st.lost}</td></tr>
       <tr><td>En uzun kombo</td><td>🔥 ${st.bestCombo}</td></tr>
+      ${S.quests && S.quests.day === S.day ? `<tr><td>Günlük görevler</td><td>📋 ${S.quests.list.filter(q => q.done).length}/3</td></tr>` : ''}
       <tr><td>Satış</td><td>₺${fmt(st.earned)}</td></tr>
       <tr><td>Bahşiş</td><td>₺${fmt(st.tips)}</td></tr>
       <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
@@ -1332,7 +1400,8 @@ function coach(){
 }
 
 function renderUI(){
-  checkAch();
+  ensureQuests(); checkQuests(); checkAch();
+  setHTML('#quests', questsHTML());
   $('#money').textContent = '₺' + fmt(S.money);
   $('#rep').textContent = '⭐ ' + Math.round(S.rep);
   const frac = Math.min(1, R.t / DAY_LEN);
@@ -1350,6 +1419,7 @@ function renderUI(){
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
 
   $('#pauseBtn').hidden = status !== 'running';
+  document.body.classList.toggle('running', status === 'running');
   document.body.classList.toggle('veteran', S.day > 3); // açıklamalar yer kaplamasın
 
   // Mutfak (+ ilk iki gün için öğretici)
@@ -1500,7 +1570,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;

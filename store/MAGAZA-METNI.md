@@ -42,7 +42,8 @@ Küçük bir çay ocağını devral; çay demle, simit, tost ve baklava hazırla
 • Garson: tepsidekileri masalara kendisi taşır
 
 🥯 MENÜNÜ GENİŞLET
-• Çay, simit, Türk kahvesi, tost, sahlep ve baklava
+• Çay, simit, poğaça, limonata, Türk kahvesi, tost, sahlep, menemen, baklava ve sütlaç
+• Tariflerini geliştir: her yıldız ürünü daha lezzetli ve daha kârlı yapar!
 
 🎉 SÜRPRİZ OLAYLAR
 • Maç günü, yağmurlu gün, bayram, pazar kuruldu
@@ -53,8 +54,10 @@ Küçük bir çay ocağını devral; çay demle, simit, tost ve baklava hazırla
 • Ten, saç, saç modeli, gömlek ve bıyığını özelleştir
 
 🏅 HER GÜN YENİ BİR HEDEF
+• Her gün 3 yeni görev: hepsini bitir, bonusu kap!
+• Kombo yap: art arda mutlu müşteri, bahşişi 2,5 katına çıkarır
 • Günlük giriş ödülleri: 7. gün büyük ödül!
-• 13 başarım ve ödülleri
+• 16 başarım ve ödülleri
 • Gün sonu karnesi: 3 yıldız alabilecek misin?
 
 ✅ İnternetsiz oynanır

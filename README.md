@@ -8,7 +8,7 @@ Telefonda ve tarayıcıda oynanan bir dükkân işletme oyunu. Küçük bir maha
 (Telefona uygulama olarak eklemek ve internetsiz oynamak için oyunun bir web adresinden açılması gerekir; bkz. [YAYIN-REHBERI.md](YAYIN-REHBERI.md).)
 
 1. **Dükkânı Aç**: Müşteriler kapıdan girip masalara oturur, siparişleri balonda görünür.
-2. **🔥 Mutfak**'ta ürüne dokun (bilgisayarda 1-6 tuşları). Ürün ocakta hazırlanıp tepsiye düşer.
+2. **🔥 Mutfak**'ta ürüne dokun (bilgisayarda 1-9 ve 0 tuşları). Ürün ocakta hazırlanıp tepsiye düşer.
 3. Yeşil balonlu **müşteriye dokun**; tepsideki uygun ürünler servis edilir.
 4. **🛒 Mağaza**'dan dükkânını geliştir, **📋 Menü**'ye yeni ürün ekle, **🎒 Eşyalarım**'da sahip olduklarını ve başarımlarını gör.
 
@@ -21,7 +21,10 @@ Telefonda ve tarayıcıda oynanan bir dükkân işletme oyunu. Küçük bir maha
 - **Dükkânı büyüt:** Mahalle Çay Ocağı → Kıraathane → Nostaljik Kafe → Ünlü Mekân.
 - **Geliştirmeler:** Masa, tepsi, semaver, dekorasyon, neon tabela, çırak ve garson.
 - **Özel olaylar:** Maç günü, yağmurlu gün, bayram, VIP müşteri, influencer, turist kafilesi, elektrik kesintisi, mutlu saat.
-- **Günlük ödül ve başarımlar:** 7 günlük giriş serisi, 13 ödüllü başarım, gün sonu yıldız karnesi.
+- **10 ürün ve tarifler:** Çaydan sütlaca 10 ürün; her ürünün tarifi 5 yıldıza kadar geliştirilir (yıldız başına +%25 fiyat). Bazı ürünler dükkân büyüyünce açılır.
+- **Kombo:** Art arda mutlu edilen müşteriler bahşişi x2.5'e kadar katlar; biri kızarsa kombo sıfırlanır.
+- **Günlük görevler:** Her gün 3 ödüllü görev; hepsi bitince bonus.
+- **Günlük ödül ve başarımlar:** 7 günlük giriş serisi, 16 ödüllü başarım, gün sonu yıldız karnesi.
 - **Öğretici:** İlk iki gün ne yapılacağını adım adım gösterir.
 - **Duraklatma ve ayarlar:** Ses, titreşim, sahip düzenleme. Uygulama arka plana geçince otomatik duraklar ve kaydeder.
 - **Uygulama olarak yüklenebilir (PWA):** Ana ekrana eklenir, internetsiz çalışır.
