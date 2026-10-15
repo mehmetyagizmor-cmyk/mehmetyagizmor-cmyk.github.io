@@ -41,3 +41,4 @@ Telefonda ve tarayıcıda oynanan bir dükkân işletme oyunu. Küçük bir maha
 | `privacy.html` | Gizlilik politikası (mağazalar için zorunlu) |
 | `store/` | Mağaza ekran görüntüleri, tanıtım görseli ve [mağaza metinleri](store/MAGAZA-METNI.md) |
 | `YAYIN-REHBERI.md` | İnternette, Google Play'de ve App Store'da yayınlama rehberi |
+| `YOL-HARITASI.md` | Yapılanlar, sıradaki planlar (şubeler, ünlülük) ve fikir puanları |
