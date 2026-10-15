@@ -1,0 +1,6 @@
+# Android imza anahtarı: ASLA depoya ekleme, güvenli yerde sakla
+*.keystore
+*.jks
+signing-key-info.txt
+*.aab
+*.apk

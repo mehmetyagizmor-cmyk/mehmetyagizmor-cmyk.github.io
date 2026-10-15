@@ -7,6 +7,11 @@
 <meta name="description" content="Mahalle çay ocağını devral, şehrin en ünlü mekânına dönüştür! Türk usulü dükkân işletme oyunu.">
 <link rel="icon" type="image/png" href="icons/favicon.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Çay Ocağı">
 <title>Çay Ocağı Tycoon</title>
 <style>
 :root{--bg:#2b1d14;--panel:#3d2a1e;--panel2:#4a3426;--text:#f6ead8;--muted:#c9b39a;--accent:#e8a23a;--good:#6cc070;--bad:#e05a4f;--line:#5c4232;
@@ -45,7 +50,7 @@ main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
 .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#0009;text-align:center;color:var(--muted);padding:10px}
 .overlay[hidden]{display:none}
 @media(max-width:999px){.overlay{gap:6px;font-size:14px}.overlay .big{padding:10px 20px;font-size:16px}}
-#events{position:absolute;top:6px;left:6px;right:6px;display:flex;gap:4px;flex-wrap:wrap;pointer-events:none}
+#events{position:absolute;bottom:6px;left:6px;right:6px;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;pointer-events:none}
 .ev{background:#000a;border:1px solid var(--accent);border-radius:999px;padding:3px 9px;font-size:12px}
 .ev small{color:var(--muted)}
 .panel{display:none;background:var(--panel);border-radius:14px;padding:14px;border:1px solid var(--line);margin:0 calc(8px + var(--sr)) 8px calc(8px + var(--sl))}
@@ -102,7 +107,16 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 
 /* Mutfak */
 .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px}
-@media(max-width:999px){.products{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:999px){
+  .products{grid-template-columns:repeat(3,1fr);gap:6px}
+  .prod{padding:6px 2px;gap:0}
+  .prod .em{font-size:24px}
+  .prod b{font-size:13px}
+  #p-mutfak{padding:10px 12px}
+  #p-mutfak h2{display:none}  /* alt menüde zaten yazıyor */
+  #p-mutfak .row{margin-top:8px}
+  #p-mutfak h3{margin:4px 0 6px}
+}
 .prod{position:relative;background:var(--panel2);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit}
 .prod:hover{border-color:var(--accent)}
 .prod:active{transform:scale(.94)}
@@ -157,6 +171,7 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .set-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
 .set-row .btn2{min-width:96px}
 .icon-btn[hidden]{display:none}
+body.veteran .newbie{display:none}
 
 /* Gün sonu, günlük ödül, başarımlar */
 .stars{font-size:34px;text-align:center;letter-spacing:4px;margin:-4px 0 6px}
@@ -240,13 +255,13 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
     <section class="panel" id="p-mutfak">
       <h2>🔥 Mutfak</h2>
       <div class="coach" id="coach" hidden></div>
-      <p class="hint">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
+      <p class="hint newbie">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
         <div><h3>Ocak</h3><div class="slots" id="queue"></div></div>
         <div><h3 id="trayTitle">Tepsi</h3><div class="slots tray" id="tray"></div></div>
       </div>
-      <p class="hint" style="margin:8px 0 0">Tepsideki ürüne dokunursan çöpe atarsın.</p>
+      <p class="hint newbie" style="margin:8px 0 0">Tepsideki ürüne dokunursan çöpe atarsın.</p>
     </section>
   </div>
   <div class="right">
@@ -1275,6 +1290,7 @@ function renderUI(){
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
 
   $('#pauseBtn').hidden = status !== 'running';
+  document.body.classList.toggle('veteran', S.day > 3); // açıklamalar yer kaplamasın
 
   // Mutfak (+ ilk iki gün için öğretici)
   const co = coach();
@@ -1412,6 +1428,22 @@ function showModal(html, wide){ $('#modalBox').innerHTML = html; $('#modalBox').
 function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
+// ---------- Uygulama olarak yükleme ----------
+const APP_VERSION = '1.0.0';
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+window.addEventListener('appinstalled', () => { installEvt = null; toast('📲 Çay Ocağı ana ekrana eklendi!'); });
+function installRow(){
+  if (standalone()) return '';
+  if (installEvt) return '<div class="set-row"><span>📲 Ana ekrana ekle</span><button class="btn2" id="installBtn">Yükle</button></div>';
+  if (isIOS) return '<div class="set-row"><span>📲 Ana ekrana eklemek için Safari\'de <b>Paylaş</b> → <b>Ana Ekrana Ekle</b></span></div>';
+  return '';
+}
+if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+
 // ---------- Duraklatma & ayarlar ----------
 const clockText = () => $('#day').textContent;
 function showPause(){
@@ -1429,8 +1461,9 @@ function showSettings(){
     ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
     <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
     <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
+    ${installRow()}
     <div class="set-row"><span>🗑️ İlerlemeyi sil</span><button class="btn2 danger" id="resetAsk">Sıfırla</button></div>
-    <p class="hint" style="margin:12px 0">Kayıtların bu cihazda otomatik tutulur.</p>
+    <p class="hint" style="margin:12px 0">Kayıtların bu cihazda otomatik tutulur. · <a href="privacy.html" style="color:var(--muted)">Gizlilik</a> · Sürüm ${APP_VERSION}</p>
     <button class="big" id="modalOk">${status === 'running' ? '▶️ Oyuna dön' : 'Kapat'}</button>`);
 }
 function showResetConfirm(){
@@ -1536,6 +1569,7 @@ $('#modal').addEventListener('click', e => {
   if (id === 'editOwnerM'){ openOwnerEditor(false); return; }
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
+  if (id === 'installBtn' && installEvt){ installEvt.prompt(); installEvt = null; hideModal(); return; }
   if (id === 'resetYes'){
     S = fresh(); save(); newDay(); status = 'closed'; particles = [];
     setTab('mutfak'); renderUI(); openOwnerEditor(true); return;
