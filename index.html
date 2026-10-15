@@ -2,145 +2,249 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e140d">
+<meta name="description" content="Mahalle çay ocağını devral, şehrin en ünlü mekânına dönüştür! Türk usulü dükkân işletme oyunu.">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>Çay Ocağı Tycoon</title>
 <style>
-:root{--bg:#2b1d14;--panel:#3d2a1e;--panel2:#4a3426;--text:#f6ead8;--muted:#c9b39a;--accent:#e8a23a;--good:#6cc070;--bad:#e05a4f;--line:#5c4232}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:#1e140d;border-bottom:2px solid var(--line)}
-h1{margin:0;font-size:20px}
-.stats{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.stat{background:var(--panel);padding:6px 12px;border-radius:999px;font-weight:700;border:0;color:var(--text);font:inherit;font-weight:700}
-button.stat{cursor:pointer}
-button.stat:hover{background:var(--panel2)}
+:root{--bg:#2b1d14;--panel:#3d2a1e;--panel2:#4a3426;--text:#f6ead8;--muted:#c9b39a;--accent:#e8a23a;--good:#6cc070;--bad:#e05a4f;--line:#5c4232;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
+  --hud:52px;--nav:60px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;font-family:system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input{-webkit-user-select:text;user-select:text}
+button{touch-action:manipulation;font:inherit;color:inherit}
+
+/* ---------- Üst bilgi çubuğu ---------- */
+.hud{position:sticky;top:0;z-index:30;display:flex;gap:6px;align-items:center;justify-content:flex-end;
+  min-height:calc(var(--hud) + var(--st));padding:calc(6px + var(--st)) calc(10px + var(--sr)) 8px calc(10px + var(--sl));
+  background:#1e140d;border-bottom:2px solid var(--line)}
+.brand{margin:0 auto 0 0;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.stat{background:var(--panel);padding:6px 11px;border-radius:999px;font-weight:700;font-size:14px;white-space:nowrap;border:0;font-variant-numeric:tabular-nums}
 .stat.money{color:var(--accent)}
-.clockwrap{display:flex;align-items:center;gap:8px}
-.clock{width:140px;height:10px;background:var(--panel);border-radius:6px;overflow:hidden}
-.clock>div{height:100%;background:var(--accent);transition:width .1s linear}
-main{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:16px;max-width:1300px;margin:0 auto;transition:filter .6s}
-@media(max-width:900px){main{grid-template-columns:1fr}}
-section{background:var(--panel);border-radius:14px;padding:14px;border:1px solid var(--line)}
-.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.icon-btn{background:var(--panel);border:0;border-radius:50%;width:36px;height:36px;font-size:17px;cursor:pointer;flex:none;padding:0}
+.icon-btn:hover{background:var(--panel2)}
+.daybar{position:absolute;left:0;right:0;bottom:-2px;height:4px;background:#0006}
+.daybar>div{height:100%;background:var(--accent);transition:width .1s linear}
+@media(max-width:620px){.brand{display:none}.stat.money{margin-right:auto}.stat{font-size:13px;padding:6px 9px}}
+.stat.bump{animation:bumpA .4s}
+@keyframes bumpA{40%{transform:scale(1.2);color:#fff}}
+.stat.shake{animation:shakeA .4s}
+@keyframes shakeA{25%{transform:translateX(-4px);color:var(--bad)}75%{transform:translateX(4px);color:var(--bad)}}
+
+/* ---------- Yerleşim (telefon: tek sütun, sahne sabit, alt menü) ---------- */
+main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
+.left,.right{display:contents}
+.scene-sec{position:sticky;top:calc(var(--hud) + var(--st));z-index:20;background:var(--bg);padding:8px calc(8px + var(--sr)) 8px calc(8px + var(--sl))}
+.scene{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#1a110b}
+#scene{width:100%;height:100%;display:block;cursor:pointer;touch-action:manipulation}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#0009;text-align:center;color:var(--muted);padding:10px}
+.overlay[hidden]{display:none}
+@media(max-width:999px){.overlay{gap:6px;font-size:14px}.overlay .big{padding:10px 20px;font-size:16px}}
+#events{position:absolute;top:6px;left:6px;right:6px;display:flex;gap:4px;flex-wrap:wrap;pointer-events:none}
+.ev{background:#000a;border:1px solid var(--accent);border-radius:999px;padding:3px 9px;font-size:12px}
+.ev small{color:var(--muted)}
+.panel{display:none;background:var(--panel);border-radius:14px;padding:14px;border:1px solid var(--line);margin:0 calc(8px + var(--sr)) 8px calc(8px + var(--sl))}
+.panel.active{display:block}
+
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:#1e140d;border-top:2px solid var(--line);padding:0 var(--sr) var(--sb) var(--sl)}
+.tab{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;height:var(--nav);
+  background:none;border:0;font-size:22px;color:var(--muted);cursor:pointer;padding:0}
+.tab span{font-size:11px;font-weight:700}
+.tab.on{color:var(--accent)}
+.tab.on::before{content:"";position:absolute;top:-2px;left:25%;right:25%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.badge{display:none;position:absolute;top:7px;left:calc(50% + 9px);width:11px;height:11px;border-radius:50%;background:var(--bad);border:2px solid #1e140d}
+.tab.has .badge{display:block}
+
+/* Yatay telefon: sahne solda, panel sağda */
+@media(max-width:999px) and (orientation:landscape) and (max-height:560px){
+  :root{--hud:44px;--nav:46px}
+  main{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:100%;padding:0;
+    height:calc(100dvh - var(--hud) - var(--st) - var(--nav) - var(--sb))}
+  .scene-sec{position:static;grid-column:1;grid-row:1;width:min(58vw,calc((100dvh - var(--hud) - var(--st) - var(--nav) - var(--sb) - 16px) * 16 / 9 + 16px))}
+  .panel{grid-column:2;grid-row:1;margin:8px calc(8px + var(--sr)) 8px 0;overflow-y:auto}
+  .panel .hint{display:none}
+  .tab{flex-direction:row;gap:6px;font-size:18px}
+  .tab span{font-size:13px}
+  .badge{top:6px;left:calc(50% - 4px)}
+}
+
+/* Bilgisayar / tablet: iki sütun, mutfak hep görünür */
+@media(min-width:1000px){
+  main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;padding:16px;max-width:1300px;margin:0 auto;align-items:start}
+  .left,.right{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .scene-sec{position:static;background:var(--panel);border-radius:14px;padding:14px;border:1px solid var(--line)}
+  .panel{margin:0}
+  #tabs{position:static;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:4px;gap:4px}
+  .tab{height:auto;padding:9px 4px;flex-direction:row;gap:6px;font-size:18px;border-radius:10px}
+  .tab span{font-size:14px}
+  .tab.on{background:var(--panel2)}
+  .tab.on::before{display:none}
+  .tab[data-tab=mutfak]{display:none}
+  .badge{position:static;margin-left:2px}
+}
+
+/* ---------- Ortak parçalar ---------- */
 h2{margin:0 0 10px;font-size:16px;color:var(--accent)}
 h2 small{color:var(--muted);font-weight:500}
 h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .hint{color:var(--muted);font-size:13px;margin:-4px 0 10px}
-.scene{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#1a110b}
-#scene{width:100%;height:100%;display:block;cursor:pointer;touch-action:manipulation}
-.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#0009;text-align:center;color:var(--muted)}
-.overlay[hidden]{display:none}
 .big{background:var(--accent);color:#2b1d14;border:0;border-radius:12px;padding:14px 26px;font-size:18px;font-weight:800;cursor:pointer}
 .big:hover{filter:brightness(1.1)}
+.btn2{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:700}
+.btn2:hover{border-color:var(--accent)}
+.btn2.danger{color:var(--bad)}
 .item{font-size:22px;background:#0003;border-radius:8px;padding:2px 5px;display:inline-block}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
-.prod{position:relative;background:var(--panel2);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit}
+
+/* Mutfak */
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:8px}
+@media(max-width:999px){.products{grid-template-columns:repeat(3,1fr)}}
+.prod{position:relative;background:var(--panel2);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit}
 .prod:hover{border-color:var(--accent)}
 .prod:active{transform:scale(.94)}
 .prod.full{opacity:.45}
-.prod .em{font-size:30px}
-.prod small{color:var(--muted)}
+.prod .em{font-size:30px;line-height:1.1}
+.prod b{font-size:14px}
+.prod small{color:var(--muted);font-size:12px}
 .prod .up{color:var(--good);font-weight:700}
 .prod kbd{position:absolute;top:4px;left:6px;font-size:11px;color:var(--muted)}
-.row{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
-.row>div{flex:1;min-width:200px}
-.slots{display:flex;gap:6px;flex-wrap:wrap;min-height:44px;background:#0002;border-radius:10px;padding:6px}
+@media(hover:none){.prod kbd{display:none}}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.row>div{flex:1;min-width:140px}
+.slots{display:flex;gap:6px;flex-wrap:wrap;min-height:46px;background:#0002;border-radius:10px;padding:6px}
 .chip{position:relative;background:var(--panel2);border-radius:8px;padding:4px 8px;font-size:22px;overflow:hidden}
 .chip .who{font-size:12px;position:absolute;top:0;right:2px}
 .chip .prog{position:absolute;left:0;bottom:0;height:4px;background:var(--accent)}
 .tray .item{cursor:pointer}
 .tray .slot{width:38px;height:36px;border:2px dashed var(--line);border-radius:8px}
-.shop-item{display:flex;align-items:center;gap:10px;padding:8px;background:var(--panel2);border-radius:10px;margin-bottom:6px}
-.shop-item.hl{border:2px solid var(--accent)}
-.shop-item .em{font-size:26px;width:34px;text-align:center}
+
+/* Mağaza & Menü */
+.shop-item{display:flex;align-items:center;gap:10px;padding:8px;background:var(--panel2);border-radius:10px;margin-bottom:6px;border:2px solid transparent}
+.shop-item.hl{border-color:var(--accent)}
+.shop-item .em{font-size:26px;width:34px;text-align:center;flex:none}
 .shop-item .info{flex:1;min-width:0}
 .shop-item small{display:block;color:var(--muted);font-size:12px}
 .lvl{color:var(--accent);font-size:12px}
-.shop-item button{background:var(--accent);color:#2b1d14;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;min-width:72px;font:inherit;font-weight:800}
+.shop-item button{background:var(--accent);color:#2b1d14;border:0;border-radius:8px;padding:10px 10px;cursor:pointer;min-width:76px;font:inherit;font-weight:800;flex:none}
 .shop-item button:disabled{background:#0004;color:var(--muted);cursor:not-allowed}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60}
+.shop-item .tag{color:var(--good);font-weight:800;font-size:13px;flex:none}
+
+/* Eşyalarım */
+.profile{display:flex;align-items:center;gap:12px;background:var(--panel2);border-radius:12px;padding:8px 12px}
+#avatar{width:64px;height:80px;border-radius:10px;background:#d8c3a0;flex:none}
+.profile .info{flex:1;min-width:0}
+.profile small{display:block;color:var(--muted)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.kv div{background:#0002;border-radius:10px;padding:8px 10px}
+.kv small{display:block;color:var(--muted);font-size:12px}
+.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.inv-card{background:var(--panel2);border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--line)}
+.inv-card .em{font-size:28px}
+.inv-card b{display:block;font-size:13px}
+.inv-card small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.inv-card .dots{color:var(--accent);font-size:10px;letter-spacing:1px}
+.inv-card.off{opacity:.4}
+.foot{text-align:center;margin-top:16px}
+
+/* ---------- Bildirimler & pencereler ---------- */
+#toast{position:fixed;bottom:calc(var(--nav) + var(--sb) + 14px);left:50%;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;max-width:calc(100vw - 32px);text-align:center}
+@media(min-width:1000px){#toast{bottom:24px}}
 #toast.show{opacity:1}
-.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:16px;z-index:40;overflow:auto}
+.modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;
+  padding:calc(16px + var(--st)) calc(16px + var(--sr)) calc(16px + var(--sb)) calc(16px + var(--sl));z-index:40;overflow:auto}
 .modal.show{display:flex}
-.modal .box{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:22px;max-width:440px;width:100%;margin:auto}
+.modal .box{background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:20px;max-width:440px;width:100%;margin:auto}
 .modal .box.wide{max-width:600px}
 .modal h2{font-size:22px}
 .modal table{width:100%;border-collapse:collapse;margin:10px 0 16px}
 .modal td{padding:5px 0;border-bottom:1px solid var(--line)}
 .modal td:last-child{text-align:right;font-weight:700}
 .modal ol{padding-left:20px;line-height:1.6}
+.modal .big{width:100%}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btns>*{flex:1}
 .editor{display:grid;grid-template-columns:170px 1fr;gap:18px;margin-bottom:16px}
 @media(max-width:540px){.editor{grid-template-columns:1fr;justify-items:center}}
 #preview{width:170px;height:212px;border-radius:12px;background:var(--panel2)}
 .field{margin-bottom:10px;width:100%}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
-.field input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit}
+.field input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;font-size:16px}
 .sw{display:flex;gap:6px;flex-wrap:wrap}
-.sw button{width:28px;height:28px;border-radius:50%;border:2px solid #0006;cursor:pointer;padding:0}
+.sw button{width:32px;height:32px;border-radius:50%;border:2px solid #0006;cursor:pointer;padding:0}
 .sw button.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
 .sw button.txt{width:auto;border-radius:8px;padding:0 10px;background:var(--panel2);color:var(--text);font:inherit;font-size:13px}
-#events{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-#events:empty{display:none}
-.ev{background:#0003;border:1px solid var(--accent);border-radius:999px;padding:4px 10px;font-size:13px}
-.ev small{color:var(--muted)}
-#eventCard{position:fixed;top:72px;left:50%;transform:translate(-50%,-320px);background:var(--panel);border:2px solid var(--accent);border-radius:14px;padding:12px 18px;z-index:55;display:flex;gap:12px;align-items:center;width:max-content;max-width:min(420px,calc(100vw - 32px));box-shadow:0 8px 30px #000a;transition:transform .45s cubic-bezier(.3,1.4,.5,1);pointer-events:none}
+#eventCard{position:fixed;top:calc(var(--hud) + var(--st) + 10px);left:50%;transform:translate(-50%,-340px);background:var(--panel);border:2px solid var(--accent);border-radius:14px;padding:12px 18px;z-index:55;display:flex;gap:12px;align-items:center;width:max-content;max-width:min(420px,calc(100vw - 32px));box-shadow:0 8px 30px #000a;transition:transform .45s cubic-bezier(.3,1.4,.5,1);pointer-events:none}
 #eventCard.show{transform:translate(-50%,0)}
 #eventCard .em{font-size:40px}
 #eventCard small{display:block;color:var(--muted);margin-top:2px}
-.stat.bump{animation:bumpA .4s}
-@keyframes bumpA{40%{transform:scale(1.2);color:#fff}}
-.stat.shake{animation:shakeA .4s}
-@keyframes shakeA{25%{transform:translateX(-4px);color:var(--bad)}75%{transform:translateX(4px);color:var(--bad)}}
 body.blackout main{filter:brightness(.55) saturate(.7)}
-footer{text-align:center;padding:10px 16px 24px;color:var(--muted);font-size:12px}
-footer button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:4px 10px;cursor:pointer}
 </style>
 </head>
 <body>
-<header>
-  <h1 id="shopTitle">🍵 Çay Ocağı</h1>
-  <div class="stats">
-    <button class="stat" id="ownerBtn" title="Dükkân sahibini düzenle"></button>
-    <span class="stat money" id="money"></span>
-    <span class="stat" id="rep"></span>
-    <span class="stat" id="day"></span>
-    <button class="stat" id="mute" title="Sesi aç/kapat"></button>
-    <span class="clockwrap"><span id="time">08:00</span><span class="clock"><div id="clockfill"></div></span></span>
-  </div>
+<header class="hud">
+  <h1 class="brand" id="shopTitle">🍵 Çay Ocağı</h1>
+  <span class="stat money" id="money"></span>
+  <span class="stat" id="rep"></span>
+  <span class="stat" id="day"></span>
+  <button class="icon-btn" id="mute" aria-label="Sesi aç/kapat"></button>
+  <div class="daybar"><div id="clockfill"></div></div>
 </header>
 
 <main>
-  <div class="col">
-    <section>
-      <h2>🏪 Dükkân <small id="levelName"></small></h2>
-      <p class="hint">Müşteriye tıkla → tepsideki uygun ürünler servis edilir. Yeşil balon = servis edebilirsin.</p>
-      <div id="events"></div>
+  <div class="left">
+    <section class="scene-sec" id="sceneSec">
       <div class="scene">
         <canvas id="scene"></canvas>
+        <div id="events"></div>
         <div class="overlay" id="closedOverlay">
-          <div style="font-size:42px">🔒</div>
-          <div>Dükkân kapalı. Hazır olunca aç!</div>
+          <div style="font-size:38px">🔒</div>
+          <div id="levelName"></div>
           <button class="big" data-open id="openBtn">☀️ Dükkânı Aç</button>
         </div>
       </div>
     </section>
-    <section>
-      <h2>🔥 Tezgâh</h2>
-      <p class="hint">Ürüne tıkla (veya 1-6 tuşları) → ocakta hazırlanır → tepsiye düşer. Tepsideki ürüne tıklarsan çöpe atarsın.</p>
+    <section class="panel" id="p-mutfak">
+      <h2>🔥 Mutfak</h2>
+      <p class="hint">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
         <div><h3>Ocak</h3><div class="slots" id="queue"></div></div>
         <div><h3 id="trayTitle">Tepsi</h3><div class="slots tray" id="tray"></div></div>
       </div>
+      <p class="hint" style="margin:8px 0 0">Tepsideki ürüne dokunursan çöpe atarsın.</p>
     </section>
   </div>
-  <section>
-    <h2>🛒 Dükkân Geliştir</h2>
-    <div id="shop"></div>
-  </section>
+  <div class="right">
+    <nav id="tabs">
+      <button class="tab" data-tab="mutfak">🔥<span>Mutfak</span></button>
+      <button class="tab" data-tab="magaza">🛒<span>Mağaza</span><i class="badge"></i></button>
+      <button class="tab" data-tab="menu">📋<span>Menü</span><i class="badge"></i></button>
+      <button class="tab" data-tab="esya">🎒<span>Eşyalarım</span></button>
+    </nav>
+    <section class="panel" id="p-magaza">
+      <h2>🛒 Mağaza</h2>
+      <div id="shop"></div>
+    </section>
+    <section class="panel" id="p-menu">
+      <h2>📋 Menü</h2>
+      <div id="menuList"></div>
+    </section>
+    <section class="panel" id="p-esya">
+      <h2>🎒 Eşyalarım</h2>
+      <div class="profile">
+        <canvas id="avatar"></canvas>
+        <div class="info"><b id="pName"></b><small id="pShop"></small></div>
+        <button class="btn2" id="editOwner">✏️ Düzenle</button>
+      </div>
+      <div id="inventory"></div>
+      <div class="foot"><button class="btn2 danger" id="reset">🗑️ Oyunu sıfırla</button></div>
+    </section>
+  </div>
 </main>
-
-<footer><button id="reset">Oyunu sıfırla</button></footer>
 
 <div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
 <div id="toast"></div>
@@ -173,14 +277,24 @@ const SHOP_LEVELS = [
 ];
 
 const UPGRADES = [
-  {id:'masa',    emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:80,  mult:1.8},
-  {id:'tepsi',   emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:60,  mult:1.6, max:5},
-  {id:'semaver', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:120, mult:1.7, max:6},
-  {id:'dekor',   emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:150, mult:1.9, max:5},
-  {id:'tabela',  emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:200, mult:2.0, max:5},
-  {id:'cirak',   emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:500, mult:2.2, max:3},
-  {id:'garson',  emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:800, mult:2.2, max:3},
+  {id:'masa',    grp:'esya', emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:80,  mult:1.8},
+  {id:'tepsi',   grp:'esya', emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:60,  mult:1.6, max:5},
+  {id:'semaver', grp:'esya', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:120, mult:1.7, max:6},
+  {id:'dekor',   grp:'esya', emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:150, mult:1.9, max:5},
+  {id:'tabela',  grp:'esya', emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:200, mult:2.0, max:5},
+  {id:'cirak',   grp:'ekip', emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:500, mult:2.2, max:3},
+  {id:'garson',  grp:'ekip', emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:800, mult:2.2, max:3},
 ];
+// Eşyalarım ekranında her geliştirmenin o anki etkisi
+const UP_FX = {
+  masa:    () => `${numTables()} masa`,
+  tepsi:   () => `${trayCap()} ürün taşır`,
+  semaver: l => `%${l * 15} daha hızlı`,
+  dekor:   l => `+%${l * 10} bahşiş`,
+  tabela:  l => `${l}. seviye neon`,
+  cirak:   l => `${l} çırak`,
+  garson:  l => `${l} garson`,
+};
 
 const DAY_EVENTS = [
   {id:'mac',    emoji:'⚽', name:'Maç Günü',      desc:'Kalabalık! Müşteriler 2 kat sık gelir ama sabırsızdır. Herkes çay ister.',
@@ -513,8 +627,8 @@ function endDay(){
       <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
       <tr><td><b>Net kâr</b></td><td>₺${fmt(st.earned + st.tips - rent)}</td></tr>
     </table>
-    <p class="hint">Dükkân kapalıyken geliştirme satın alabilirsin.</p>
-    <button class="big" id="modalOk">Tamam</button>`);
+    <button class="big" id="modalOk">Tamam</button>
+    <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button></div>`);
   S.day++;
   newDay();
   save();
@@ -532,7 +646,7 @@ let levelUpAt = -10;       // dükkân büyüyünce parlama
 let particles = [];
 
 function fitCanvas(c, ctx, w, h){
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = Math.min(2, window.devicePixelRatio || 1); // telefonlarda 3x gereksiz yük
   const k = c.clientWidth / w * dpr;
   if (!k) return;
   c.width = Math.round(w * k); c.height = Math.round(h * k);
@@ -1014,45 +1128,68 @@ function drawScene(){
 }
 
 // ---------- Arayüz (DOM) ----------
+// Sadece değiştiyse yaz: düğmeler parmağın altında yeniden oluşmasın (dokunma/kaydırma sorunları)
+function setHTML(sel, html){ const el = $(sel); if (el._html !== html){ el.innerHTML = html; el._html = html; } }
+
+// Sekmeler: telefonda biri görünür; bilgisayarda mutfak hep solda, sağda diğerleri
+const desktopMQ = matchMedia('(min-width:1000px)');
+let tab = 'mutfak';
+function setTab(t){ tab = t; applyTab(); }
+function applyTab(){
+  const desk = desktopMQ.matches, side = desk && tab === 'mutfak' ? 'magaza' : tab;
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'p-' + side || (desk && p.id === 'p-mutfak')));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === side));
+}
+desktopMQ.addEventListener('change', applyTab);
+applyTab();
+
+const canGrow = () => { const n = SHOP_LEVELS[lv('dukkan') + 1]; return n && S.day >= n.day && S.money >= n.cost; };
+const canUpgrade = () => UPGRADES.some(u => lv(u.id) < maxLv(u) && S.money >= upCost(u));
+const canUnlock = () => PRODUCTS.some(p => !S.unlocked.includes(p.id) && S.money >= p.cost);
+
 function renderUI(){
   $('#money').textContent = '₺' + fmt(S.money);
   $('#rep').textContent = '⭐ ' + Math.round(S.rep);
-  $('#day').textContent = 'Gün ' + S.day;
-  $('#shopTitle').textContent = '🍵 ' + owner().shopName;
-  $('#ownerBtn').textContent = '👤 ' + owner().name;
-  $('#levelName').textContent = '— ' + shopLevel().name;
   const frac = Math.min(1, R.t / DAY_LEN);
-  $('#clockfill').style.width = frac * 100 + '%';
   const mins = 8 * 60 + Math.floor(frac * 12 * 60);
-  $('#time').textContent = String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#day').textContent = `Gün ${S.day} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#clockfill').style.width = frac * 100 + '%';
+  $('#shopTitle').textContent = '🍵 ' + owner().shopName;
+  $('#levelName').textContent = shopLevel().name + ' kapalı. Hazır olunca aç!';
   $('#closedOverlay').hidden = status === 'running';
   $('#openBtn').textContent = `☀️ Dükkânı Aç (Gün ${S.day})`;
+  $('#pName').textContent = owner().name;
+  $('#pShop').textContent = owner().shopName + ' · ' + shopLevel().name;
 
+  document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade()));
+  document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
+
+  // Mutfak
   const room = hasRoom() && R.queue.length < 5;
-  $('#products').innerHTML = PRODUCTS.filter(p => S.unlocked.includes(p.id)).map((p, i) =>
+  setHTML('#products', PRODUCTS.filter(p => S.unlocked.includes(p.id)).map((p, i) =>
     `<button class="prod${room ? '' : ' full'}" data-prod="${p.id}"><kbd>${i + 1}</kbd><span class="em">${p.emoji}</span>
-     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span> · ${prepTime(p.id).toFixed(1)} sn</small></button>`).join('');
+     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span> · ${prepTime(p.id).toFixed(1)} sn</small></button>`).join(''));
 
   let ev = '';
   if (status === 'running'){
-    if (R.dayEvent) ev += `<span class="ev">${R.dayEvent.emoji} <b>${R.dayEvent.name}</b> <small>bütün gün</small></span>`;
+    if (R.dayEvent) ev += `<span class="ev">${R.dayEvent.emoji} <b>${R.dayEvent.name}</b></span>`;
     R.effects.forEach(e => ev += `<span class="ev">${e.ev.emoji} <b>${e.ev.name}</b> <small>${Math.ceil(e.left)} sn</small></span>`);
   }
-  $('#events').innerHTML = ev;
+  setHTML('#events', ev);
   document.body.classList.toggle('blackout', status === 'running' && effect('elektrik'));
 
   const chip = (p, prog, who) => `<span class="chip">${P[p].emoji}<span class="who">${who}</span><span class="prog" style="width:${Math.min(1, prog) * 100}%"></span></span>`;
   let q = R.queue.map((x, i) => chip(x.p, i === 0 ? x.prog / prepTime(x.p) : 0, ''));
   R.helpers.forEach(x => { if (x) q.push(chip(x.p, x.prog / prepTime(x.p), '🧒')); });
-  $('#queue').innerHTML = q.join('') || '<small class="hint" style="margin:8px">Ocak boş</small>';
+  setHTML('#queue', q.join('') || '<small class="hint" style="margin:8px">Ocak boş</small>');
 
   $('#trayTitle').textContent = `Tepsi (${R.tray.length}/${trayCap()})`;
   let t = R.tray.map((p, i) => `<span class="item" data-trash="${i}" title="Çöpe at">${P[p].emoji}</span>`).join('');
   for (let i = R.tray.length; i < trayCap(); i++) t += '<span class="slot"></span>';
-  $('#tray').innerHTML = t;
+  setHTML('#tray', t);
 
-  // Mağaza
-  let s = '<h3>Dükkân</h3>';
+  // Mağaza: dükkân büyütme + eşyalar + çalışanlar
+  let s = '';
   const next = SHOP_LEVELS[lv('dukkan') + 1];
   if (next){
     const locked = S.day < next.day;
@@ -1062,22 +1199,45 @@ function renderUI(){
   } else {
     s += `<div class="shop-item hl"><div class="em">🏆</div><div class="info"><b>${shopLevel().name}</b><small>Dükkânın en üst seviyede!</small></div></div>`;
   }
+  [['esya', 'Eşyalar'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
+    s += `<h3>${title}</h3>`;
+    UPGRADES.filter(u => u.grp === grp).forEach(u => {
+      const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
+      const desc = u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
+      s += `<div class="shop-item"><div class="em">${u.emoji}</div>
+        <div class="info"><b>${u.name} <span class="lvl">${l}/${m}</span></b><small>${desc}</small></div>
+        <button data-buy="${u.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
+    });
+  });
+  setHTML('#shop', s);
+
+  // Menü: satılan ürünler + açılabilecek ürünler
+  let m = '<h3>Menüdekiler</h3>';
+  PRODUCTS.filter(p => S.unlocked.includes(p.id)).forEach(p => m += `<div class="shop-item"><div class="em">${p.emoji}</div>
+    <div class="info"><b>${p.name}</b><small>Satış ₺${itemPrice(p.id)} · ${prepTime(p.id).toFixed(1)} sn hazırlama</small></div><span class="tag">✓ Menüde</span></div>`);
   const locked = PRODUCTS.filter(p => !S.unlocked.includes(p.id));
   if (locked.length){
-    s += '<h3>Yeni Ürünler</h3>';
-    locked.forEach(p => s += `<div class="shop-item"><div class="em">${p.emoji}</div>
-      <div class="info"><b>${p.name}</b><small>Satış fiyatı ₺${p.price}</small></div>
+    m += '<h3>Yeni Ürünler</h3>';
+    locked.forEach(p => m += `<div class="shop-item"><div class="em">${p.emoji}</div>
+      <div class="info"><b>${p.name}</b><small>Satış fiyatı ₺${p.price} · ${p.time} sn hazırlama</small></div>
       <button data-unlock="${p.id}" ${S.money < p.cost ? 'disabled' : ''}>₺${fmt(p.cost)}</button></div>`);
-  }
-  s += '<h3>Geliştirmeler</h3>';
-  UPGRADES.forEach(u => {
-    const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
-    const desc = u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
-    s += `<div class="shop-item"><div class="em">${u.emoji}</div>
-      <div class="info"><b>${u.name} <span class="lvl">${l}/${m}</span></b><small>${desc}</small></div>
-      <button data-buy="${u.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
+  } else m += '<p class="hint" style="margin-top:10px">🎉 Tüm ürünler menüde!</p>';
+  setHTML('#menuList', m);
+
+  // Eşyalarım: sahip olunan her şey
+  const card = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
+  const dots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
+  let v = `<div class="kv"><div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div></div>`;
+  v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => card(i === 3 ? '🏆' : '🏪', L.name,
+    i < lv('dukkan') ? 'Geride kaldı' : i === lv('dukkan') ? 'Şu anki dükkânın' : `Gün ${L.day}+ · ₺${fmt(L.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
+  [['esya', 'Eşyalar'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
+    v += `<h3>${title}</h3><div class="inv">` + UPGRADES.filter(u => u.grp === grp).map(u => {
+      const l = lv(u.id);
+      return card(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', dots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
+    }).join('') + '</div>';
   });
-  $('#shop').innerHTML = s;
+  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${itemPrice(p.id)}` : 'Kilitli', '', !S.unlocked.includes(p.id))).join('') + '</div>';
+  setHTML('#inventory', v);
 }
 
 // ---------- Sesler ----------
@@ -1125,9 +1285,9 @@ function showWelcome(){
     <p><b>${esc(owner().shopName)}</b> artık senin. Hedefin onu mahallenin en meşhur mekânına çevirmek!</p>
     <ol>
       <li>Müşteriler kapıdan girip masalara oturur, balonda siparişlerini görürsün.</li>
-      <li><b>Tezgâhtan</b> ürüne tıkla; hazırlanıp tepsiye düşer.</li>
-      <li><b>Müşteriye tıkla</b>, tepsideki ürünler servis edilir.</li>
-      <li>Kazancınla masa ekle, çırak ve garson tut, dekorasyon yap.</li>
+      <li><b>🔥 Mutfak</b>'ta ürüne dokun; hazırlanıp tepsiye düşer.</li>
+      <li><b>Müşteriye dokun</b>, tepsideki ürünler servis edilir.</li>
+      <li><b>🛒 Mağaza</b>'dan masa, çırak, garson, dekorasyon al; <b>📋 Menü</b>'ye yeni ürün ekle.</li>
       <li>Günler geçtikçe <b>dükkânını büyütüp</b> Kıraathane'ye, Kafe'ye dönüştür!</li>
     </ol>
     <button class="big" id="modalOk">Hadi başlayalım!</button>`);
@@ -1169,9 +1329,19 @@ function drawPreview(){
   c.fillStyle = '#d8c3a0'; c.fillRect(0, 0, 170, 150);
   drawPerson(c, {x:85, y:196, look:draft, apron:true, mood:'happy', scale:2.1, bob:Math.sin(now() * 3) * 1});
 }
+// Eşyalarım ekranındaki küçük sahip portresi
+const av = $('#avatar'), avg = av.getContext('2d');
+new ResizeObserver(() => fitCanvas(av, avg, 64, 80)).observe(av);
+function drawAvatar(){
+  if (!av.clientWidth) return;
+  avg.clearRect(0, 0, 64, 80);
+  avg.fillStyle = '#8b5a35'; avg.fillRect(0, 62, 64, 18);
+  drawPerson(avg, {x:32, y:118, look:owner(), apron:true, mood:'happy', scale:1.35});
+}
 
 $('#modal').addEventListener('click', e => {
   if (e.target.id === 'modalOk'){ hideModal(); return; }
+  if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); window.scrollTo(0, 0); return; }
   const b = e.target.closest('[data-k]');
   if (b){
     const k = b.dataset.k, raw = b.dataset.v;
@@ -1199,18 +1369,36 @@ scene.addEventListener('pointerdown', e => {
   if (modalOpen() || status !== 'running') return;
   const r = scene.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
-  const c = R.customers.find(c => seated(c) && Math.abs(x - SLOTS[c.seat].x) < 60 && y > SLOTS[c.seat].y - 130 && y < SLOTS[c.seat].y + 30);
-  if (c) serve(c);
+  // Telefonda parmak küçük kalmasın: geniş alan, en yakın müşteri
+  let best = null, bd = 1e9;
+  R.customers.filter(seated).forEach(c => {
+    const s = SLOTS[c.seat], dx = Math.abs(x - s.x);
+    if (dx < 72 && y > s.y - 140 && y < s.y + 40 && dx < bd){ best = c; bd = dx; }
+  });
+  if (best) serve(best);
 });
 
+// Hızlı eylemler (ürün hazırla, çöpe at) parmak değer değmez çalışır
 document.addEventListener('pointerdown', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-prod],[data-unlock],[data-buy],[data-trash],[data-open],[data-grow]');
+  const t = e.target.closest('[data-prod],[data-trash]');
   if (!t) return;
   const d = t.dataset;
-  if (d.open !== undefined){ newDay(); status = 'running'; SFX.open(); startDayEvent(); }
-  else if (d.prod) makeProduct(d.prod);
-  else if (d.trash !== undefined){ trayRemove(+d.trash); SFX.trash(); }
+  if (d.prod) makeProduct(d.prod);
+  else { trayRemove(+d.trash); SFX.trash(); }
+  renderUI();
+});
+
+// Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
+document.addEventListener('click', e => {
+  if (modalOpen()) return;
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow]');
+  if (!t) return;
+  const d = t.dataset;
+  if (d.open !== undefined){
+    newDay(); status = 'running'; SFX.open(); startDayEvent();
+    if (!desktopMQ.matches && tab !== 'mutfak') setTab('mutfak');
+  }
   else if (d.unlock){
     const p = P[d.unlock];
     if (S.money >= p.cost && !S.unlocked.includes(p.id)){ S.money -= p.cost; S.unlocked.push(p.id); toast(`${p.emoji} ${p.name} menüye eklendi!`); SFX.buy(); save(); }
@@ -1250,7 +1438,13 @@ $('#mute').addEventListener('click', () => {
   try { localStorage.setItem('cayocagi-ses', muted ? 'kapali' : 'acik'); } catch(e) {}
   SFX.serve();
 });
-$('#ownerBtn').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
+$('#editOwner').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab');
+  if (!b) return;
+  setTab(b.dataset.tab);
+  if (!desktopMQ.matches) window.scrollTo(0, 0);
+});
 $('#reset').addEventListener('click', () => {
   if (!confirm('Tüm ilerleme silinsin mi?')) return;
   S = fresh(); save(); newDay(); status = 'closed'; renderUI(); openOwnerEditor(true);
@@ -1268,6 +1462,7 @@ function frame(ts){
   updateParticles(dt);
   drawScene();
   drawPreview();
+  drawAvatar();
   requestAnimationFrame(frame);
 }
 fitCanvas(scene, g, W, H);
