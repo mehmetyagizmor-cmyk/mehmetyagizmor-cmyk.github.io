@@ -148,7 +148,15 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .inv-card small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 .inv-card .dots{color:var(--accent);font-size:10px;letter-spacing:1px}
 .inv-card.off{opacity:.4}
-.foot{text-align:center;margin-top:16px}
+
+/* Öğretici & ayarlar */
+.coach{background:#e8a23a22;border:1px dashed var(--accent);border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:14px;font-weight:600}
+.coach[hidden]{display:none}
+.prod.pulse{border-color:var(--good);animation:pulseA 1s infinite}
+@keyframes pulseA{50%{box-shadow:0 0 0 5px #6cc07055}}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.set-row .btn2{min-width:96px}
+.icon-btn[hidden]{display:none}
 
 /* ---------- Bildirimler & pencereler ---------- */
 #toast{position:fixed;bottom:calc(var(--nav) + var(--sb) + 14px);left:50%;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;max-width:calc(100vw - 32px);text-align:center}
@@ -190,7 +198,8 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
   <span class="stat money" id="money"></span>
   <span class="stat" id="rep"></span>
   <span class="stat" id="day"></span>
-  <button class="icon-btn" id="mute" aria-label="Sesi aç/kapat"></button>
+  <button class="icon-btn" id="pauseBtn" aria-label="Duraklat" hidden>⏸️</button>
+  <button class="icon-btn" id="settingsBtn" aria-label="Ayarlar">⚙️</button>
   <div class="daybar"><div id="clockfill"></div></div>
 </header>
 
@@ -209,6 +218,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
     </section>
     <section class="panel" id="p-mutfak">
       <h2>🔥 Mutfak</h2>
+      <div class="coach" id="coach" hidden></div>
       <p class="hint">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
@@ -241,7 +251,6 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
         <button class="btn2" id="editOwner">✏️ Düzenle</button>
       </div>
       <div id="inventory"></div>
-      <div class="foot"><button class="btn2 danger" id="reset">🗑️ Oyunu sıfırla</button></div>
     </section>
   </div>
 </main>
@@ -1147,6 +1156,21 @@ const canGrow = () => { const n = SHOP_LEVELS[lv('dukkan') + 1]; return n && S.d
 const canUpgrade = () => UPGRADES.some(u => lv(u.id) < maxLv(u) && S.money >= upCost(u));
 const canUnlock = () => PRODUCTS.some(p => !S.unlocked.includes(p.id) && S.money >= p.cost);
 
+// Yeni oyuncuya o an ne yapması gerektiğini söyler (ilk 2 gün)
+function coach(){
+  const none = {msg:'', want:[]};
+  if (S.day > 2) return none;
+  if (status !== 'running') return {msg:'☀️ Hazırsan yukarıdaki "Dükkânı Aç" düğmesine dokun.', want:[]};
+  if (R.customers.some(canServe)) return {msg:'👆 Yeşil balonlu müşteriye dokun, siparişini servis et!', want:[]};
+  const n = needed(), want = Object.keys(n).filter(k => n[k] > 0);
+  if (want.length){
+    if (!hasRoom()) return {msg:'🍽️ Tepsi dolu! İstenmeyen ürüne dokunup çöpe atabilirsin.', want:[]};
+    return {msg:`👇 Sipariş var: ${want.map(k => P[k].emoji + ' ' + P[k].name).join(', ')}. Yanıp sönen ürüne dokun!`, want};
+  }
+  if (inProgress()) return {msg:'⏳ Ocakta hazırlanıyor, birazdan tepsiye düşecek…', want:[]};
+  return {msg:'🚶 Müşteri bekleniyor… Geldiğinde balonunda siparişini göreceksin.', want:[]};
+}
+
 function renderUI(){
   $('#money').textContent = '₺' + fmt(S.money);
   $('#rep').textContent = '⭐ ' + Math.round(S.rep);
@@ -1164,10 +1188,15 @@ function renderUI(){
   document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade()));
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
 
-  // Mutfak
+  $('#pauseBtn').hidden = status !== 'running';
+
+  // Mutfak (+ ilk iki gün için öğretici)
+  const co = coach();
+  $('#coach').hidden = !co.msg;
+  if (co.msg) $('#coach').textContent = co.msg;
   const room = hasRoom() && R.queue.length < 5;
   setHTML('#products', PRODUCTS.filter(p => S.unlocked.includes(p.id)).map((p, i) =>
-    `<button class="prod${room ? '' : ' full'}" data-prod="${p.id}"><kbd>${i + 1}</kbd><span class="em">${p.emoji}</span>
+    `<button class="prod${room ? '' : ' full'}${co.want.includes(p.id) ? ' pulse' : ''}" data-prod="${p.id}"><kbd>${i + 1}</kbd><span class="em">${p.emoji}</span>
      <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span> · ${prepTime(p.id).toFixed(1)} sn</small></button>`).join(''));
 
   let ev = '';
@@ -1241,8 +1270,10 @@ function renderUI(){
 }
 
 // ---------- Sesler ----------
-let actx, muted = false;
-try { muted = localStorage.getItem('cayocagi-ses') === 'kapali'; } catch(e) {}
+let actx, muted = false, vibOn = true;
+try { muted = localStorage.getItem('cayocagi-ses') === 'kapali'; vibOn = localStorage.getItem('cayocagi-titresim') !== 'kapali'; } catch(e) {}
+const canVibrate = 'vibrate' in navigator;
+function buzz(pattern){ if (vibOn && canVibrate) try { navigator.vibrate(pattern); } catch(e) {} }
 function tone(freq, dur, {type = 'sine', vol = 0.08, delay = 0, to = null} = {}){
   if (muted) return;
   try {
@@ -1261,9 +1292,9 @@ const SFX = {
   prepStart:() => tone(220, 0.05, {type:'square', vol:0.04}),
   prepDone: () => tone(400, 0.12, {to:900, vol:0.07}),
   serve:    () => tone(700, 0.08, {type:'triangle', vol:0.06}),
-  pay:      () => { tone(880, 0.25, {type:'triangle'}); tone(1320, 0.3, {type:'triangle', delay:0.08}); tone(1760, 0.3, {type:'triangle', vol:0.05, delay:0.16}); },
-  angry:    () => { tone(300, 0.45, {type:'sawtooth', to:110, vol:0.06}); tone(240, 0.45, {type:'sawtooth', to:90, vol:0.04, delay:0.05}); },
-  error:    () => { tone(150, 0.1, {type:'square', vol:0.05}); tone(150, 0.1, {type:'square', vol:0.05, delay:0.13}); },
+  pay:      () => { buzz(25); tone(880, 0.25, {type:'triangle'}); tone(1320, 0.3, {type:'triangle', delay:0.08}); tone(1760, 0.3, {type:'triangle', vol:0.05, delay:0.16}); },
+  angry:    () => { buzz([70, 50, 70]); tone(300, 0.45, {type:'sawtooth', to:110, vol:0.06}); tone(240, 0.45, {type:'sawtooth', to:90, vol:0.04, delay:0.05}); },
+  error:    () => { buzz(40); tone(150, 0.1, {type:'square', vol:0.05}); tone(150, 0.1, {type:'square', vol:0.05, delay:0.13}); },
   buy:      () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, {type:'triangle', vol:0.06, delay:i * 0.07})),
   build:    () => [0, 0.18, 0.36].forEach(d => { tone(180, 0.08, {type:'square', vol:0.06, delay:d}); tone(90, 0.1, {vol:0.08, delay:d}); }),
   trash:    () => tone(500, 0.2, {to:120, vol:0.05}),
@@ -1271,13 +1302,43 @@ const SFX = {
   event:    () => { [523, 659, 784].forEach((f, i) => tone(f, 0.15, {type:'square', vol:0.04, delay:i * 0.1})); tone(1047, 0.5, {type:'square', vol:0.04, delay:0.3}); },
   blackout: () => { tone(120, 0.6, {type:'sawtooth', to:40, vol:0.07}); tone(60, 0.3, {type:'square', vol:0.05, delay:0.1}); },
   open:     () => [392, 523, 659, 784].forEach((f, i) => tone(f, 0.25, {type:'triangle', vol:0.06, delay:i * 0.1})),
-  levelUp:  () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, {type:'triangle', vol:0.07, delay:i * 0.09})),
+  levelUp:  () => { buzz([30, 40, 30, 40, 60]); [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, {type:'triangle', vol:0.07, delay:i * 0.09})); },
 };
 
 // ---------- Modal ----------
 function showModal(html, wide){ $('#modalBox').innerHTML = html; $('#modalBox').classList.toggle('wide', !!wide); $('#modal').classList.add('show'); }
 function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
+
+// ---------- Duraklatma & ayarlar ----------
+const clockText = () => $('#day').textContent;
+function showPause(){
+  showModal(`
+    <h2>⏸️ Oyun duraklatıldı</h2>
+    <p class="hint">${clockText()} · Müşteriler seni bekliyor!</p>
+    <button class="big" id="modalOk">▶️ Devam et</button>
+    <div class="btns"><button class="btn2" id="openSettings">⚙️ Ayarlar</button></div>`);
+}
+function showSettings(){
+  const onOff = v => v ? 'Açık' : 'Kapalı';
+  showModal(`
+    <h2>⚙️ Ayarlar</h2>
+    <div class="set-row"><span>🔊 Ses</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
+    ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
+    <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
+    <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
+    <div class="set-row"><span>🗑️ İlerlemeyi sil</span><button class="btn2 danger" id="resetAsk">Sıfırla</button></div>
+    <p class="hint" style="margin:12px 0">Kayıtların bu cihazda otomatik tutulur.</p>
+    <button class="big" id="modalOk">${status === 'running' ? '▶️ Oyuna dön' : 'Kapat'}</button>`);
+}
+function showResetConfirm(){
+  showModal(`
+    <h2>🗑️ Emin misin?</h2>
+    <p>Tüm paran, dükkânın ve geliştirmelerin silinir. Bu geri alınamaz.</p>
+    <button class="big" id="modalOk">Vazgeç</button>
+    <div class="btns"><button class="btn2 danger" id="resetYes">Evet, her şeyi sil</button></div>`);
+}
+function pauseGame(){ if (status === 'running' && !modalOpen()){ showPause(); SFX.serve(); } }
 
 function showWelcome(){
   showModal(`
@@ -1342,6 +1403,27 @@ function drawAvatar(){
 $('#modal').addEventListener('click', e => {
   if (e.target.id === 'modalOk'){ hideModal(); return; }
   if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); window.scrollTo(0, 0); return; }
+  const btn = e.target.closest('button');
+  const id = btn && btn.id;
+  if (id === 'openSettings'){ showSettings(); return; }
+  if (id === 'editOwnerM'){ openOwnerEditor(false); return; }
+  if (id === 'howto'){ showWelcome(); return; }
+  if (id === 'resetAsk'){ showResetConfirm(); return; }
+  if (id === 'resetYes'){
+    S = fresh(); save(); newDay(); status = 'closed'; particles = [];
+    setTab('mutfak'); renderUI(); openOwnerEditor(true); return;
+  }
+  if (btn && btn.dataset.set){
+    if (btn.dataset.set === 'sound'){
+      muted = !muted; btn.textContent = muted ? 'Kapalı' : 'Açık';
+      try { localStorage.setItem('cayocagi-ses', muted ? 'kapali' : 'acik'); } catch(e) {}
+    } else {
+      vibOn = !vibOn; btn.textContent = vibOn ? 'Açık' : 'Kapalı';
+      try { localStorage.setItem('cayocagi-titresim', vibOn ? 'acik' : 'kapali'); } catch(e) {}
+      buzz(40);
+    }
+    SFX.serve(); return;
+  }
   const b = e.target.closest('[data-k]');
   if (b){
     const k = b.dataset.k, raw = b.dataset.v;
@@ -1423,7 +1505,9 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('keydown', e => {
-  if (modalOpen() || e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'INPUT') return;
+  if (modalOpen()){ if (e.key === 'Escape' && $('#modalOk')) hideModal(); return; }
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P'){ pauseGame(); return; }
   const n = parseInt(e.key);
   if (n >= 1 && n <= 6){
     const list = PRODUCTS.filter(p => S.unlocked.includes(p.id));
@@ -1431,23 +1515,17 @@ document.addEventListener('keydown', e => {
   }
 });
 
-const muteLabel = () => $('#mute').textContent = muted ? '🔇' : '🔊';
-muteLabel();
-$('#mute').addEventListener('click', () => {
-  muted = !muted; muteLabel();
-  try { localStorage.setItem('cayocagi-ses', muted ? 'kapali' : 'acik'); } catch(e) {}
-  SFX.serve();
-});
+$('#pauseBtn').addEventListener('click', pauseGame);
+$('#settingsBtn').addEventListener('click', () => { if (!modalOpen()) showSettings(); });
+// Telefon kilitlenince / başka uygulamaya geçince: duraklat ve kaydet
+document.addEventListener('visibilitychange', () => { if (document.hidden){ pauseGame(); save(); } });
+window.addEventListener('pagehide', save);
 $('#editOwner').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
 $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('.tab');
   if (!b) return;
   setTab(b.dataset.tab);
   if (!desktopMQ.matches) window.scrollTo(0, 0);
-});
-$('#reset').addEventListener('click', () => {
-  if (!confirm('Tüm ilerleme silinsin mi?')) return;
-  S = fresh(); save(); newDay(); status = 'closed'; renderUI(); openOwnerEditor(true);
 });
 
 // ---------- Ana döngü ----------
