@@ -393,7 +393,7 @@ const DAY_LEN = 120; // saniye (08:00 - 20:00)
 
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
-  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}});
+  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0});
 function load(){
   try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return Object.assign(fresh(), d); } catch(e) {}
   return fresh();
@@ -458,7 +458,7 @@ function newDay(){
   R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
        dayEvent:null, effects:[], eventIn:rand(20, 35),
        garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
-       stats:{served:0, lost:0, earned:0, tips:0}};
+       combo:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}};
 }
 newDay();
 
@@ -480,6 +480,9 @@ function needed(){
   R.garsons.forEach(g => g.carry && n[g.carry] && n[g.carry]--);
   return n;
 }
+
+// Art arda mutlu müşteri: bahşiş çarpanı büyür, biri kızarsa sıfırlanır
+const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2 : 1;
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
@@ -543,12 +546,18 @@ function pay(c){
   const ratio = c.patience / c.max;
   let base = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
   if (c.special === 'vip') base *= 3;
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (effect('happy') ? 3 : 1);
+  R.combo++;
+  R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
+  S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
+  const cm = comboMult(R.combo);
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (effect('happy') ? 3 : 1) * cm;
   const tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   S.money += base + tip; S.total += base + tip;
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
   const s = SLOTS[c.seat];
+  // Yeni kombo kademesine geçildiyse kutla
+  if (cm > comboMult(R.combo - 1)){ floatText(s.x, s.y - 160, `🔥 KOMBO x${cm}!`, '#ff9d3a', 0.15); SFX.combo(); }
   floatText(s.x, s.y - 100, `+₺${base + tip}`, '#ffc94a');
   if (c.special === 'influencer') floatText(s.x, s.y - 130, '📸 +10⭐', '#e08bff', 0.3);
   coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
@@ -600,6 +609,7 @@ const ACH = [
   {id:'k1000',    emoji:'💰', name:'İlk Bin',            desc:'Toplam ₺1.000 kazan',                      goal:1000,  val:() => S.total,                 reward:100},
   {id:'k25000',   emoji:'💎', name:'Sermayedar',         desc:'Toplam ₺25.000 kazan',                     goal:25000, val:() => S.total,                 reward:1500},
   {id:'menu',     emoji:'📋', name:'Tam Menü',           desc:'Tüm ürünleri menüye ekle',                 goal:PRODUCTS.length, val:() => S.unlocked.length, reward:1000},
+  {id:'kombo',    emoji:'🔥', name:'Kombo Ustası',       desc:'Art arda 15 müşteriyi mutlu et (15 kombo)', goal:15,  val:() => S.bestCombo || 0,        reward:600},
   {id:'tarif',    emoji:'📈', name:'Usta Tarif',         desc:'Bir ürünün tarifini 5 yıldıza çıkar',      goal:MAX_RECIPE, val:() => Math.max(0, ...Object.values(S.rec || {})), reward:1500},
   {id:'kiraat',   emoji:'🏪', name:'Kıraathane Sahibi',  desc:"Dükkânı Kıraathane'ye büyüt",              goal:1,     val:() => lv('dukkan'),            reward:300},
   {id:'unlu',     emoji:'🏆', name:'Ünlü Mekân',         desc:'Dükkânı en üst seviyeye çıkar',            goal:SHOP_LEVELS.length - 1, val:() => lv('dukkan'), reward:5000},
@@ -710,6 +720,8 @@ function tick(dt){
         const penalty = c.special === 'vip' || c.special === 'influencer' ? 10 : 4;
         const s = SLOTS[c.seat];
         floatText(s.x, s.y - 100, `💢 -${penalty}⭐`, '#ff6b5e');
+        if (R.combo >= 3) floatText(s.x, s.y - 130, `Kombo bitti (${R.combo})`, '#c9b39a', 0.2);
+        R.combo = 0;
         S.rep = Math.max(0, S.rep - penalty);
         R.stats.lost++;
         bump('#rep', 'shake');
@@ -750,6 +762,7 @@ function endDay(){
     <table>
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
       <tr><td>Kızıp giden müşteri</td><td>${st.lost}</td></tr>
+      <tr><td>En uzun kombo</td><td>🔥 ${st.bestCombo}</td></tr>
       <tr><td>Satış</td><td>₺${fmt(st.earned)}</td></tr>
       <tr><td>Bahşiş</td><td>₺${fmt(st.tips)}</td></tr>
       <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
@@ -1220,6 +1233,30 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
 }
 
+// Sol altta kombo göstergesi: sayı, çarpan ve bir sonraki kademeye ilerleme
+const COMBO_STEPS = [3, 6, 10, 15];
+function drawCombo(){
+  const n = R.combo, cm = comboMult(n), next = COMBO_STEPS.find(k => k > n);
+  const prev = [...COMBO_STEPS].reverse().find(k => k <= n) || 0;
+  const x = 0, y = 0, w = 236, h = 46, pulse = 1 + Math.sin(now() * 8) * 0.04 * Math.min(1, n / 6);
+  g.save(); g.translate(12, 530 - h * 1.25); g.scale(1.25, 1.25); // telefonda okunaklı ama masaya taşmasın
+  g.translate(w / 2, h / 2); g.scale(pulse, pulse); g.translate(-w / 2, -h / 2);
+  g.fillStyle = 'rgba(20,12,6,.82)'; rr(g, x, y, w, h, 12); g.fill();
+  g.strokeStyle = cm > 1 ? '#ff9d3a' : 'rgba(255,255,255,.25)'; g.lineWidth = 2; rr(g, x, y, w, h, 12); g.stroke();
+  emoji(g, '🔥', x + 24, y + 22, cm >= 2 ? 26 : 20);
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillStyle = '#fff'; g.font = '900 19px system-ui'; g.fillText(`${n} KOMBO`, x + 44, y + 17);
+  g.fillStyle = cm > 1 ? '#ffc94a' : '#c9b39a'; g.font = '700 13px system-ui';
+  g.fillText(cm > 1 ? `bahşiş x${cm}` : `${next} kombo: bahşiş x${comboMult(next)}`, x + 44, y + 34);
+  if (next){ // ilerleme çubuğu
+    const f = (n - prev) / (next - prev);
+    g.fillStyle = 'rgba(255,255,255,.15)'; rr(g, x + 170, y + 12, 54, 6, 3); g.fill();
+    g.fillStyle = '#ff9d3a'; rr(g, x + 170, y + 12, 54 * f, 6, 3); g.fill();
+    g.fillStyle = '#c9b39a'; g.font = '700 11px system-ui'; g.textAlign = 'center'; g.fillText(`→ ${next}`, x + 197, y + 32);
+  }
+  g.restore();
+}
+
 // ---------- Sahneyi çiz ----------
 function drawScene(){
   const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
@@ -1249,6 +1286,7 @@ function drawScene(){
 
   R.customers.filter(seated).forEach(drawBubble);
   drawParticles();
+  if (status === 'running' && R.combo >= 2) drawCombo();
 
   // Dükkân büyüyünce parlama
   const lu = now() - levelUpAt;
@@ -1392,7 +1430,8 @@ function renderUI(){
   let v = `<div class="kv">
     <div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div>
     <div><small>Mutlu müşteri</small><b>${fmt(S.served)}</b></div><div><small>En kârlı gün</small><b>₺${fmt(S.bestDay)}</b></div>
-    <div><small>Kusursuz gün</small><b>${S.perfect}</b></div><div><small>Giriş serisi</small><b>🔥 ${S.streak} gün</b></div></div>`;
+    <div><small>Kusursuz gün</small><b>${S.perfect}</b></div><div><small>Giriş serisi</small><b>📅 ${S.streak} gün</b></div>
+    <div><small>En uzun kombo</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>Tamamlanan görev</small><b>📋 ${S.questsDone || 0}</b></div></div>`;
   const done = ACH.filter(a => S.ach[a.id]).length;
   v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
   // Tamamlanmamışlar önce, en çok ilerleyen en üstte
@@ -1447,6 +1486,7 @@ const SFX = {
   buy:      () => [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, {type:'triangle', vol:0.06, delay:i * 0.07})),
   build:    () => [0, 0.18, 0.36].forEach(d => { tone(180, 0.08, {type:'square', vol:0.06, delay:d}); tone(90, 0.1, {vol:0.08, delay:d}); }),
   trash:    () => tone(500, 0.2, {to:120, vol:0.05}),
+  combo:    () => { buzz([20, 30, 20]); [660, 880, 1175].forEach((f, i) => tone(f, 0.12, {type:'square', vol:0.035, delay:0.1 + i * 0.06})); },
   dayEnd:   () => [784, 659, 523, 392].forEach((f, i) => tone(f, 0.35, {vol:0.06, delay:i * 0.18})),
   event:    () => { [523, 659, 784].forEach((f, i) => tone(f, 0.15, {type:'square', vol:0.04, delay:i * 0.1})); tone(1047, 0.5, {type:'square', vol:0.04, delay:0.3}); },
   blackout: () => { tone(120, 0.6, {type:'sawtooth', to:40, vol:0.07}); tone(60, 0.3, {type:'square', vol:0.05, delay:0.1}); },
