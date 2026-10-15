@@ -1373,9 +1373,11 @@ function renderUI(){
 let actx, muted = false, vibOn = true;
 try { muted = localStorage.getItem('cayocagi-ses') === 'kapali'; vibOn = localStorage.getItem('cayocagi-titresim') !== 'kapali'; } catch(e) {}
 const canVibrate = 'vibrate' in navigator;
-function buzz(pattern){ if (vibOn && canVibrate) try { navigator.vibrate(pattern); } catch(e) {} }
+// Tarayıcılar ilk dokunuştan önce ses/titreşime izin vermez; boşuna denemeyelim
+const userActive = () => !navigator.userActivation || navigator.userActivation.hasBeenActive;
+function buzz(pattern){ if (vibOn && canVibrate && userActive()) try { navigator.vibrate(pattern); } catch(e) {} }
 function tone(freq, dur, {type = 'sine', vol = 0.08, delay = 0, to = null} = {}){
-  if (muted) return;
+  if (muted || !userActive()) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
