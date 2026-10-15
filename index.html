@@ -158,6 +158,27 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .set-row .btn2{min-width:96px}
 .icon-btn[hidden]{display:none}
 
+/* Gün sonu, günlük ödül, başarımlar */
+.stars{font-size:34px;text-align:center;letter-spacing:4px;margin:-4px 0 6px}
+.stars span{filter:grayscale(1);opacity:.3}
+.banner{background:#e8a23a22;border:1px solid var(--accent);border-radius:10px;padding:8px 10px;text-align:center;font-weight:700;margin:6px 0}
+.streak{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:12px 0}
+.streak div{background:var(--panel2);border-radius:8px;padding:6px 0;text-align:center;font-size:11px;color:var(--muted);border:2px solid transparent}
+.streak div b{display:block;font-size:18px}
+.streak .got{background:#6cc07033;color:var(--text)}
+.streak .today{border-color:var(--accent);color:var(--text);animation:pulseA 1s infinite}
+.reward{text-align:center;font-size:30px;font-weight:900;color:var(--accent);margin:4px 0 12px}
+.ach{display:flex;gap:10px;align-items:center;padding:8px 10px;background:var(--panel2);border-radius:10px;margin-bottom:6px;border:1px solid transparent}
+.ach.done{border-color:var(--good)}
+.ach .em{font-size:24px;width:30px;text-align:center;flex:none}
+.ach .info{flex:1;min-width:0}
+.ach small{display:block;color:var(--muted);font-size:12px}
+.ach .pbar{height:5px;background:#0004;border-radius:3px;margin-top:5px;overflow:hidden}
+.ach .pbar div{height:100%;background:var(--accent)}
+.ach.done .pbar div{background:var(--good)}
+.ach .rw{font-weight:800;font-size:13px;color:var(--accent);flex:none}
+.ach.done .rw{color:var(--good)}
+
 /* ---------- Bildirimler & pencereler ---------- */
 #toast{position:fixed;bottom:calc(var(--nav) + var(--sb) + 14px);left:50%;transform:translateX(-50%);background:#000c;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:60;max-width:calc(100vw - 32px);text-align:center}
 @media(min-width:1000px){#toast{bottom:24px}}
@@ -343,7 +364,8 @@ const GARSON_LOOKS = [
 const DAY_LEN = 120; // saniye (08:00 - 20:00)
 
 // ---------- Kayıt ----------
-const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null});
+const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
+  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null});
 function load(){
   try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return Object.assign(fresh(), d); } catch(e) {}
   return fresh();
@@ -491,7 +513,7 @@ function pay(c){
   const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (effect('happy') ? 3 : 1);
   const tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   S.money += base + tip; S.total += base + tip;
-  R.stats.served++; R.stats.earned += base; R.stats.tips += tip;
+  R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
   const s = SLOTS[c.seat];
   floatText(s.x, s.y - 100, `+₺${base + tip}`, '#ffc94a');
@@ -521,13 +543,58 @@ function triggerLiveEvent(){
   announce(ev);
 }
 
-let cardTimer;
-function announce(ev, prefix){
+// Kartlar sırayla gösterilir: aynı anda iki olay/başarım gelirse biri kaybolmaz
+const cardQ = [];
+let cardBusy = false;
+function announce(ev, prefix){ cardQ.push([ev, prefix]); if (!cardBusy) nextCard(); }
+function nextCard(){
+  const it = cardQ.shift();
+  if (!it){ cardBusy = false; return; }
+  cardBusy = true;
+  const [ev, prefix] = it;
   $('#eventCard').innerHTML = `<div class="em">${ev.emoji}</div><div><b>${prefix ? prefix + ': ' : ''}${ev.name}</b><small>${ev.desc}</small></div>`;
   $('#eventCard').classList.add('show');
-  clearTimeout(cardTimer); cardTimer = setTimeout(() => $('#eventCard').classList.remove('show'), 4000);
-  ev.id === 'elektrik' ? SFX.blackout() : SFX.event();
+  ev.id === 'elektrik' ? SFX.blackout() : ev.ach ? SFX.levelUp() : SFX.event();
+  setTimeout(() => { $('#eventCard').classList.remove('show'); setTimeout(nextCard, 450); }, 3600);
 }
+
+// ---------- Başarımlar ----------
+const ACH = [
+  {id:'ilk',      emoji:'🤝', name:'İlk Müşteri',        desc:'İlk müşterine servis yap',                 goal:1,     val:() => S.served,                reward:20},
+  {id:'m50',      emoji:'🍵', name:'Mahallenin Çaycısı', desc:'50 müşteriye servis yap',                  goal:50,    val:() => S.served,                reward:150},
+  {id:'m250',     emoji:'🫖', name:'Usta Çaycı',         desc:'250 müşteriye servis yap',                 goal:250,   val:() => S.served,                reward:600},
+  {id:'m1000',    emoji:'👑', name:'Efsane Çaycı',       desc:'1000 müşteriye servis yap',                goal:1000,  val:() => S.served,                reward:3000},
+  {id:'k1000',    emoji:'💰', name:'İlk Bin',            desc:'Toplam ₺1.000 kazan',                      goal:1000,  val:() => S.total,                 reward:100},
+  {id:'k25000',   emoji:'💎', name:'Sermayedar',         desc:'Toplam ₺25.000 kazan',                     goal:25000, val:() => S.total,                 reward:1500},
+  {id:'menu',     emoji:'📋', name:'Tam Menü',           desc:'Tüm ürünleri menüye ekle',                 goal:PRODUCTS.length, val:() => S.unlocked.length, reward:1000},
+  {id:'kiraat',   emoji:'🏪', name:'Kıraathane Sahibi',  desc:"Dükkânı Kıraathane'ye büyüt",              goal:1,     val:() => lv('dukkan'),            reward:300},
+  {id:'unlu',     emoji:'🏆', name:'Ünlü Mekân',         desc:'Dükkânı en üst seviyeye çıkar',            goal:SHOP_LEVELS.length - 1, val:() => lv('dukkan'), reward:5000},
+  {id:'kusursuz', emoji:'✨', name:'Kusursuz Gün',       desc:'Bir günde kimseyi kızdırmadan 15 müşteriye servis yap', goal:1, val:() => S.perfect, reward:400},
+  {id:'yildiz',   emoji:'⭐', name:'Mahallenin Gözdesi', desc:'İtibarını 100 yap',                        goal:100,   val:() => S.rep,                   reward:500},
+  {id:'ekip',     emoji:'👥', name:'Kalabalık Ekip',     desc:'2 çırak ve 2 garson çalıştır',             goal:4,     val:() => Math.min(2, lv('cirak')) + Math.min(2, lv('garson')), reward:800},
+  {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
+];
+function checkAch(){
+  if (!S.owner) return;
+  for (const a of ACH){
+    if (S.ach[a.id] || a.val() < a.goal) continue;
+    S.ach[a.id] = Date.now();
+    S.money += a.reward;
+    announce({emoji:a.emoji, name:a.name, desc:`${a.desc} · +₺${fmt(a.reward)}`, ach:true}, '🏅 Başarım');
+    if (status === 'running') confetti();
+    save();
+  }
+}
+
+// ---------- Günlük ödül ----------
+const dateStr = d => d.toDateString();
+const dailyPending = () => S.lastDate !== dateStr(new Date());
+function nextStreak(){
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  return S.lastDate === dateStr(y) ? S.streak + 1 : 1;
+}
+// 7 günlük döngü; 7. gün büyük ödül; dükkân büyüdükçe ödül de büyür
+const dailyAmount = st => Math.round((20 + 30 * ((st - 1) % 7 + 1) + ((st - 1) % 7 === 6 ? 200 : 0)) * (1 + 0.5 * lv('dukkan')));
 
 // ---------- Oyun döngüsü (mantık) ----------
 function tick(dt){
@@ -624,9 +691,26 @@ function endDay(){
   SFX.dayEnd();
   const rent = 10 * S.day;
   S.money = Math.max(0, S.money - rent);
-  const st = R.stats;
+  const st = R.stats, net = st.earned + st.tips - rent;
+  // Günün karnesi: 3 yıldız = kimse kızmadı
+  const ratio = st.served / Math.max(1, st.served + st.lost);
+  const stars = st.lost === 0 && st.served >= 5 ? 3 : ratio >= 0.8 ? 2 : 1;
+  const record = net > S.bestDay && S.day > 1;
+  S.bestDay = Math.max(S.bestDay, net);
+  const perfect = st.served >= 15 && st.lost === 0;
+  if (perfect) S.perfect++;
+  // Sıradaki hedef: henüz alınamayan en ucuz şey
+  const goals = [];
+  const nx = SHOP_LEVELS[lv('dukkan') + 1];
+  if (nx && S.day + 1 >= nx.day) goals.push({t:`🏪 ${nx.name}`, c:nx.cost});
+  PRODUCTS.filter(p => !S.unlocked.includes(p.id)).forEach(p => goals.push({t:`${p.emoji} ${p.name}`, c:p.cost}));
+  UPGRADES.filter(u => lv(u.id) < maxLv(u)).forEach(u => goals.push({t:`${u.emoji} ${u.name}`, c:upCost(u)}));
+  const goal = goals.filter(x => x.c > S.money).sort((a, b) => a.c - b.c)[0];
   showModal(`
     <h2>🌙 ${S.day}. gün bitti!</h2>
+    <div class="stars">${'⭐'.repeat(stars)}<span>${'⭐'.repeat(3 - stars)}</span></div>
+    ${record ? '<p class="banner">🎉 Yeni rekor! En kârlı günün!</p>' : ''}
+    ${perfect ? '<p class="banner">✨ Kusursuz gün: kimse kızmadı!</p>' : ''}
     ${R.dayEvent ? `<p class="hint">Günün olayı: ${R.dayEvent.emoji} ${R.dayEvent.name}</p>` : ''}
     <table>
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
@@ -634,8 +718,9 @@ function endDay(){
       <tr><td>Satış</td><td>₺${fmt(st.earned)}</td></tr>
       <tr><td>Bahşiş</td><td>₺${fmt(st.tips)}</td></tr>
       <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
-      <tr><td><b>Net kâr</b></td><td>₺${fmt(st.earned + st.tips - rent)}</td></tr>
+      <tr><td><b>Net kâr</b></td><td style="color:${net < 0 ? 'var(--bad)' : 'var(--good)'}">${net < 0 ? '-' : ''}₺${fmt(Math.abs(net))}</td></tr>
     </table>
+    ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
     <button class="big" id="modalOk">Tamam</button>
     <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button></div>`);
   S.day++;
@@ -1172,6 +1257,7 @@ function coach(){
 }
 
 function renderUI(){
+  checkAch();
   $('#money').textContent = '₺' + fmt(S.money);
   $('#rep').textContent = '⭐ ' + Math.round(S.rep);
   const frac = Math.min(1, R.t / DAY_LEN);
@@ -1256,7 +1342,21 @@ function renderUI(){
   // Eşyalarım: sahip olunan her şey
   const card = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
   const dots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
-  let v = `<div class="kv"><div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div></div>`;
+  let v = `<div class="kv">
+    <div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div>
+    <div><small>Mutlu müşteri</small><b>${fmt(S.served)}</b></div><div><small>En kârlı gün</small><b>₺${fmt(S.bestDay)}</b></div>
+    <div><small>Kusursuz gün</small><b>${S.perfect}</b></div><div><small>Giriş serisi</small><b>🔥 ${S.streak} gün</b></div></div>`;
+  const done = ACH.filter(a => S.ach[a.id]).length;
+  v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
+  // Tamamlanmamışlar önce, en çok ilerleyen en üstte
+  const prog = a => S.ach[a.id] ? 1 : Math.min(1, a.val() / a.goal);
+  [...ACH].sort((a, b) => (!!S.ach[a.id] - !!S.ach[b.id]) || prog(b) - prog(a)).forEach(a => {
+    const ok = !!S.ach[a.id], p = prog(a);
+    v += `<div class="ach${ok ? ' done' : ''}"><div class="em">${ok ? a.emoji : '🔒'}</div>
+      <div class="info"><b>${a.name}</b><small>${a.desc}${ok ? '' : ` · ${fmt(Math.min(a.val(), a.goal))}/${fmt(a.goal)}`}</small>
+      <div class="pbar"><div style="width:${Math.round(p * 100)}%"></div></div></div>
+      <span class="rw">${ok ? '✓' : '₺' + fmt(a.reward)}</span></div>`;
+  });
   v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => card(i === 3 ? '🏆' : '🏪', L.name,
     i < lv('dukkan') ? 'Geride kaldı' : i === lv('dukkan') ? 'Şu anki dükkânın' : `Gün ${L.day}+ · ₺${fmt(L.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
   [['esya', 'Eşyalar'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
@@ -1340,6 +1440,30 @@ function showResetConfirm(){
 }
 function pauseGame(){ if (status === 'running' && !modalOpen()){ showPause(); SFX.serve(); } }
 
+function showDaily(){
+  const st = nextStreak(), pos = (st - 1) % 7, amt = dailyAmount(st);
+  let cells = '';
+  for (let i = 0; i < 7; i++){
+    const cls = i < pos ? 'got' : i === pos ? 'today' : '';
+    cells += `<div class="${cls}">${i < pos ? '✓' : i === 6 ? '🎁' : 'Gün ' + (i + 1)}<b>${i === 6 ? '💰' : '🪙'}</b>₺${fmt(dailyAmount(st - pos + i))}</div>`;
+  }
+  showModal(`
+    <h2>🎁 Günlük Ödül</h2>
+    <p>${st > 1 ? `🔥 <b>${st} gündür</b> üst üste geliyorsun, ${esc(owner().name)}!` : `Tekrar hoş geldin, ${esc(owner().name)}! Her gün gel, ödülün büyüsün.`}</p>
+    <div class="streak">${cells}</div>
+    <div class="reward">+₺${fmt(amt)}</div>
+    <p class="hint">Bir gün kaçırırsan seri baştan başlar.</p>
+    <button class="big" id="claimDaily">Ödülü al</button>`);
+}
+function claimDaily(){
+  if (!dailyPending()) return hideModal();
+  const amt = dailyAmount(nextStreak());
+  S.streak = nextStreak(); S.lastDate = dateStr(new Date());
+  S.money += amt; save();
+  hideModal(); SFX.pay(); bump('#money', 'bump');
+  toast(`🪙 +₺${fmt(amt)} günlük ödül!`);
+}
+
 function showWelcome(){
   showModal(`
     <h2>🍵 Hoş geldin, ${esc(owner().name)}!</h2>
@@ -1403,6 +1527,7 @@ function drawAvatar(){
 $('#modal').addEventListener('click', e => {
   if (e.target.id === 'modalOk'){ hideModal(); return; }
   if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); window.scrollTo(0, 0); return; }
+  if (e.target.id === 'claimDaily'){ claimDaily(); return; }
   const btn = e.target.closest('button');
   const id = btn && btn.id;
   if (id === 'openSettings'){ showSettings(); return; }
@@ -1435,7 +1560,8 @@ $('#modal').addEventListener('click', e => {
     draft.name = $('#oName').value.trim() || DEFAULT_OWNER.name;
     draft.shopName = $('#oShop').value.trim() || DEFAULT_OWNER.shopName;
     S.owner = draft; draft = null; save(); hideModal(); SFX.buy();
-    if (firstSetup) showWelcome();
+    // İlk gün seriyi başlatır (ödül yarından itibaren)
+    if (firstSetup){ S.lastDate = dateStr(new Date()); S.streak = 1; save(); showWelcome(); }
   }
 });
 
@@ -1518,7 +1644,11 @@ document.addEventListener('keydown', e => {
 $('#pauseBtn').addEventListener('click', pauseGame);
 $('#settingsBtn').addEventListener('click', () => { if (!modalOpen()) showSettings(); });
 // Telefon kilitlenince / başka uygulamaya geçince: duraklat ve kaydet
-document.addEventListener('visibilitychange', () => { if (document.hidden){ pauseGame(); save(); } });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ pauseGame(); save(); }
+  // Uygulama gece yarısını geçip açık kaldıysa, dönüşte günlük ödülü göster
+  else if (S.owner && status === 'closed' && !modalOpen() && dailyPending()) showDaily();
+});
 window.addEventListener('pagehide', save);
 $('#editOwner').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
 $('#tabs').addEventListener('click', e => {
@@ -1548,7 +1678,7 @@ requestAnimationFrame(frame);
 setInterval(renderUI, 100);
 renderUI();
 
-if (!S.owner) openOwnerEditor(true); else showWelcome();
+if (!S.owner) openOwnerEditor(true); else if (dailyPending()) showDaily();
 </script>
 </body>
 </html>
