@@ -116,6 +116,11 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
   #p-mutfak h2{display:none}  /* alt menüde zaten yazıyor */
   #p-mutfak .row{margin-top:8px}
   #p-mutfak h3{margin:4px 0 6px}
+  .products.many{grid-template-columns:repeat(4,1fr);gap:5px}
+  .products.many .prod{padding:5px 1px;border-radius:10px}
+  .products.many .em{font-size:22px}
+  .products.many b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .products.many .pt{display:none}
 }
 .prod{position:relative;background:var(--panel2);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit}
 .prod:hover{border-color:var(--accent)}
@@ -143,6 +148,8 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .shop-item .info{flex:1;min-width:0}
 .shop-item small{display:block;color:var(--muted);font-size:12px}
 .lvl{color:var(--accent);font-size:12px}
+.rs{color:#ffc94a;letter-spacing:1px}
+.rs i{font-style:normal;color:#ffffff26}
 .shop-item button{background:var(--accent);color:#2b1d14;border:0;border-radius:8px;padding:10px 10px;cursor:pointer;min-width:76px;font:inherit;font-weight:800;flex:none}
 .shop-item button:disabled{background:#0004;color:var(--muted);cursor:not-allowed}
 .shop-item .tag{color:var(--good);font-weight:800;font-size:13px;flex:none}
@@ -303,15 +310,21 @@ const fmt = n => Math.floor(n).toLocaleString('tr-TR');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // ---------- Oyun verileri ----------
+// shop: ürünü açmak için gereken dükkân seviyesi (SHOP_LEVELS sırası)
 const PRODUCTS = [
-  {id:'cay',    name:'Çay',          emoji:'🍵', price:10, time:1.5, cost:0},
-  {id:'simit',  name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:100},
-  {id:'kahve',  name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:350},
-  {id:'tost',   name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:900},
-  {id:'sahlep', name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:2000},
-  {id:'baklava',name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:4000},
+  {id:'cay',     name:'Çay',          emoji:'🍵', price:10, time:1.5, cost:0},
+  {id:'simit',   name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:100},
+  {id:'pogaca',  name:'Poğaça',       emoji:'🥐', price:20, time:2.0, cost:250},
+  {id:'limonata',name:'Limonata',     emoji:'🍋', price:25, time:1.5, cost:600,  shop:1},
+  {id:'kahve',   name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:350},
+  {id:'tost',    name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:900},
+  {id:'sahlep',  name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:2000},
+  {id:'menemen', name:'Menemen',      emoji:'🍳', price:70, time:4.5, cost:3000, shop:2},
+  {id:'baklava', name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:4000},
+  {id:'sutlac',  name:'Sütlaç',       emoji:'🍮', price:95, time:3.0, cost:6500, shop:3},
 ];
 const P = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+const MAX_RECIPE = 5;
 
 // Dükkân seviyeleri: hem para hem zaman (gün) ister; görünümü ve alanı değiştirir
 const SHOP_LEVELS = [
@@ -380,7 +393,7 @@ const DAY_LEN = 120; // saniye (08:00 - 20:00)
 
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
-  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null});
+  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}});
 function load(){
   try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return Object.assign(fresh(), d); } catch(e) {}
   return fresh();
@@ -404,7 +417,12 @@ const DE = () => R.dayEvent || {};
 const effect = id => R.effects.some(e => e.id === id);
 const speed = () => (1 + 0.15 * lv('semaver')) * (effect('elektrik') ? 0.5 : 1);
 const prepTime = id => P[id].time / speed();
-const itemPrice = id => Math.round(P[id].price * ((DE().priceMult || {})[id] || 1));
+// Tarif seviyesi: her seviye +%25 fiyat; maliyet katlanarak artar (uzun vadeli para hedefi)
+const recLv = id => (S.rec || {})[id] || 0;
+const basePrice = id => Math.round(P[id].price * (1 + 0.25 * recLv(id)));
+const recipeCost = id => Math.round(P[id].price * 15 * Math.pow(1.9, recLv(id)));
+const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1));
+const shopLocked = p => (p.shop || 0) > lv('dukkan');
 const upCost = u => Math.round(u.base * Math.pow(u.mult, lv(u.id)));
 
 // ---------- Sahne geometrisi ----------
@@ -582,6 +600,7 @@ const ACH = [
   {id:'k1000',    emoji:'💰', name:'İlk Bin',            desc:'Toplam ₺1.000 kazan',                      goal:1000,  val:() => S.total,                 reward:100},
   {id:'k25000',   emoji:'💎', name:'Sermayedar',         desc:'Toplam ₺25.000 kazan',                     goal:25000, val:() => S.total,                 reward:1500},
   {id:'menu',     emoji:'📋', name:'Tam Menü',           desc:'Tüm ürünleri menüye ekle',                 goal:PRODUCTS.length, val:() => S.unlocked.length, reward:1000},
+  {id:'tarif',    emoji:'📈', name:'Usta Tarif',         desc:'Bir ürünün tarifini 5 yıldıza çıkar',      goal:MAX_RECIPE, val:() => Math.max(0, ...Object.values(S.rec || {})), reward:1500},
   {id:'kiraat',   emoji:'🏪', name:'Kıraathane Sahibi',  desc:"Dükkânı Kıraathane'ye büyüt",              goal:1,     val:() => lv('dukkan'),            reward:300},
   {id:'unlu',     emoji:'🏆', name:'Ünlü Mekân',         desc:'Dükkânı en üst seviyeye çıkar',            goal:SHOP_LEVELS.length - 1, val:() => lv('dukkan'), reward:5000},
   {id:'kusursuz', emoji:'✨', name:'Kusursuz Gün',       desc:'Bir günde kimseyi kızdırmadan 15 müşteriye servis yap', goal:1, val:() => S.perfect, reward:400},
@@ -718,7 +737,8 @@ function endDay(){
   const goals = [];
   const nx = SHOP_LEVELS[lv('dukkan') + 1];
   if (nx && S.day + 1 >= nx.day) goals.push({t:`🏪 ${nx.name}`, c:nx.cost});
-  PRODUCTS.filter(p => !S.unlocked.includes(p.id)).forEach(p => goals.push({t:`${p.emoji} ${p.name}`, c:p.cost}));
+  PRODUCTS.filter(p => !S.unlocked.includes(p.id) && !shopLocked(p)).forEach(p => goals.push({t:`${p.emoji} ${p.name}`, c:p.cost}));
+  S.unlocked.filter(id => recLv(id) < MAX_RECIPE).forEach(id => goals.push({t:`${P[id].emoji} ${P[id].name} tarifi`, c:recipeCost(id)}));
   UPGRADES.filter(u => lv(u.id) < maxLv(u)).forEach(u => goals.push({t:`${u.emoji} ${u.name}`, c:upCost(u)}));
   const goal = goals.filter(x => x.c > S.money).sort((a, b) => a.c - b.c)[0];
   showModal(`
@@ -1254,7 +1274,9 @@ applyTab();
 
 const canGrow = () => { const n = SHOP_LEVELS[lv('dukkan') + 1]; return n && S.day >= n.day && S.money >= n.cost; };
 const canUpgrade = () => UPGRADES.some(u => lv(u.id) < maxLv(u) && S.money >= upCost(u));
-const canUnlock = () => PRODUCTS.some(p => !S.unlocked.includes(p.id) && S.money >= p.cost);
+const canUnlock = () => PRODUCTS.some(p => !S.unlocked.includes(p.id) && !shopLocked(p) && S.money >= p.cost)
+  || S.unlocked.some(id => recLv(id) < MAX_RECIPE && S.money >= recipeCost(id));
+const stars5 = l => `<span class="rs">${'★'.repeat(l)}<i>${'★'.repeat(MAX_RECIPE - l)}</i></span>`;
 
 // Yeni oyuncuya o an ne yapması gerektiğini söyler (ilk 2 gün)
 function coach(){
@@ -1297,9 +1319,11 @@ function renderUI(){
   $('#coach').hidden = !co.msg;
   if (co.msg) $('#coach').textContent = co.msg;
   const room = hasRoom() && R.queue.length < 5;
-  setHTML('#products', PRODUCTS.filter(p => S.unlocked.includes(p.id)).map((p, i) =>
-    `<button class="prod${room ? '' : ' full'}${co.want.includes(p.id) ? ' pulse' : ''}" data-prod="${p.id}"><kbd>${i + 1}</kbd><span class="em">${p.emoji}</span>
-     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span> · ${prepTime(p.id).toFixed(1)} sn</small></button>`).join(''));
+  const menu = PRODUCTS.filter(p => S.unlocked.includes(p.id));
+  $('#products').classList.toggle('many', menu.length > 6); // telefonda 4 sütun
+  setHTML('#products', menu.map((p, i) =>
+    `<button class="prod${room ? '' : ' full'}${co.want.includes(p.id) ? ' pulse' : ''}" data-prod="${p.id}"><kbd>${(i + 1) % 10}</kbd><span class="em">${p.emoji}</span>
+     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span><span class="pt"> · ${prepTime(p.id).toFixed(1)} sn</span></small></button>`).join(''));
 
   let ev = '';
   if (status === 'running'){
@@ -1342,16 +1366,23 @@ function renderUI(){
   });
   setHTML('#shop', s);
 
-  // Menü: satılan ürünler + açılabilecek ürünler
-  let m = '<h3>Menüdekiler</h3>';
-  PRODUCTS.filter(p => S.unlocked.includes(p.id)).forEach(p => m += `<div class="shop-item"><div class="em">${p.emoji}</div>
-    <div class="info"><b>${p.name}</b><small>Satış ₺${itemPrice(p.id)} · ${prepTime(p.id).toFixed(1)} sn hazırlama</small></div><span class="tag">✓ Menüde</span></div>`);
+  // Menü: tarif geliştirme + açılabilecek ürünler
+  let m = '<h3>Tarifler</h3><p class="hint">Tarifi geliştirdikçe ürün daha lezzetli olur: her yıldız +%25 satış fiyatı.</p>';
+  menu.forEach(p => {
+    const l = recLv(p.id), isMax = l >= MAX_RECIPE, c = recipeCost(p.id);
+    m += `<div class="shop-item"><div class="em">${p.emoji}</div>
+      <div class="info"><b>${p.name} <span class="lvl">${stars5(l)}</span></b><small>Satış ₺${basePrice(p.id)}${isMax ? ' · Usta tarifi!' : ` → ₺${Math.round(p.price * (1 + 0.25 * (l + 1)))}`}</small></div>
+      <button data-recipe="${p.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
+  });
   const locked = PRODUCTS.filter(p => !S.unlocked.includes(p.id));
   if (locked.length){
     m += '<h3>Yeni Ürünler</h3>';
-    locked.forEach(p => m += `<div class="shop-item"><div class="em">${p.emoji}</div>
-      <div class="info"><b>${p.name}</b><small>Satış fiyatı ₺${p.price} · ${p.time} sn hazırlama</small></div>
-      <button data-unlock="${p.id}" ${S.money < p.cost ? 'disabled' : ''}>₺${fmt(p.cost)}</button></div>`);
+    locked.forEach(p => {
+      const need = shopLocked(p) && SHOP_LEVELS[p.shop].name;
+      m += `<div class="shop-item"><div class="em">${p.emoji}</div>
+        <div class="info"><b>${p.name}</b><small>${need ? `${need} olunca açılır` : `Satış fiyatı ₺${p.price} · ${p.time} sn hazırlama`}</small></div>
+        <button data-unlock="${p.id}" ${need || S.money < p.cost ? 'disabled' : ''}>${need ? '🔒' : '₺' + fmt(p.cost)}</button></div>`;
+    });
   } else m += '<p class="hint" style="margin-top:10px">🎉 Tüm ürünler menüde!</p>';
   setHTML('#menuList', m);
 
@@ -1381,7 +1412,7 @@ function renderUI(){
       return card(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', dots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
     }).join('') + '</div>';
   });
-  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${itemPrice(p.id)}` : 'Kilitli', '', !S.unlocked.includes(p.id))).join('') + '</div>';
+  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? SHOP_LEVELS[p.shop].name : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
   setHTML('#inventory', v);
 }
 
@@ -1636,7 +1667,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe]');
   if (!t) return;
   const d = t.dataset;
   if (d.open !== undefined){
@@ -1645,7 +1676,13 @@ document.addEventListener('click', e => {
   }
   else if (d.unlock){
     const p = P[d.unlock];
-    if (S.money >= p.cost && !S.unlocked.includes(p.id)){ S.money -= p.cost; S.unlocked.push(p.id); toast(`${p.emoji} ${p.name} menüye eklendi!`); SFX.buy(); save(); }
+    if (S.money >= p.cost && !S.unlocked.includes(p.id) && !shopLocked(p)){ S.money -= p.cost; S.unlocked.push(p.id); toast(`${p.emoji} ${p.name} menüye eklendi!`); SFX.buy(); save(); }
+  } else if (d.recipe){
+    const id = d.recipe, c = recipeCost(id);
+    if (S.money >= c && recLv(id) < MAX_RECIPE){
+      S.money -= c; S.rec = S.rec || {}; S.rec[id] = recLv(id) + 1;
+      toast(`${P[id].emoji} ${P[id].name} tarifi ${recLv(id)}/${MAX_RECIPE} ⭐ · artık ₺${basePrice(id)}`); SFX.buy(); save();
+    }
   } else if (d.grow !== undefined){
     const next = SHOP_LEVELS[lv('dukkan') + 1];
     if (next && S.day >= next.day && S.money >= next.cost){
@@ -1671,9 +1708,10 @@ document.addEventListener('keydown', e => {
   if (modalOpen()){ if (e.key === 'Escape' && $('#modalOk')) hideModal(); return; }
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P'){ pauseGame(); return; }
   const n = parseInt(e.key);
-  if (n >= 1 && n <= 6){
+  if (n >= 0 && n <= 9){
     const list = PRODUCTS.filter(p => S.unlocked.includes(p.id));
-    if (list[n - 1]) makeProduct(list[n - 1].id);
+    const i = n === 0 ? 9 : n - 1; // 0 tuşu = 10. ürün
+    if (list[i]) makeProduct(list[i].id);
   }
 });
 
