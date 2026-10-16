@@ -12,6 +12,7 @@ Son güncelleme: 16 Ekim 2026
 | 5 | Tarifler + 4 yeni ürün, kombo, günlük görevler (sürüm 1.1.0) |
 | 6a | Şube altyapısı, Türkiye'de 5 şehir, müdür geliri, şehir ürünleri (sürüm 1.2.0) |
 | 6b | Ünlülük basamakları, röportajlar, paylaşılabilir kapak (sürüm 1.3.0) |
+| 6c | Dünya haritası, 5 yurt dışı şubesi ve yerel ürünleri (sürüm 1.4.0) |
 
 ---
 
@@ -91,6 +92,17 @@ Her basamakta yeni bir şey açılır: daha fazla müşteri, VIP davetleri, öze
 2. **Yumuşak batma:** Ana dükkân korunur, şubeler uyarı verir ve kurtarılabilir, batan şube paranın bir kısmını geri verir.
 3. Röportajı **reddetmenin faydası** var: o gün dükkâna odaklanma, ekstra gelir ve itibar.
 4. Türkiye şehirleri: **İstanbul, Ankara, İzmir, Rize, Gaziantep.**
+
+### 6c'de yapılanlar
+- Türkiye'de 5 şube açılınca dünya kapısı açılır. Fiyatlar: ₺40.000 / 55.000 / 75.000 / 100.000 / 130.000. Yurt dışı müdürleri 1,5 kat gelir getirir.
+- Şehirler ve yerel ürünler:
+  - 🥨 Berlin: 🥙 Döner. Gurbetçi mahallesi, çay ve simit pahalı.
+  - 💂 Londra: 🧁 Scone. Yağmur, sıcak içecekler pahalı.
+  - 🗽 New York: 🍰 Cheesecake. Çok kalabalık, bahşiş %50 fazla.
+  - 🗼 Tokyo: 🍡 Mochi. Hızlı ama sabırsız müşteriler.
+  - 🏙️ Dubai: 🍫 Dubai Çikolatası. VIP müşteriler çok sık gelir.
+- Şubeler panelinde stilize bir dünya haritası var. Türkiye'den açılan şubelere uçuş çizgileri gidiyor. İğneye dokununca o şehrin satırı parlıyor.
+- 2 yeni başarım: Dünyaya Açıldın (₺20.000), Dünya Markası (₺100.000).
 
 ### 6b'de yapılanlar
 - 5 ünlülük basamağı: 0 / 100 / 350 / 1000 / 2500 🌟. Her basamakta müşteri sıklığı %5, bahşiş %5 artar.

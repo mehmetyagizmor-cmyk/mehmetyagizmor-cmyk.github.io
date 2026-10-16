@@ -162,6 +162,20 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .net .pbar{height:6px;background:#0004;border-radius:3px;margin-top:6px;overflow:hidden}
 .net .pbar div{height:100%;background:var(--accent)}
 .shop-item .loc{color:var(--good);font-weight:700}
+.shop-item.flash{animation:flashA 1.2s}
+@keyframes flashA{30%{border-color:var(--accent);background:#e8a23a33}}
+.wmap{display:block;width:100%;height:auto;background:#1a2a36;border-radius:12px;margin:8px 0 2px;border:1px solid var(--line)}
+.wmap .land path{fill:#4d3a2a;stroke:#4d3a2a;stroke-width:4;stroke-linejoin:round}
+.wmap .arc{fill:none;stroke:var(--accent);stroke-width:1.2;stroke-dasharray:3 2;opacity:.85}
+.wmap .pin{cursor:pointer}
+.wmap .pin .hit{fill:transparent}
+.wmap .pin circle:not(.hit){stroke:#1a2a36;stroke-width:1.2}
+.wmap .pin text{font:700 7px system-ui,sans-serif;fill:#f6ead8;text-anchor:middle;paint-order:stroke;stroke:#1a2a36;stroke-width:2px}
+.wmap .own circle:not(.hit){fill:var(--accent)}
+.wmap .can circle:not(.hit){fill:var(--good);animation:pinA 1.2s infinite}
+.wmap .lock circle:not(.hit){fill:#7d6a5a}
+.wmap .lock text{fill:#a8957f}
+@keyframes pinA{50%{opacity:.35}}
 
 /* Ünlülük & röportaj */
 #pFame{font-size:12px;color:#e8c6ff;margin-top:3px;font-weight:700}
@@ -371,6 +385,11 @@ const PRODUCTS = [
   {id:'boyoz',   name:'Boyoz',        emoji:'🫓', price:40,  time:2.0, city:'izmir'},
   {id:'rizecay', name:'Rize Çayı',    emoji:'🫖', price:25,  time:1.5, city:'rize'},
   {id:'fistik',  name:'Fıstıklı Baklava', emoji:'🥜', price:110, time:3.0, city:'antep'},
+  {id:'doner',   name:'Döner',        emoji:'🥙', price:90,  time:4.0, city:'berlin'},
+  {id:'scone',   name:'Scone',        emoji:'🧁', price:60,  time:2.5, city:'londra'},
+  {id:'cheese',  name:'Cheesecake',   emoji:'🍰', price:100, time:3.0, city:'newyork'},
+  {id:'mochi',   name:'Mochi',        emoji:'🍡', price:75,  time:2.5, city:'tokyo'},
+  {id:'dubaicik',name:'Dubai Çikolatası', emoji:'🍫', price:140, time:3.5, city:'dubai'},
 ];
 const P = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
 const MAX_RECIPE = 5;
@@ -387,16 +406,30 @@ const SHOP_LEVELS = [
 // Şubeler: oyuncu bulunduğu şubeyi oynar, diğerlerini müdür yönetir (pasif gelir)
 // mod: o şehirde oynarken müşteri sıklığı / sabır / bahşiş / fiyat çarpanları
 const CITIES = [
-  {id:'ana',      name:'Ana Dükkân', emoji:'🏠', desc:'Her şeyin başladığı yer', mod:{}},
+  {id:'ana',      name:'Ana Dükkân', emoji:'🏠', desc:'Her şeyin başladığı yer', mod:{}, region:'home'},
   {id:'istanbul', name:'İstanbul',   in:"İstanbul'da", to:"İstanbul'a", emoji:'🌉', desc:'Kalabalık şehir: müşteriler sık gelir ama acelecidir', mod:{spawn:0.8, patience:0.9}},
   {id:'ankara',   name:'Ankara',     in:"Ankara'da", to:"Ankara'ya", emoji:'🏛️', desc:'Memur şehri: müşteriler daha sabırlıdır', mod:{patience:1.2}},
   {id:'izmir',    name:'İzmir',      in:"İzmir'de", to:"İzmir'e", emoji:'🌊', desc:'Keyifli şehir: bahşişler %30 fazla', mod:{tip:1.3}},
   {id:'rize',     name:'Rize',       in:"Rize'de", to:"Rize'ye", emoji:'🌿', desc:'Çayın başkenti: çaylar %50 pahalı', mod:{priceMult:{cay:1.5, rizecay:1.5}}},
   {id:'antep',    name:'Gaziantep',  in:"Gaziantep'te", to:"Gaziantep'e", emoji:'🍯', desc:'Tatlı cenneti: baklavalar %40 pahalı', mod:{priceMult:{baklava:1.4, fistik:1.4}}},
+  // Dünya şehirleri (Türkiye'de 5 şubeden sonra). pin: haritadaki [boylam, enlem]
+  {id:'berlin',   name:'Berlin',     in:"Berlin'de", to:"Berlin'e", emoji:'🥨', region:'world', pin:[13, 52],
+   desc:'Gurbetçi mahallesi: çay ve simit %40 pahalı', mod:{priceMult:{cay:1.4, simit:1.4, rizecay:1.4}}},
+  {id:'londra',   name:'Londra',     in:"Londra'da", to:"Londra'ya", emoji:'💂', region:'world', pin:[0, 51],
+   desc:'Yağmur hiç dinmez: sıcak içecekler %30 pahalı, müşteriler sabırlı', mod:{patience:1.1, priceMult:{cay:1.3, kahve:1.3, sahlep:1.3, rizecay:1.3}}},
+  {id:'newyork',  name:'New York',   in:"New York'ta", to:"New York'a", emoji:'🗽', region:'world', pin:[-74, 41],
+   desc:'Hiç uyumayan şehir: çok kalabalık, bahşişler %50 fazla ama herkes aceleci', mod:{spawn:0.75, patience:0.85, tip:1.5}},
+  {id:'tokyo',    name:'Tokyo',      in:"Tokyo'da", to:"Tokyo'ya", emoji:'🗼', region:'world', pin:[140, 36],
+   desc:'Hızlı ama sabırsız müşteriler; hızlı servise bol bahşiş', mod:{spawn:0.7, patience:0.75, tip:1.4}},
+  {id:'dubai',    name:'Dubai',      in:"Dubai'de", to:"Dubai'ye", emoji:'🏙️', region:'world', pin:[55, 25],
+   desc:'Lüks şehir: VIP müşteriler çok sık gelir, bahşişler %20 fazla', mod:{vip:true, tip:1.2}},
 ];
 const CITY = Object.fromEntries(CITIES.map(c => [c.id, c]));
+const regionOf = id => CITY[id].region || 'tr';
 const TR_GOAL = 5;                                   // yurt dışı için gereken Türkiye şubesi
-const BRANCH_COSTS = [5000, 9000, 14000, 20000, 28000];
+const WORLD_GOAL = 5;
+const BRANCH_COSTS = {tr:[5000, 9000, 14000, 20000, 28000], world:[40000, 55000, 75000, 100000, 130000]};
+const TR_PIN = [33, 39];                             // haritada Türkiye
 const BRANCH_NEED = 2;                               // ana dükkân en az Nostaljik Kafe olmalı
 
 // Ünlülük: her basamak biraz daha çok müşteri ve bahşiş getirir
@@ -562,22 +595,27 @@ const city = () => CITY[branch().city];
 const CM = () => city().mod;
 const mainLv = () => S.branches[0].lv.dukkan || 0;   // günlük ödül/görev ödülü ana dükkâna göre
 const hasCity = id => S.branches.some(b => b.city === id);
-const trCount = () => S.branches.length - 1;          // ana dükkân hariç Türkiye şubeleri
-const branchCost = () => BRANCH_COSTS[trCount()];
-const canBranch = () => mainLv() >= BRANCH_NEED && trCount() < TR_GOAL;
-// Müdürün getirdiği günlük net gelir: dükkân seviyesi, eşyalar, menü genişliği ve itibar
+const countIn = r => S.branches.filter(b => regionOf(b.city) === r).length;
+const trCount = () => countIn('tr');                  // ana dükkân hariç Türkiye şubeleri
+const worldCount = () => countIn('world');
+const worldOpen = () => trCount() >= TR_GOAL;
+const branchCost = (r = 'tr') => BRANCH_COSTS[r][r === 'tr' ? trCount() : worldCount()];
+const canBranch = (r = 'tr') => r === 'tr' ? mainLv() >= BRANCH_NEED && trCount() < TR_GOAL : worldOpen() && worldCount() < WORLD_GOAL;
+const affordBranch = () => ['tr', 'world'].some(r => canBranch(r) && S.money >= branchCost(r));
+// Müdürün getirdiği günlük net gelir: dükkân seviyesi, eşyalar, menü genişliği ve itibar; yurt dışı 1,5 kat
 function branchIncome(b){
   const L = b.lv, ups = UPGRADES.reduce((s, u) => s + (L[u.id] || 0), 0);
-  return Math.round((120 + 150 * (L.dukkan || 0) + 25 * ups + 10 * S.unlocked.length) * (0.5 + b.rep / 100));
+  const world = regionOf(b.city) === 'world' ? 1.5 : 1;
+  return Math.round((120 + 150 * (L.dukkan || 0) + 25 * ups + 10 * S.unlocked.length) * (0.5 + b.rep / 100) * world);
 }
 function openBranch(id){
-  const c = CITY[id], cost = branchCost();
-  if (!c || hasCity(id) || !canBranch() || S.money < cost) return false;
-  S.money -= cost;
+  const c = CITY[id], r = c && regionOf(id);
+  if (!c || r === 'home' || hasCity(id) || !canBranch(r) || S.money < branchCost(r)) return false;
+  S.money -= branchCost(r);
   S.branches.push({city:id, lv:{}, rep:50, day:S.day});
   const p = PRODUCTS.find(p => p.city === id);
   if (p && !S.unlocked.includes(p.id)) S.unlocked.push(p.id);
-  addFame(40);
+  addFame(r === 'world' ? 120 : 40);
   save();
   return true;
 }
@@ -767,7 +805,9 @@ function triggerLiveEvent(){
   const free = freeSeats().length;
   const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id));
   if (!options.length) return;
-  const ev = pick(options);
+  // Dubai: VIP müşteriler çok sık gelir
+  const vip = CM().vip && Math.random() < 0.5 && options.find(e => e.id === 'vip');
+  const ev = vip || pick(options);
   if (ev.dur) R.effects.push({id:ev.id, left:ev.dur, ev});
   if (ev.id === 'vip' || ev.id === 'influencer') spawnCustomer(ev.id);
   if (ev.id === 'turist') for (let i = 0; i < free; i++) spawnCustomer('turist', i * 40);
@@ -808,6 +848,8 @@ const ACH = [
   {id:'ekip',     emoji:'👥', name:'Kalabalık Ekip',     desc:'2 çırak ve 2 garson çalıştır',             goal:4,     val:() => Math.min(2, lv('cirak')) + Math.min(2, lv('garson')), reward:800},
   {id:'sube1',    emoji:'🏙️', name:'İlk Şube',           desc:'Başka bir şehirde şube aç',                goal:1,     val:trCount,                       reward:2000},
   {id:'sube5',    emoji:'🗺️', name:"Türkiye'nin Çaycısı", desc:`Türkiye'de ${TR_GOAL} şube aç`,            goal:TR_GOAL, val:trCount,                     reward:15000},
+  {id:'dunya1',   emoji:'🌍', name:'Dünyaya Açıldın',     desc:'Yurt dışında ilk şubeni aç',               goal:1,     val:worldCount,                    reward:20000},
+  {id:'dunya5',   emoji:'✈️', name:'Dünya Markası',       desc:`Yurt dışında ${WORLD_GOAL} şube aç`,         goal:WORLD_GOAL, val:worldCount,               reward:100000},
   {id:'roportaj', emoji:'🎤', name:'Basın Sever',        desc:'5 röportaj ver',                           goal:5,     val:() => S.interviews || 0,       reward:2000},
   {id:'sohret',   emoji:'🌟', name:'Ünlü Girişimci',     desc:'Ünlülükte "Ünlü girişimci" basamağına çık', goal:2,   val:fameLv,                        reward:3000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
@@ -994,6 +1036,7 @@ function endDay(){
   if (nx && S.day + 1 >= nx.day) goals.push({t:`🏪 ${nx.name}`, c:nx.cost});
   PRODUCTS.filter(p => !S.unlocked.includes(p.id) && !shopLocked(p)).forEach(p => goals.push({t:`${p.emoji} ${p.name}`, c:p.cost}));
   if (canBranch()) goals.push({t:'🏙️ Yeni şube', c:branchCost()});
+  if (canBranch('world')) goals.push({t:'🌍 Yurt dışı şubesi', c:branchCost('world')});
   S.unlocked.filter(id => recLv(id) < MAX_RECIPE).forEach(id => goals.push({t:`${P[id].emoji} ${P[id].name} tarifi`, c:recipeCost(id)}));
   UPGRADES.filter(u => lv(u.id) < maxLv(u)).forEach(u => goals.push({t:`${u.emoji} ${u.name}`, c:upCost(u)}));
   const goal = goals.filter(x => x.c > S.money).sort((a, b) => a.c - b.c)[0];
@@ -1019,7 +1062,7 @@ function endDay(){
     <button class="big" id="modalOk">Tamam</button>
     <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button></div>`);
   // Ünlülük: iyi geçen gün ve her şube adını biraz daha duyurur
-  addFame(stars + (perfect ? 5 : 0) + 2 * trCount());
+  addFame(stars + (perfect ? 5 : 0) + 2 * trCount() + 5 * worldCount());
   S.day++;
   // Yarın için röportaj isteği (3. günden sonra, %40 ihtimal)
   S.offer = null;
@@ -1612,7 +1655,7 @@ function renderUI(){
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
   const subeTab = document.querySelector('.tab[data-tab=sube]');
   subeTab.hidden = mainLv() < 1 && S.branches.length < 2;
-  subeTab.classList.toggle('has', canBranch() && S.money >= branchCost());
+  subeTab.classList.toggle('has', affordBranch());
   if (subeTab.hidden && tab === 'sube') setTab('mutfak');
 
   $('#pauseBtn').hidden = status !== 'running';
@@ -1727,32 +1770,79 @@ function renderUI(){
   setHTML('#branchList', branchesHTML());
 }
 
+// Stilize dünya haritası: kaba kıta şekilleri [boylam, enlem]
+const CONTINENTS = [
+  [[-165,65],[-140,70],[-95,72],[-75,62],[-55,50],[-70,43],[-80,25],[-97,18],[-85,10],[-105,22],[-118,33],[-125,48],[-150,58]],
+  [[-80,10],[-60,8],[-35,-7],[-40,-22],[-58,-38],[-70,-53],[-75,-40],[-70,-18],[-81,-5]],
+  [[-10,36],[-9,43],[-5,48],[5,52],[10,57],[5,62],[15,69],[28,71],[40,67],[60,70],[100,77],[140,72],[170,66],[160,58],[140,52],
+   [130,42],[122,30],[110,20],[105,10],[100,2],[95,15],[80,8],[72,20],[60,25],[57,22],[52,16],[44,12],[36,30],[36,36],[27,37],[26,41],[20,39],[12,44],[5,43]],
+  [[-17,21],[-6,35],[10,37],[32,31],[43,12],[51,11],[40,-15],[32,-28],[20,-35],[13,-20],[9,4],[-8,5],[-17,14]],
+  [[114,-22],[130,-12],[143,-11],[153,-27],[146,-38],[135,-34],[115,-34]],
+  [[-5,50],[1,51],[-1,55],[-3,58],[-6,56]],                          // Britanya
+  [[130,31],[136,34],[141,38],[142,44],[139,40],[135,35]],              // Japonya
+];
+const mapXY = ([lon, lat]) => [lon + 180, 80 - lat];
+// Etiketler birbirine binmesin: [dx, dy, hizalama]
+const MAP_LABEL = {londra:[-6, 2.5, 'end'], berlin:[0, -7, 'middle'], dubai:[6, 3, 'start'], tr:[7, 3, 'start']};
+function mapLabel(id, x, y, text){
+  const [dx, dy, a] = MAP_LABEL[id] || [0, 11, 'middle'];
+  return `<text x="${x + dx}" y="${y + dy}" style="text-anchor:${a}">${text}</text>`;
+}
+function worldMapSVG(){
+  const land = CONTINENTS.map(pts => `<path d="M${pts.map(p => mapXY(p).join(',')).join('L')}Z"/>`).join('');
+  const [tx, ty] = mapXY(TR_PIN);
+  let arcs = '', pins = '';
+  CITIES.filter(c => c.region === 'world').forEach(c => {
+    const [x, y] = mapXY(c.pin), own = hasCity(c.id);
+    const st = own ? 'own' : canBranch('world') ? 'can' : 'lock';
+    if (own) arcs += `<path class="arc" d="M${tx},${ty} Q${(tx + x) / 2},${Math.min(ty, y) - 22} ${x},${y}"/>`;
+    pins += `<g class="pin ${st}" data-pin="${c.id}"><circle cx="${x}" cy="${y}" r="9" class="hit"/><circle cx="${x}" cy="${y}" r="${own ? 4.5 : 3.5}"/>
+      ${mapLabel(c.id, x, y, c.name)}</g>`;
+  });
+  pins += `<g class="pin own home" data-pin="tr"><circle cx="${tx}" cy="${ty}" r="9" class="hit"/><circle cx="${tx}" cy="${ty}" r="5"/>
+    ${mapLabel('tr', tx, ty, `Türkiye ${trCount()}/${TR_GOAL}`)}</g>`;
+  return `<svg class="wmap" viewBox="0 0 360 136" role="img" aria-label="Şube haritası"><g class="land">${land}</g>${arcs}${pins}</svg>`;
+}
+
 function branchesHTML(){
-  const n = trCount();
-  let h = `<div class="net">🗺️ Türkiye şubeleri: <b>${n}/${TR_GOAL}</b>
-    <small style="display:block;color:var(--muted)">${n >= TR_GOAL ? '🌍 Yurt dışı kapısı açıldı! (yakında)' : `${TR_GOAL} şube açınca yurt dışına açılabilirsin.`}</small>
-    <div class="pbar"><div style="width:${n / TR_GOAL * 100}%"></div></div></div>`;
+  const n = trCount(), w = worldCount(), wo = worldOpen();
+  let h = wo
+    ? `<div class="net">🌍 Dünya şubeleri: <b>${w}/${WORLD_GOAL}</b>
+      <small style="display:block;color:var(--muted)">${w >= WORLD_GOAL ? 'Çayın artık dünyanın her yerinde!' : 'Türk çayını dünyaya taşı!'}</small>
+      <div class="pbar"><div style="width:${w / WORLD_GOAL * 100}%"></div></div></div>`
+    : `<div class="net">🗺️ Türkiye şubeleri: <b>${n}/${TR_GOAL}</b>
+      <small style="display:block;color:var(--muted)">${TR_GOAL} şube açınca yurt dışına açılabilirsin.</small>
+      <div class="pbar"><div style="width:${n / TR_GOAL * 100}%"></div></div></div>`;
+  h += worldMapSVG();
   h += '<h3>Şubelerim</h3>';
   S.branches.forEach((b, i) => {
     const c = CITY[b.city], here = i === S.cur, L = SHOP_LEVELS[b.lv.dukkan || 0];
     const rep = Math.round(here ? S.rep : b.rep);
-    h += `<div class="shop-item${here ? ' cur' : ''}"><div class="em">${c.emoji}</div>
+    h += `<div class="shop-item${here ? ' cur' : ''}" id="br-${c.id}"><div class="em">${c.emoji}</div>
       <div class="info"><b>${c.name}</b><small>${L.name} · ⭐ ${rep}</small>
       <small>${here ? '<span class="loc">📍 Buradasın</span>' : `🧑‍💼 Müdür yönetiyor · günde ~₺${fmt(branchIncome(Object.assign({}, b, {rep})))}`}</small></div>
       ${here ? '' : `<button data-switch="${i}" ${status === 'running' ? 'disabled' : ''}>${status === 'running' ? '🔒 Gün sonu' : 'Buraya geç'}</button>`}</div>`;
   });
-  const left = CITIES.filter(c => c.id !== 'ana' && !hasCity(c.id));
-  if (left.length){
-    const ok = mainLv() >= BRANCH_NEED, cost = branchCost();
-    h += '<h3>Yeni Şube Aç</h3>';
+  const row = (c, ok, cost) => {
+    const p = PRODUCTS.find(p => p.city === c.id);
+    return `<div class="shop-item" id="br-${c.id}"><div class="em">${c.emoji}</div>
+      <div class="info"><b>${c.name}</b><small>${c.desc}</small><small>Yerel ürün: ${p.emoji} ${p.name} (₺${p.price})</small></div>
+      <button data-branch="${c.id}" ${!ok || S.money < cost ? 'disabled' : ''}>${ok ? '₺' + fmt(cost) : '🔒'}</button></div>`;
+  };
+  const leftTr = CITIES.filter(c => regionOf(c.id) === 'tr' && !hasCity(c.id));
+  if (leftTr.length){
+    const ok = canBranch('tr');
+    h += "<h3>🏙️ Türkiye'de Şube Aç</h3>";
     if (!ok) h += `<p class="hint">🔒 Ana dükkânın <b>${SHOP_LEVELS[BRANCH_NEED].name}</b> olunca şube açabilirsin.</p>`;
     else h += '<p class="hint">Her şehir kendi ürününü getirir; o ürün bütün şubelerde satılır.</p>';
-    left.forEach(c => {
-      const p = PRODUCTS.find(p => p.city === c.id);
-      h += `<div class="shop-item"><div class="em">${c.emoji}</div>
-        <div class="info"><b>${c.name}</b><small>${c.desc}</small><small>Yerel ürün: ${p.emoji} ${p.name} (₺${p.price})</small></div>
-        <button data-branch="${c.id}" ${!ok || S.money < cost ? 'disabled' : ''}>${ok ? '₺' + fmt(cost) : '🔒'}</button></div>`;
-    });
+    leftTr.forEach(c => h += row(c, ok, branchCost('tr')));
+  }
+  const leftW = CITIES.filter(c => c.region === 'world' && !hasCity(c.id));
+  if (leftW.length){
+    h += '<h3>🌍 Yurt Dışında Şube Aç</h3>';
+    h += wo ? '<p class="hint">Yurt dışı şubeleri pahalıdır ama müdürleri 1,5 kat gelir getirir.</p>'
+            : `<p class="hint">🔒 Türkiye'de ${TR_GOAL} şube açınca dünya kapısı açılır (${n}/${TR_GOAL}).</p>`;
+    leftW.forEach(c => h += row(c, wo, branchCost('world')));
   }
   h += '<p class="hint" style="margin-top:10px">Bulunduğun şubeyi sen işletirsin; diğerlerini müdürler yönetir ve her gün sonunda gelir getirir. Şubeler arası geçiş dükkân kapalıyken yapılır.</p>';
   return h;
@@ -1803,7 +1893,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -2160,7 +2250,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin]');
   if (!t) return;
   const d = t.dataset;
   if (d.open !== undefined){
@@ -2168,6 +2258,11 @@ document.addEventListener('click', e => {
     else openShop();
   }
   else if (d.cover !== undefined && S.lastCover) showCover(false);
+  else if (d.pin){
+    // Haritadaki iğne: o şehrin satırına kaydır ve parlat
+    const el = $(`#br-${d.pin === 'tr' ? 'ana' : d.pin}`);
+    if (el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  }
   else if (d.unlock){
     const p = P[d.unlock];
     if (S.money >= p.cost && !S.unlocked.includes(p.id) && !shopLocked(p)){ S.money -= p.cost; S.unlocked.push(p.id); toast(`${p.emoji} ${p.name} menüye eklendi!`); SFX.buy(); save(); }
@@ -2191,6 +2286,7 @@ document.addEventListener('click', e => {
       showModal(`
         <h2>${c.emoji} ${c.name} şubesi açıldı!</h2>
         <p><b>${esc(owner().shopName)}</b> yeni şubesiyle artık ${c.in}! ${c.desc}.</p>
+        ${regionOf(c.id) === 'world' && worldCount() === 1 ? '<p class="banner">🌍 Dünyaya açıldın! Türk çayı artık yurt dışında!</p>' : ''}
         <p class="banner">${p.emoji} <b>${p.name}</b> bütün şubelerin menüsüne eklendi!</p>
         <p class="hint">Şube küçük bir çay ocağı olarak başlar. Oraya geçip büyütebilir ya da müdüre bırakıp gelir toplayabilirsin.</p>
         ${status === 'running' ? '<button class="big" id="modalOk">Tamam</button>' :
