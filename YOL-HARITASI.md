@@ -180,6 +180,9 @@ Simülasyon sonucu (günde kaçan müşteri):
 - [x] Mutfak zorluğu simülasyonla ayarlandı
 - [ ] Mutfak zorluğu gerçek oyuncularla denenmeli
 - [ ] Arka plan müziği
-- [ ] Müdavimler (isimli, sürekli gelen müşteriler)
+- [ ] ⭐ **Müdavimler: bir sonraki iş** (kullanıcı beğendi, 16 Ekim 2026). Fikir:
+  - Her gün gelen, isimli müşteriler. Örneğin Ali Amca her sabah "her zamankinden" ister.
+  - İyi servis edilen müdavim oyuncuya bağlanır; bağlılık arttıkça bahşiş artar ve küçük hikâyeler, sözler gelir.
+  - Zorlaşan mutfağa (sürüm 1.5.2) duygusal bir ödül katar. Sabırsız günlerde bile müdavimi kızdırmamak için ayrı bir motivasyon olur.
 - [ ] Çalışan eğitimi
 - [ ] İngilizce dil desteği
