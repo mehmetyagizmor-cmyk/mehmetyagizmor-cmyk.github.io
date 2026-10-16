@@ -117,7 +117,7 @@ Oyunun kendi koduyla bir bot oyuncu 60 gün oynatıldı. Bot 0,5 ve 1 saniyede b
 ### 🔥 Mutfak zorluğu (sürüm 1.5.2)
 Önceden 10. günde 4 ürünlük bir siparişte müşteri sabrı yaklaşık 67 saniyeydi (bir gün 120 saniye). Dalgın bir oyuncu bile hiç müşteri kaçırmıyordu.
 
-Yeni formül: . 3. günden sonra sabır her gün %1,8 azalır, en fazla %38'e kadar.
+Yeni formül: `PAT = {base:15, item:5, dekor:2, rep:5}`. 3. günden sonra sabır her gün %1,8 azalır, en fazla %38'e kadar.
 
 Simülasyon sonucu (günde kaçan müşteri):
 
