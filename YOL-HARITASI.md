@@ -13,10 +13,11 @@ Son güncelleme: 16 Ekim 2026
 | 6a | Şube altyapısı, Türkiye'de 5 şehir, müdür geliri, şehir ürünleri (sürüm 1.2.0) |
 | 6b | Ünlülük basamakları, röportajlar, paylaşılabilir kapak (sürüm 1.3.0) |
 | 6c | Dünya haritası, 5 yurt dışı şubesi ve yerel ürünleri (sürüm 1.4.0) |
+| 6d | Yumuşak batma: şube sorunları, kriz, kurtarma (sürüm 1.5.0) |
 
 ---
 
-## 🎯 Sıradaki büyük hedef: Şubeler ve Ünlülük
+## ✅ Faz 6 tamamlandı: Şubeler ve Ünlülük
 
 ### Kullanıcının istediği (16 Ekim 2026)
 1. **İkinci, üçüncü… şube** açılabilsin.
@@ -92,6 +93,19 @@ Her basamakta yeni bir şey açılır: daha fazla müşteri, VIP davetleri, öze
 2. **Yumuşak batma:** Ana dükkân korunur, şubeler uyarı verir ve kurtarılabilir, batan şube paranın bir kısmını geri verir.
 3. Röportajı **reddetmenin faydası** var: o gün dükkâna odaklanma, ekstra gelir ve itibar.
 4. Türkiye şehirleri: **İstanbul, Ankara, İzmir, Rize, Gaziantep.**
+
+### 6d'de yapılanlar
+- Batma riski ilk yurt dışı şubesi açılınca başlar (S.riskOn). Ana dükkân asla batmaz.
+- Her gün, oynanmayan her şubede %15 ihtimalle sorun çıkar; röportaj günü bu ihtimal %30 olur.
+  - Sorunlar: 🧽 hijyen denetimi, 💸 personel zammı, 📦 tedarik sorunu, 🏪 rakip dükkân, 😠 şikâyetler.
+- Sorun sürerken müdür geliri yarıya iner ve şube sağlığı günde 15 düşer.
+  - Sağlık 30'un altına inince 🚨 kriz başlar ve gelir sıfırlanır.
+  - Sağlık 0 olursa şube batar ve açılış parasının %30'u geri gelir.
+  - Hiç ilgilenilmezse süreç yaklaşık 7 gün sürer.
+- Çözüm yolları: parayla 🔧 Çöz (günlük gelirin 1,5 katı), krizde 🛟 Kurtar (3 katı) ya da şubeye gidip bir gün bizzat çalışmak.
+- Batan şehir yeniden açılabilir. Türkiye şubeleri 5'in altına düşerse yeni yurt dışı şubesi açılamaz.
+- Yeni başarım: Kriz Yöneticisi.
+- ⚠️ Sorun sıklığı ve maliyetleri uzun oyunla dengelenmeli.
 
 ### 6c'de yapılanlar
 - Türkiye'de 5 şube açılınca dünya kapısı açılır. Fiyatlar: ₺40.000 / 55.000 / 75.000 / 100.000 / 130.000. Yurt dışı müdürleri 1,5 kat gelir getirir.

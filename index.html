@@ -163,6 +163,21 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .net .pbar div{height:100%;background:var(--accent)}
 .shop-item .loc{color:var(--good);font-weight:700}
 .shop-item.flash{animation:flashA 1.2s}
+.shop-item.warn{border-color:var(--accent)}
+.shop-item.crisis{border-color:var(--bad);animation:crisisA 1.4s infinite}
+@keyframes crisisA{50%{box-shadow:0 0 0 3px #e05a4f55}}
+.hbar{display:block;height:5px;background:#0004;border-radius:3px;margin-top:5px;overflow:hidden;max-width:180px}
+.hbar i{display:block;height:100%;background:var(--good)}
+.hbar.mid i{background:var(--accent)}
+.hbar.low i{background:var(--bad)}
+.shop-item:has(.trouble){flex-wrap:wrap}
+.trouble{flex-basis:100%;display:flex;align-items:center;gap:8px;background:#0003;border-radius:8px;padding:6px 8px;font-size:13px;color:var(--text)}
+.trouble span{flex:1;min-width:0}
+.shop-item .trouble .fix{padding:8px 10px;min-width:0;font-size:13px}
+.shop-item.crisis .fix:not(:disabled){background:var(--bad);color:#fff}
+.banner.bad{background:#e05a4f22;border-color:var(--bad)}
+.news{background:#0002;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px;line-height:1.6}
+.wmap .own.bad circle:not(.hit){fill:var(--bad);animation:pinA 1s infinite}
 @keyframes flashA{30%{border-color:var(--accent);background:#e8a23a33}}
 .wmap{display:block;width:100%;height:auto;background:#1a2a36;border-radius:12px;margin:8px 0 2px;border:1px solid var(--line)}
 .wmap .land path{fill:#4d3a2a;stroke:#4d3a2a;stroke-width:4;stroke-linejoin:round}
@@ -612,13 +627,83 @@ function openBranch(id){
   const c = CITY[id], r = c && regionOf(id);
   if (!c || r === 'home' || hasCity(id) || !canBranch(r) || S.money < branchCost(r)) return false;
   S.money -= branchCost(r);
-  S.branches.push({city:id, lv:{}, rep:50, day:S.day});
+  S.branches.push({city:id, lv:{}, rep:50, day:S.day, paid:branchCost(r), health:100});
+  if (r === 'world') S.riskOn = true;   // yurt dışına açılınca batma riski başlar
   const p = PRODUCTS.find(p => p.city === id);
   if (p && !S.unlocked.includes(p.id)) S.unlocked.push(p.id);
   addFame(r === 'world' ? 120 : 40);
   save();
   return true;
 }
+// ---------- Yumuşak batma ----------
+// Yurt dışına açılınca başlar. Ana dükkân asla batmaz. Sorun çıkan şube: uyarı → kriz → batma.
+// Sorun parayla çözülür ya da şubeye gidip bir gün bizzat çalışınca kendiliğinden düzelir.
+const ISSUES = {
+  hijyen:  {emoji:'🧽', name:'Hijyen denetimi',      desc:'Müfettiş kapıda, temizlik ekibi lazım'},
+  maas:    {emoji:'💸', name:'Personel zam istiyor', desc:'Çalışanlar mutsuz, işi yavaşlattılar'},
+  malzeme: {emoji:'📦', name:'Tedarik sorunu',       desc:'Kaliteli malzeme bulunamıyor'},
+  rakip:   {emoji:'🏪', name:'Rakip dükkân açıldı',  desc:'Karşı köşeye yeni bir kafe açıldı'},
+  sikayet: {emoji:'😠', name:'Şikâyetler arttı',     desc:'Müşteriler hizmetten memnun değil'},
+};
+const RISK = {chance:0.15, drain:15, crisis:30, heal:10, visit:40, refund:0.3};
+const bHealth = b => b.health == null ? 100 : b.health;
+const fixCost = b => Math.max(200, Math.round(branchIncome(b) * 1.5));
+const rescueCost = b => fixCost(b) * 3;
+const troubled = () => S.riskOn && S.branches.some(b => b.issue || b.crisis);
+// Müdür geliri: sorun varken yarıya iner, krizde hiç gelmez
+const managedIncome = b => b.crisis ? 0 : Math.round(branchIncome(b) * (b.issue ? 0.5 : 1));
+
+// Gün sonunda şubeleri günceller; karnede gösterilecek haberleri döndürür
+function riskDay(interviewDay){
+  const out = {news:[], lost:[]};
+  if (!S.riskOn) return out;
+  const cur = branch();
+  for (const b of [...S.branches]){
+    if (b.city === 'ana') continue;
+    const nm = CITY[b.city].name;
+    if (b === cur){
+      if (b.issue || b.crisis) out.news.push(`✅ ${nm}: bizzat ilgilendin, sorun çözüldü`);
+      b.issue = null; b.crisis = false; b.health = Math.min(100, bHealth(b) + RISK.visit);
+      continue;
+    }
+    if (b.issue){
+      b.health = bHealth(b) - RISK.drain;
+      if (b.health <= 0){
+        const refund = Math.round((b.paid || BRANCH_COSTS[regionOf(b.city)][0]) * RISK.refund);
+        S.money += refund;
+        S.branches.splice(S.branches.indexOf(b), 1);
+        S.lostBranches = (S.lostBranches || 0) + 1;
+        out.lost.push({nm, refund});
+        continue;
+      }
+      if (b.health <= RISK.crisis && !b.crisis){ b.crisis = true; out.news.push(`🚨 ${nm}: KRİZ! Kurtarmazsan batacak`); }
+      else if (b.crisis) out.news.push(`🚨 ${nm}: kriz sürüyor${b.health <= RISK.drain ? ', yarın batabilir!' : ''}`);
+      else out.news.push(`📉 ${nm}: ${ISSUES[b.issue.t].emoji} ${ISSUES[b.issue.t].name} hâlâ çözülmedi`);
+    } else {
+      b.health = Math.min(100, bHealth(b) + RISK.heal);
+      // Röportaj günü şubeler daha çok ihmal edilir
+      if (Math.random() < RISK.chance * (interviewDay ? 2 : 1)){
+        const t = pick(Object.keys(ISSUES));
+        b.issue = {t, day:S.day};
+        out.news.push(`⚠️ ${nm}: ${ISSUES[t].emoji} ${ISSUES[t].name}`);
+      }
+    }
+  }
+  S.cur = S.branches.indexOf(cur);   // batan şube listeden çıktıysa sıra kayar
+  return out;
+}
+function fixBranch(i){
+  const b = S.branches[i];
+  if (!b || !(b.issue || b.crisis)) return;
+  const crisis = b.crisis, cost = crisis ? rescueCost(b) : fixCost(b);
+  if (S.money < cost){ toast('Yeterli paran yok'); SFX.error(); return; }
+  S.money -= cost;
+  if (crisis) S.rescues = (S.rescues || 0) + 1;
+  b.issue = null; b.crisis = false; b.health = Math.max(bHealth(b), 60);
+  toast(`${crisis ? '🛟' : '🔧'} ${CITY[b.city].name} şubesi ${crisis ? 'krizden kurtarıldı' : 'rahatladı'}!`);
+  SFX.buy(); save();
+}
+
 function fameLv(){
   let l = 0;
   FAME_LEVELS.forEach((F, i) => { if ((S.fame || 0) >= F.need) l = i; });
@@ -850,6 +935,7 @@ const ACH = [
   {id:'sube5',    emoji:'🗺️', name:"Türkiye'nin Çaycısı", desc:`Türkiye'de ${TR_GOAL} şube aç`,            goal:TR_GOAL, val:trCount,                     reward:15000},
   {id:'dunya1',   emoji:'🌍', name:'Dünyaya Açıldın',     desc:'Yurt dışında ilk şubeni aç',               goal:1,     val:worldCount,                    reward:20000},
   {id:'dunya5',   emoji:'✈️', name:'Dünya Markası',       desc:`Yurt dışında ${WORLD_GOAL} şube aç`,         goal:WORLD_GOAL, val:worldCount,               reward:100000},
+  {id:'kurtar',   emoji:'🛟', name:'Kriz Yöneticisi',     desc:'Krizdeki bir şubeyi kurtar',               goal:1,     val:() => S.rescues || 0,          reward:5000},
   {id:'roportaj', emoji:'🎤', name:'Basın Sever',        desc:'5 röportaj ver',                           goal:5,     val:() => S.interviews || 0,       reward:2000},
   {id:'sohret',   emoji:'🌟', name:'Ünlü Girişimci',     desc:'Ünlülükte "Ünlü girişimci" basamağına çık', goal:2,   val:fameLv,                        reward:3000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
@@ -1021,8 +1107,9 @@ function endDay(){
   const rent = 10 * S.day;
   S.money = Math.max(0, S.money - rent);
   const st = R.stats, net = st.earned + st.tips - rent;
-  const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + branchIncome(b), 0);
+  const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
   S.money += passive; S.total += passive;
+  const risk = riskDay(R.interview);
   // Günün karnesi: 3 yıldız = kimse kızmadı
   const ratio = st.served / Math.max(1, st.served + st.lost);
   const stars = st.lost === 0 && st.served >= 5 ? 3 : ratio >= 0.8 ? 2 : 1;
@@ -1058,9 +1145,12 @@ function endDay(){
       <tr><td><b>Net kâr</b></td><td style="color:${net < 0 ? 'var(--bad)' : 'var(--good)'}">${net < 0 ? '-' : ''}₺${fmt(Math.abs(net))}</td></tr>
       ${passive ? `<tr><td>🏙️ Diğer şubeler (müdürler)</td><td style="color:var(--good)">+₺${fmt(passive)}</td></tr>` : ''}
     </table>
+    ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
+    ${risk.news.length ? `<div class="news">${risk.news.map(n => `<div>${n}</div>`).join('')}</div>` : ''}
     ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
     <button class="big" id="modalOk">Tamam</button>
-    <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button></div>`);
+    <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button>
+      ${troubled() ? '<button class="btn2" id="goSube">🏙️ Şubelere git</button>' : ''}</div>`);
   // Ünlülük: iyi geçen gün ve her şube adını biraz daha duyurur
   addFame(stars + (perfect ? 5 : 0) + 2 * trCount() + 5 * worldCount());
   S.day++;
@@ -1655,7 +1745,7 @@ function renderUI(){
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
   const subeTab = document.querySelector('.tab[data-tab=sube]');
   subeTab.hidden = mainLv() < 1 && S.branches.length < 2;
-  subeTab.classList.toggle('has', affordBranch());
+  subeTab.classList.toggle('has', affordBranch() || troubled());
   if (subeTab.hidden && tab === 'sube') setTab('mutfak');
 
   $('#pauseBtn').hidden = status !== 'running';
@@ -1794,12 +1884,14 @@ function worldMapSVG(){
   let arcs = '', pins = '';
   CITIES.filter(c => c.region === 'world').forEach(c => {
     const [x, y] = mapXY(c.pin), own = hasCity(c.id);
-    const st = own ? 'own' : canBranch('world') ? 'can' : 'lock';
+    const b = own && S.branches.find(b => b.city === c.id);
+    const st = own ? (b.crisis || b.issue ? 'own bad' : 'own') : canBranch('world') ? 'can' : 'lock';
     if (own) arcs += `<path class="arc" d="M${tx},${ty} Q${(tx + x) / 2},${Math.min(ty, y) - 22} ${x},${y}"/>`;
     pins += `<g class="pin ${st}" data-pin="${c.id}"><circle cx="${x}" cy="${y}" r="9" class="hit"/><circle cx="${x}" cy="${y}" r="${own ? 4.5 : 3.5}"/>
       ${mapLabel(c.id, x, y, c.name)}</g>`;
   });
-  pins += `<g class="pin own home" data-pin="tr"><circle cx="${tx}" cy="${ty}" r="9" class="hit"/><circle cx="${tx}" cy="${ty}" r="5"/>
+  const trBad = S.branches.some(b => regionOf(b.city) === 'tr' && (b.issue || b.crisis));
+  pins += `<g class="pin own home${trBad ? ' bad' : ''}" data-pin="tr"><circle cx="${tx}" cy="${ty}" r="9" class="hit"/><circle cx="${tx}" cy="${ty}" r="5"/>
     ${mapLabel('tr', tx, ty, `Türkiye ${trCount()}/${TR_GOAL}`)}</g>`;
   return `<svg class="wmap" viewBox="0 0 360 136" role="img" aria-label="Şube haritası"><g class="land">${land}</g>${arcs}${pins}</svg>`;
 }
@@ -1818,10 +1910,20 @@ function branchesHTML(){
   S.branches.forEach((b, i) => {
     const c = CITY[b.city], here = i === S.cur, L = SHOP_LEVELS[b.lv.dukkan || 0];
     const rep = Math.round(here ? S.rep : b.rep);
-    h += `<div class="shop-item${here ? ' cur' : ''}" id="br-${c.id}"><div class="em">${c.emoji}</div>
+    const risky = S.riskOn && b.city !== 'ana', hp = bHealth(b);
+    const cls = here ? ' cur' : b.crisis ? ' crisis' : b.issue ? ' warn' : '';
+    let trouble = '';
+    if (risky && (b.issue || b.crisis)){
+      const iss = b.issue && ISSUES[b.issue.t];
+      trouble = `<div class="trouble"><span>${b.crisis ? '🚨 <b>KRİZ!</b><small>Kurtarmazsan batacak</small>' : `${iss.emoji} <b>${iss.name}</b><small>${iss.desc}</small>`}</span>
+        <button class="fix" data-fix="${i}" ${S.money < (b.crisis ? rescueCost(b) : fixCost(b)) ? 'disabled' : ''}>${b.crisis ? '🛟 Kurtar' : '🔧 Çöz'} ₺${fmt(b.crisis ? rescueCost(b) : fixCost(b))}</button></div>`;
+    }
+    h += `<div class="shop-item${cls}" id="br-${c.id}"><div class="em">${c.emoji}</div>
       <div class="info"><b>${c.name}</b><small>${L.name} · ⭐ ${rep}</small>
-      <small>${here ? '<span class="loc">📍 Buradasın</span>' : `🧑‍💼 Müdür yönetiyor · günde ~₺${fmt(branchIncome(Object.assign({}, b, {rep})))}`}</small></div>
-      ${here ? '' : `<button data-switch="${i}" ${status === 'running' ? 'disabled' : ''}>${status === 'running' ? '🔒 Gün sonu' : 'Buraya geç'}</button>`}</div>`;
+      <small>${here ? '<span class="loc">📍 Buradasın</span>' : `🧑‍💼 Müdür yönetiyor · günde ~₺${fmt(managedIncome(Object.assign({}, b, {rep})))}${b.issue && !b.crisis ? ' 📉' : ''}`}</small>
+      ${risky ? `<span class="hbar${hp <= RISK.crisis ? ' low' : hp < 70 ? ' mid' : ''}" title="Şube sağlığı"><i style="width:${hp}%"></i></span>` : ''}
+</div>
+      ${here ? '' : `<button data-switch="${i}" ${status === 'running' ? 'disabled' : ''}>${status === 'running' ? '🔒 Gün sonu' : 'Buraya geç'}</button>`}${trouble}</div>`;
   });
   const row = (c, ok, cost) => {
     const p = PRODUCTS.find(p => p.city === c.id);
@@ -1844,7 +1946,8 @@ function branchesHTML(){
             : `<p class="hint">🔒 Türkiye'de ${TR_GOAL} şube açınca dünya kapısı açılır (${n}/${TR_GOAL}).</p>`;
     leftW.forEach(c => h += row(c, wo, branchCost('world')));
   }
-  h += '<p class="hint" style="margin-top:10px">Bulunduğun şubeyi sen işletirsin; diğerlerini müdürler yönetir ve her gün sonunda gelir getirir. Şubeler arası geçiş dükkân kapalıyken yapılır.</p>';
+  h += '<p class="hint" style="margin-top:10px">Bulunduğun şubeyi sen işletirsin; diğerlerini müdürler yönetir ve her gün sonunda gelir getirir. Şubeler arası geçiş dükkân kapalıyken yapılır.' +
+    (S.riskOn ? ' Sorunlu bir şubeye gidip bir gün bizzat çalışırsan sorun kendiliğinden çözülür.' : '') + '</p>';
   return h;
 }
 
@@ -1893,7 +1996,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -2027,6 +2130,7 @@ function drawAvatar(){
 $('#modal').addEventListener('click', e => {
   if (e.target.id === 'modalOk'){ hideModal(); return; }
   if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); window.scrollTo(0, 0); return; }
+  if (e.target.id === 'goSube'){ hideModal(); setTab('sube'); window.scrollTo(0, 0); return; }
   if (e.target.id === 'claimDaily'){ claimDaily(); return; }
   const btn = e.target.closest('button');
   const id = btn && btn.id;
@@ -2080,7 +2184,7 @@ $('#modal').addEventListener('click', e => {
 // late: röportaj sabahı aldı, dükkân 10:00'da açılır · focus: röportaj reddedildi, satışlar +%20
 function openShop(opt = {}){
   newDay(); status = 'running'; SFX.open(); startDayEvent();
-  if (opt.late) R.t = DAY_LEN / 6;
+  if (opt.late){ R.t = DAY_LEN / 6; R.interview = true; }
   if (opt.focus) R.focus = true;
   if (!desktopMQ.matches && tab !== 'mutfak') setTab('mutfak');
   renderUI();
@@ -2250,7 +2354,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix]');
   if (!t) return;
   const d = t.dataset;
   if (d.open !== undefined){
@@ -2258,6 +2362,7 @@ document.addEventListener('click', e => {
     else openShop();
   }
   else if (d.cover !== undefined && S.lastCover) showCover(false);
+  else if (d.fix) fixBranch(+d.fix);
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
     const el = $(`#br-${d.pin === 'tr' ? 'ana' : d.pin}`);
@@ -2286,7 +2391,7 @@ document.addEventListener('click', e => {
       showModal(`
         <h2>${c.emoji} ${c.name} şubesi açıldı!</h2>
         <p><b>${esc(owner().shopName)}</b> yeni şubesiyle artık ${c.in}! ${c.desc}.</p>
-        ${regionOf(c.id) === 'world' && worldCount() === 1 ? '<p class="banner">🌍 Dünyaya açıldın! Türk çayı artık yurt dışında!</p>' : ''}
+        ${regionOf(c.id) === 'world' && worldCount() === 1 ? '<p class="banner">🌍 Dünyaya açıldın! Türk çayı artık yurt dışında!</p><p class="banner bad">⚠️ Artık büyük bir işletmesin: şubelerde sorun çıkabilir. Çözmezsen batabilirler! Ana dükkânın her zaman güvende.</p>' : ''}
         <p class="banner">${p.emoji} <b>${p.name}</b> bütün şubelerin menüsüne eklendi!</p>
         <p class="hint">Şube küçük bir çay ocağı olarak başlar. Oraya geçip büyütebilir ya da müdüre bırakıp gelir toplayabilirsin.</p>
         ${status === 'running' ? '<button class="big" id="modalOk">Tamam</button>' :
