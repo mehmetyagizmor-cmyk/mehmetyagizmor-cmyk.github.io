@@ -14,6 +14,7 @@ Son güncelleme: 16 Ekim 2026
 | 6b | Ünlülük basamakları, röportajlar, paylaşılabilir kapak (sürüm 1.3.0) |
 | 6c | Dünya haritası, 5 yurt dışı şubesi ve yerel ürünleri (sürüm 1.4.0) |
 | 6d | Yumuşak batma: şube sorunları, kriz, kurtarma (sürüm 1.5.0) |
+| Denge | Simülasyonla şube, ünlülük ve batma ayarları (sürüm 1.5.1) |
 
 ---
 
@@ -94,6 +95,26 @@ Her basamakta yeni bir şey açılır: daha fazla müşteri, VIP davetleri, öze
 3. Röportajı **reddetmenin faydası** var: o gün dükkâna odaklanma, ekstra gelir ve itibar.
 4. Türkiye şehirleri: **İstanbul, Ankara, İzmir, Rize, Gaziantep.**
 
+### ⚖️ Denge turu (16 Ekim 2026)
+Oyunun kendi koduyla bir bot oyuncu 60 gün oynatıldı. Bot 0,5 ve 1 saniyede bir hamle yaptı; 4 farklı tohum denendi.
+
+| Kilometre taşı | Önce | Sonra |
+|---|---|---|
+| İlk Türkiye şubesi | 6–7. gün | 7–8. gün |
+| 5 Türkiye şubesi | 12–14 | 20–29 |
+| İlk yurt dışı şubesi | 13–18 | 26–33 |
+| 5 yurt dışı şubesi | 25–33 | 54–58 (iyi oyuncu) |
+| En üst ünlülük | 29–33 | ~57 |
+
+**Değişiklikler:**
+- Türkiye şube fiyatları: ₺10.000 / 20.000 / 35.000 / 55.000 / 80.000.
+- Yurt dışı şube fiyatları: ₺150.000 / 250.000 / 400.000 / 600.000 / 850.000.
+- Müdür geliri artık açılış parasının ~%3'ü + seviyeler. Önceden ₺40.000'lık bir şube günde ₺360 getiriyordu.
+- Sorun çözme bedeli açılış parasının %8'i, kurtarma 3 katı. Simülasyonda gelirin ~%18'i sorunlara gitti.
+- Ünlülük basamakları: 0 / 150 / 600 / 2000 / 4000.
+
+**Gözlem (değiştirilmedi):** Bot saniyede 1 hamleyle bile hiç müşteri kaçırmadı ve itibar 2. günde 100'e çıktı. Mutfak kısmı kolay olabilir; gerçek oyuncularla bakılmalı.
+
 ### 6d'de yapılanlar
 - Batma riski ilk yurt dışı şubesi açılınca başlar (S.riskOn). Ana dükkân asla batmaz.
 - Her gün, oynanmayan her şubede %15 ihtimalle sorun çıkar; röportaj günü bu ihtimal %30 olur.
@@ -140,7 +161,8 @@ Her basamakta yeni bir şey açılır: daha fazla müşteri, VIP davetleri, öze
 ## 📝 Bekleyen diğer işler
 - [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
 - [ ] Gerçek Android / iPhone'da test
-- [ ] Faz 5 denge kontrolü (görev zorlukları, tarif fiyatları) birkaç gün oynanarak
+- [x] Simülasyonla denge turu (şubeler, ünlülük, batma)
+- [ ] Mutfak zorluğu: müşteri sabrı gerçek oyuncularla denenmeli
 - [ ] Arka plan müziği
 - [ ] Müdavimler (isimli, sürekli gelen müşteriler)
 - [ ] Çalışan eğitimi

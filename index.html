@@ -443,17 +443,17 @@ const CITY = Object.fromEntries(CITIES.map(c => [c.id, c]));
 const regionOf = id => CITY[id].region || 'tr';
 const TR_GOAL = 5;                                   // yurt dışı için gereken Türkiye şubesi
 const WORLD_GOAL = 5;
-const BRANCH_COSTS = {tr:[5000, 9000, 14000, 20000, 28000], world:[40000, 55000, 75000, 100000, 130000]};
+const BRANCH_COSTS = {tr:[10000, 20000, 35000, 55000, 80000], world:[150000, 250000, 400000, 600000, 850000]};
 const TR_PIN = [33, 39];                             // haritada Türkiye
 const BRANCH_NEED = 2;                               // ana dükkân en az Nostaljik Kafe olmalı
 
 // Ünlülük: her basamak biraz daha çok müşteri ve bahşiş getirir
 const FAME_LEVELS = [
   {name:'Mahallede bilinen',   need:0,    emoji:'🙂'},
-  {name:'Şehirde tanınan',     need:100,  emoji:'😎'},
-  {name:'Ünlü girişimci',      need:350,  emoji:'🌟'},
-  {name:"Türkiye'nin çaycısı", need:1000, emoji:'🏆'},
-  {name:'Dünyaca ünlü',        need:2500, emoji:'🌍'},
+  {name:'Şehirde tanınan',     need:150,  emoji:'😎'},
+  {name:'Ünlü girişimci',      need:600,  emoji:'🌟'},
+  {name:"Türkiye'nin çaycısı", need:2000, emoji:'🏆'},
+  {name:'Dünyaca ünlü',        need:4000, emoji:'🌍'},
 ];
 // Röportaj yapan yayınlar: ünlüleştikçe daha büyükleri arar
 const OUTLETS = [
@@ -617,11 +617,12 @@ const worldOpen = () => trCount() >= TR_GOAL;
 const branchCost = (r = 'tr') => BRANCH_COSTS[r][r === 'tr' ? trCount() : worldCount()];
 const canBranch = (r = 'tr') => r === 'tr' ? mainLv() >= BRANCH_NEED && trCount() < TR_GOAL : worldOpen() && worldCount() < WORLD_GOAL;
 const affordBranch = () => ['tr', 'world'].some(r => canBranch(r) && S.money >= branchCost(r));
-// Müdürün getirdiği günlük net gelir: dükkân seviyesi, eşyalar, menü genişliği ve itibar; yurt dışı 1,5 kat
+// Şubeye ödenen açılış parası (eski kayıtlarda yoksa o bölgenin ilk fiyatı)
+const paidOf = b => b.paid || (b.city === 'ana' ? 0 : BRANCH_COSTS[regionOf(b.city)][0]);
+// Müdürün getirdiği günlük net gelir: yatırımın ~%3'ü + dükkân seviyesi, eşyalar, menü genişliği; itibarla çarpılır
 function branchIncome(b){
   const L = b.lv, ups = UPGRADES.reduce((s, u) => s + (L[u.id] || 0), 0);
-  const world = regionOf(b.city) === 'world' ? 1.5 : 1;
-  return Math.round((120 + 150 * (L.dukkan || 0) + 25 * ups + 10 * S.unlocked.length) * (0.5 + b.rep / 100) * world);
+  return Math.round((paidOf(b) * 0.03 + 150 * (L.dukkan || 0) + 25 * ups + 10 * S.unlocked.length) * (0.5 + b.rep / 100));
 }
 function openBranch(id){
   const c = CITY[id], r = c && regionOf(id);
@@ -647,7 +648,7 @@ const ISSUES = {
 };
 const RISK = {chance:0.15, drain:15, crisis:30, heal:10, visit:40, refund:0.3};
 const bHealth = b => b.health == null ? 100 : b.health;
-const fixCost = b => Math.max(200, Math.round(branchIncome(b) * 1.5));
+const fixCost = b => Math.max(300, Math.round(paidOf(b) * 0.08));
 const rescueCost = b => fixCost(b) * 3;
 const troubled = () => S.riskOn && S.branches.some(b => b.issue || b.crisis);
 // Müdür geliri: sorun varken yarıya iner, krizde hiç gelmez
@@ -669,7 +670,7 @@ function riskDay(interviewDay){
     if (b.issue){
       b.health = bHealth(b) - RISK.drain;
       if (b.health <= 0){
-        const refund = Math.round((b.paid || BRANCH_COSTS[regionOf(b.city)][0]) * RISK.refund);
+        const refund = Math.round(paidOf(b) * RISK.refund);
         S.money += refund;
         S.branches.splice(S.branches.indexOf(b), 1);
         S.lostBranches = (S.lostBranches || 0) + 1;
@@ -1942,7 +1943,7 @@ function branchesHTML(){
   const leftW = CITIES.filter(c => c.region === 'world' && !hasCity(c.id));
   if (leftW.length){
     h += '<h3>🌍 Yurt Dışında Şube Aç</h3>';
-    h += wo ? '<p class="hint">Yurt dışı şubeleri pahalıdır ama müdürleri 1,5 kat gelir getirir.</p>'
+    h += wo ? '<p class="hint">Yurt dışı şubeleri pahalıdır ama müdürleri çok daha fazla kazandırır.</p>'
             : `<p class="hint">🔒 Türkiye'de ${TR_GOAL} şube açınca dünya kapısı açılır (${n}/${TR_GOAL}).</p>`;
     leftW.forEach(c => h += row(c, wo, branchCost('world')));
   }
@@ -1996,7 +1997,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
