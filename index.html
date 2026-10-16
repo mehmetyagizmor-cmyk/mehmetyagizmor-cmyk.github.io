@@ -163,6 +163,17 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .net .pbar div{height:100%;background:var(--accent)}
 .shop-item .loc{color:var(--good);font-weight:700}
 
+/* Ünlülük & röportaj */
+#pFame{font-size:12px;color:#e8c6ff;margin-top:3px;font-weight:700}
+#pFame .fbar{display:block;height:5px;background:#0004;border-radius:3px;margin-top:3px;overflow:hidden}
+#pFame .fbar i{display:block;height:100%;background:linear-gradient(90deg,#b36bff,#ffc94a)}
+.iv-q{font-size:18px;font-weight:700;margin:6px 0 14px}
+.ans{display:block;width:100%;text-align:left;background:var(--panel2);border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;font-size:15px;line-height:1.35}
+.ans:hover,.ans:active{border-color:var(--accent)}
+.choice{background:var(--panel2);border-radius:10px;padding:8px 12px;margin-bottom:6px}
+.choice small{display:block;color:var(--muted);font-size:13px}
+.cover{display:block;width:100%;max-width:300px;margin:0 auto 10px;border-radius:6px;box-shadow:0 8px 24px #000a}
+
 /* Eşyalarım */
 .profile{display:flex;align-items:center;gap:12px;background:var(--panel2);border-radius:12px;padding:8px 12px}
 #avatar{width:64px;height:80px;border-radius:10px;background:#d8c3a0;flex:none}
@@ -322,7 +333,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
       <h2>🎒 Eşyalarım</h2>
       <div class="profile">
         <canvas id="avatar"></canvas>
-        <div class="info"><b id="pName"></b><small id="pShop"></small></div>
+        <div class="info"><b id="pName"></b><small id="pShop"></small><div id="pFame"></div></div>
         <button class="btn2" id="editOwner">✏️ Düzenle</button>
       </div>
       <div id="inventory"></div>
@@ -388,6 +399,64 @@ const TR_GOAL = 5;                                   // yurt dışı için gerek
 const BRANCH_COSTS = [5000, 9000, 14000, 20000, 28000];
 const BRANCH_NEED = 2;                               // ana dükkân en az Nostaljik Kafe olmalı
 
+// Ünlülük: her basamak biraz daha çok müşteri ve bahşiş getirir
+const FAME_LEVELS = [
+  {name:'Mahallede bilinen',   need:0,    emoji:'🙂'},
+  {name:'Şehirde tanınan',     need:100,  emoji:'😎'},
+  {name:'Ünlü girişimci',      need:350,  emoji:'🌟'},
+  {name:"Türkiye'nin çaycısı", need:1000, emoji:'🏆'},
+  {name:'Dünyaca ünlü',        need:2500, emoji:'🌍'},
+];
+// Röportaj yapan yayınlar: ünlüleştikçe daha büyükleri arar
+const OUTLETS = [
+  {name:'Mahalle Postası', kind:'gazete', fame:15,  color:'#7a4f2a'},
+  {name:'Şehir Gazetesi',  kind:'gazete', fame:35,  color:'#2e5e8c'},
+  {name:'Lezzet Dergisi',  kind:'dergi',  fame:70,  color:'#a8323a'},
+  {name:'Türkiye Gündem',  kind:'dergi',  fame:140, color:'#1f2a44'},
+  {name:'World Tea Times', kind:'dergi',  fame:250, color:'#0f5a4b'},
+];
+// Cevap tarzları: samimi itibar kazandırır, iddialı çok ünlü yapar ama itibar düşürür, esprili dengelidir
+const ANS = {samimi:{fame:1, rep:3}, iddiali:{fame:1.6, rep:-2}, esprili:{fame:1.25, rep:1}};
+const HEADLINES = {
+  samimi:  '"Müşterilerim benim ailem"',
+  iddiali: '"Türkiye\'nin en iyi çayı bende!"',
+  esprili: '"Çayı gülümseyerek demliyorum!"',
+};
+const IV_QS = [
+  {q:'Çay ocağına nasıl başladınız?', a:{
+    samimi:'Dedemden kalma bir semaver ve büyük bir hayalle.',
+    iddiali:'Bu şehrin en iyi çayını ben demlerim, herkes biliyor!',
+    esprili:'Önce kendime demledim, sonra komşular kapıyı çalmaya başladı.'}},
+  {q:'Başarınızın sırrı ne?', a:{
+    samimi:'Müşteriye güler yüz, çaya sabır.',
+    iddiali:'Rakiplerim benim yanımda acemi kalır.',
+    esprili:'Sırrı söylersem sır kalmaz ki!'}},
+  {q:'İyi çay nasıl demlenir?', a:{
+    samimi:'Demlik ısıtılır, sonra sabırla beklenir. Acele yok.',
+    iddiali:'Benim gibi demlemeyi kimse bilmez, öğretilmez de.',
+    esprili:'Tavşan kanı olana kadar… Tavşan karışmasın yeter!'}},
+  {q:'Gelecek planlarınız neler?', a:{
+    samimi:'Büyürken mahallemi asla unutmamak.',
+    iddiali:'Her şehirde bir {shop} olacak!',
+    esprili:'Önce bir çay daha içeyim, sonra düşünürüm.'}},
+  {q:'Unutamadığınız bir müşteri var mı?', a:{
+    samimi:'Her sabah ilk gelen emekli öğretmenimiz.',
+    iddiali:'Bir ünlü geldi, benden imza istedi!',
+    esprili:'Bir oturuşta 9 bardak içen amca. Rekor hâlâ onda.'}},
+  {q:'Rakipleriniz hakkında ne düşünüyorsunuz?', a:{
+    samimi:'Herkesin kazancı bol olsun.',
+    iddiali:'Rakip mi? Hangi rakip?',
+    esprili:'Gelsinler, bir çayımı içsinler, sonra konuşuruz.'}},
+  {q:'Gençlere ne tavsiye edersiniz?', a:{
+    samimi:'Emeğinize saygı duyun, gerisi gelir.',
+    iddiali:'Benden iyi bir örnek bulamazlar.',
+    esprili:'Çayı soğutmayın, hayalinizi de.'}},
+  {q:'Sizi en çok ne mutlu ediyor?', a:{
+    samimi:'Müşterinin "eline sağlık" demesi.',
+    iddiali:'Kasanın dolu olması, ne yalan söyleyeyim!',
+    esprili:'Bardağın ince belli olanı.'}},
+];
+
 const UPGRADES = [
   {id:'masa',    grp:'esya', emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:80,  mult:1.8},
   {id:'tepsi',   grp:'esya', emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:60,  mult:1.6, max:5},
@@ -447,7 +516,8 @@ const DAY_LEN = 120; // saniye (08:00 - 20:00)
 
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
-  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0, questsDone:0, quests:null});
+  served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0, questsDone:0, quests:null,
+  fame:0, offer:null, interviews:0, lastCover:null});
 // S.lv ve S.rep her zaman bulunulan şubeyi gösterir; S.lv, S.branches[S.cur].lv ile aynı nesnedir
 function link(d){
   if (!d.branches || !d.branches.length) d.branches = [{city:'ana', lv:d.lv, rep:d.rep}]; // eski kayıt → ana dükkân
@@ -507,9 +577,27 @@ function openBranch(id){
   S.branches.push({city:id, lv:{}, rep:50, day:S.day});
   const p = PRODUCTS.find(p => p.city === id);
   if (p && !S.unlocked.includes(p.id)) S.unlocked.push(p.id);
+  addFame(40);
   save();
   return true;
 }
+function fameLv(){
+  let l = 0;
+  FAME_LEVELS.forEach((F, i) => { if ((S.fame || 0) >= F.need) l = i; });
+  return l;
+}
+function addFame(n){
+  const before = fameLv();
+  S.fame = (S.fame || 0) + n;
+  const after = fameLv();
+  if (after > before){
+    const F = FAME_LEVELS[after];
+    announce({emoji:F.emoji, name:F.name, desc:'Artık daha çok kişi seni tanıyor: daha çok müşteri, daha çok bahşiş!', ach:true}, '🌟 Ünlülük');
+    confetti();
+  }
+}
+const offerPending = () => S.offer && S.offer.day === S.day && !S.offer.ans;
+
 function switchBranch(i){
   if (status === 'running' || i === S.cur || !S.branches[i]) return;
   S.branches[S.cur].rep = S.rep;
@@ -580,7 +668,7 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
-  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan'));
+  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv());
 }
 
 function freeSeats(){
@@ -640,13 +728,18 @@ function pay(c){
   const ratio = c.patience / c.max;
   let base = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
   if (c.special === 'vip') base *= 3;
+  if (R.focus) base = Math.round(base * 1.2);   // röportajı reddedip dükkâna odaklanılan gün
   R.combo++;
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm;
-  const tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv());
+  let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
+  // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
+  const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameLv();
+  if (autograph) tip += Math.round(base * 0.3);
   S.money += base + tip; S.total += base + tip;
+  addFame(0.25 + (c.special === 'influencer' ? 5 : 0) + (autograph ? 0.5 : 0));
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
   c.order.forEach(o => R.sold[o.p] = (R.sold[o.p] || 0) + 1);
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
@@ -655,6 +748,7 @@ function pay(c){
   if (cm > comboMult(R.combo - 1)){ floatText(s.x, s.y - 160, `🔥 KOMBO x${cm}!`, '#ff9d3a', 0.15); SFX.combo(); }
   floatText(s.x, s.y - 100, `+₺${base + tip}`, '#ffc94a');
   if (c.special === 'influencer') floatText(s.x, s.y - 130, '📸 +10⭐', '#e08bff', 0.3);
+  else if (autograph) floatText(s.x, s.y - 130, '✍️ İmza istedi!', '#e08bff', 0.3);
   coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
   bump('#money', 'bump');
   SFX.pay();
@@ -714,6 +808,8 @@ const ACH = [
   {id:'ekip',     emoji:'👥', name:'Kalabalık Ekip',     desc:'2 çırak ve 2 garson çalıştır',             goal:4,     val:() => Math.min(2, lv('cirak')) + Math.min(2, lv('garson')), reward:800},
   {id:'sube1',    emoji:'🏙️', name:'İlk Şube',           desc:'Başka bir şehirde şube aç',                goal:1,     val:trCount,                       reward:2000},
   {id:'sube5',    emoji:'🗺️', name:"Türkiye'nin Çaycısı", desc:`Türkiye'de ${TR_GOAL} şube aç`,            goal:TR_GOAL, val:trCount,                     reward:15000},
+  {id:'roportaj', emoji:'🎤', name:'Basın Sever',        desc:'5 röportaj ver',                           goal:5,     val:() => S.interviews || 0,       reward:2000},
+  {id:'sohret',   emoji:'🌟', name:'Ünlü Girişimci',     desc:'Ünlülükte "Ünlü girişimci" basamağına çık', goal:2,   val:fameLv,                        reward:3000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
 ];
 function checkAch(){
@@ -907,6 +1003,7 @@ function endDay(){
     ${record ? '<p class="banner">🎉 Yeni rekor! En kârlı günün!</p>' : ''}
     ${perfect ? '<p class="banner">✨ Kusursuz gün: kimse kızmadı!</p>' : ''}
     ${R.dayEvent ? `<p class="hint">Günün olayı: ${R.dayEvent.emoji} ${R.dayEvent.name}</p>` : ''}
+    ${R.focus ? '<p class="hint">🧹 Odak günü: satışlar %20 fazlaydı</p>' : ''}
     <table>
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
       <tr><td>Kızıp giden müşteri</td><td>${st.lost}</td></tr>
@@ -921,7 +1018,15 @@ function endDay(){
     ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
     <button class="big" id="modalOk">Tamam</button>
     <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button></div>`);
+  // Ünlülük: iyi geçen gün ve her şube adını biraz daha duyurur
+  addFame(stars + (perfect ? 5 : 0) + 2 * trCount());
   S.day++;
+  // Yarın için röportaj isteği (3. günden sonra, %40 ihtimal)
+  S.offer = null;
+  if (S.day >= 3 && Math.random() < 0.4){
+    const fl = fameLv();
+    S.offer = {day:S.day, tier:Math.min(OUTLETS.length - 1, Math.max(0, fl - (Math.random() < 0.5 ? 1 : 0)))};
+  }
   newDay();
   save();
 }
@@ -1494,11 +1599,14 @@ function renderUI(){
   $('#clockfill').style.width = frac * 100 + '%';
   const where = S.cur ? ` · ${city().name}` : '';
   $('#shopTitle').textContent = '🍵 ' + owner().shopName + where;
-  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name} şubesi · ` : '') + shopLevel().name + ' kapalı. Hazır olunca aç!';
+  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name} şubesi · ` : '') + shopLevel().name + ' kapalı. Hazır olunca aç!' + (offerPending() ? ' 📞 Bir röportaj isteği var!' : '');
   $('#closedOverlay').hidden = status === 'running';
   $('#openBtn').textContent = `☀️ Dükkânı Aç (Gün ${S.day})`;
   $('#pName').textContent = owner().name;
   $('#pShop').textContent = owner().shopName + where + ' · ' + shopLevel().name;
+  const fl = fameLv(), F = FAME_LEVELS[fl], FN = FAME_LEVELS[fl + 1];
+  const fp = FN ? (S.fame - F.need) / (FN.need - F.need) : 1;
+  setHTML('#pFame', `${F.emoji} ${F.name} · 🌟 ${fmt(S.fame)}${FN ? ' / ' + fmt(FN.need) : ''}<span class="fbar"><i style="width:${Math.round(fp * 100)}%"></i></span>`);
 
   document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade()));
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
@@ -1590,7 +1698,9 @@ function renderUI(){
     <div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div>
     <div><small>Mutlu müşteri</small><b>${fmt(S.served)}</b></div><div><small>En kârlı gün</small><b>₺${fmt(S.bestDay)}</b></div>
     <div><small>Kusursuz gün</small><b>${S.perfect}</b></div><div><small>Giriş serisi</small><b>📅 ${S.streak} gün</b></div>
-    <div><small>En uzun kombo</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>Tamamlanan görev</small><b>📋 ${S.questsDone || 0}</b></div></div>`;
+    <div><small>En uzun kombo</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>Tamamlanan görev</small><b>📋 ${S.questsDone || 0}</b></div>
+    <div><small>Ünlülük</small><b>🌟 ${fmt(S.fame)}</b></div><div><small>Röportaj</small><b>🎤 ${S.interviews || 0}</b></div></div>
+    ${S.lastCover ? '<button class="btn2" data-cover style="width:100%;margin-top:8px">📰 Son kapağını gör ve paylaş</button>' : ''}`;
   const done = ACH.filter(a => S.ach[a.id]).length;
   v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
   // Tamamlanmamışlar önce, en çok ilerleyen en üstte
@@ -1693,7 +1803,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -1835,6 +1945,15 @@ $('#modal').addEventListener('click', e => {
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
   if (btn && btn.dataset.switch){ hideModal(); goBranch(+btn.dataset.switch); return; }
+  if (id === 'ivYes'){ startInterview(); return; }
+  if (id === 'ivNo'){
+    S.offer.ans = 'no'; S.rep = Math.min(100, S.rep + 5); save();
+    hideModal(); openShop({focus:true}); toast('🧹 Bugün dükkâna odaklandın: satışlar +%20, +5⭐');
+    return;
+  }
+  if (btn && btn.dataset.ans && IV){ answer(btn.dataset.ans); return; }
+  if (id === 'ivOpen'){ hideModal(); openShop({late:true}); return; }
+  if (id === 'coverShare'){ shareCover(); return; }
   if (id === 'installBtn' && installEvt){ installEvt.prompt(); installEvt = null; hideModal(); return; }
   if (id === 'resetYes'){
     S = link(fresh()); save(); newDay(); status = 'closed'; particles = [];
@@ -1866,6 +1985,137 @@ $('#modal').addEventListener('click', e => {
     if (firstSetup){ S.lastDate = dateStr(new Date()); S.streak = 1; save(); showWelcome(); }
   }
 });
+
+// ---------- Röportajlar ----------
+// late: röportaj sabahı aldı, dükkân 10:00'da açılır · focus: röportaj reddedildi, satışlar +%20
+function openShop(opt = {}){
+  newDay(); status = 'running'; SFX.open(); startDayEvent();
+  if (opt.late) R.t = DAY_LEN / 6;
+  if (opt.focus) R.focus = true;
+  if (!desktopMQ.matches && tab !== 'mutfak') setTab('mutfak');
+  renderUI();
+}
+let IV = null;
+function showInvite(){
+  const o = OUTLETS[S.offer.tier];
+  showModal(`
+    <h2>📞 Telefon çalıyor!</h2>
+    <p><b>${o.name}</b> seninle röportaj yapmak istiyor, ${esc(owner().name)}!</p>
+    <div class="choice">🎤 <b>Kabul edersen</b><small>Ünlülüğün artar ve ${o.kind} kapağı olursun. Ama röportaj sabahını alır: dükkân 10:00'da açılır.</small></div>
+    <div class="choice">🧹 <b>Reddedersen</b><small>Bugün dükkâna odaklanırsın: satışlar %20 fazla, +5⭐ itibar.</small></div>
+    <button class="big" id="ivYes">🎤 Kabul et</button>
+    <div class="btns"><button class="btn2" id="ivNo">🧹 Reddet, dükkâna odaklan</button></div>`);
+}
+function startInterview(){
+  IV = {tier:S.offer.tier, i:0, picks:[], qs:[...IV_QS].sort(() => Math.random() - 0.5).slice(0, 3)};
+  showQuestion();
+}
+function showQuestion(){
+  const q = IV.qs[IV.i], order = Object.keys(q.a).sort(() => Math.random() - 0.5);
+  showModal(`
+    <h2>🎤 ${OUTLETS[IV.tier].name} <small>· Soru ${IV.i + 1}/3</small></h2>
+    <p class="iv-q">“${q.q}”</p>
+    ${order.map(t => `<button class="ans" data-ans="${t}">${esc(q.a[t].replace('{shop}', owner().shopName))}</button>`).join('')}
+    <p class="hint" style="margin-top:8px">Samimi cevaplar itibar, iddialı cevaplar daha çok ünlülük getirir.</p>`);
+}
+function answer(t){
+  IV.picks.push(t); IV.i++;
+  SFX.serve();
+  if (IV.i < IV.qs.length) return showQuestion();
+  const o = OUTLETS[IV.tier];
+  let fm = 0, rp = 0;
+  const cnt = {};
+  IV.picks.forEach(p => { fm += ANS[p].fame; rp += ANS[p].rep; cnt[p] = (cnt[p] || 0) + 1; });
+  const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  const gain = Math.round(o.fame * fm / IV.picks.length);
+  S.rep = Math.max(0, Math.min(100, S.rep + rp));
+  S.interviews = (S.interviews || 0) + 1;
+  S.offer.ans = 'yes';
+  S.lastCover = {tier:IV.tier, quote:HEADLINES[top], day:S.day};
+  addFame(gain);
+  IV = null;
+  save();
+  SFX.levelUp();
+  showCover(true, `+${gain} 🌟 ünlülük · ${rp >= 0 ? '+' : ''}${rp}⭐ itibar`);
+}
+function showCover(fromInterview, note){
+  showModal(`
+    <h2>📰 ${fromInterview ? 'Kapak oldun!' : 'Son kapağın'}</h2>
+    <canvas id="coverCv" class="cover" width="600" height="800"></canvas>
+    ${note ? `<p class="hint" style="text-align:center">${note}</p>` : ''}
+    <button class="big" id="${fromInterview ? 'ivOpen' : 'modalOk'}">${fromInterview ? '☀️ Dükkânı aç (10:00)' : 'Kapat'}</button>
+    <div class="btns"><button class="btn2" id="coverShare">📤 Paylaş</button></div>`);
+  drawCover($('#coverCv').getContext('2d'), S.lastCover);
+  // Resim önceden hazırlanır: Safari paylaşımı dokunuşa bağlı olmalı, beklemeden çağrılmalı
+  coverBlob = null;
+  $('#coverCv').toBlob(b => coverBlob = b, 'image/png');
+}
+let coverBlob = null;
+const displayName = () => /usta/i.test(owner().name) ? owner().name : owner().name + ' Usta';
+function wrapText(ctx, text, x, y, maxW, lh){
+  const words = text.split(' ');
+  let ln = '';
+  for (const w of words){
+    if (ln && ctx.measureText(ln + ' ' + w).width > maxW){ ctx.fillText(ln, x, y); ln = w; y += lh; }
+    else ln = ln ? ln + ' ' + w : w;
+  }
+  ctx.fillText(ln, x, y);
+}
+function drawCover(c, cv){
+  const o = OUTLETS[cv.tier], W2 = 600, H2 = 800;
+  c.fillStyle = o.color; c.fillRect(0, 0, W2, H2);
+  // Arkadaki ışık
+  const rg = c.createRadialGradient(300, 380, 40, 300, 380, 330);
+  rg.addColorStop(0, 'rgba(255,240,200,.55)'); rg.addColorStop(1, 'rgba(255,240,200,0)');
+  c.fillStyle = rg; c.fillRect(0, 0, W2, H2);
+  // Başlık (yayın adı)
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.fillStyle = '#fff';
+  let size = 78;
+  c.font = `900 ${size}px Georgia, serif`;
+  while (c.measureText(o.name.toLocaleUpperCase('tr-TR')).width > 560 && size > 30){ size--; c.font = `900 ${size}px Georgia, serif`; }
+  c.fillText(o.name.toLocaleUpperCase('tr-TR'), 300, 98);
+  c.fillRect(30, 118, 540, 3);
+  c.font = 'bold 18px system-ui, sans-serif'; c.textAlign = 'left';
+  c.fillText(`SAYI ${cv.day}`, 32, 146);
+  c.textAlign = 'right'; c.fillText(o.kind === 'dergi' ? 'AYLIK DERGİ' : 'GÜNLÜK GAZETE', 568, 146);
+  // Kapak yıldızı
+  drawPerson(c, {x:300, y:790, look:owner(), apron:true, mood:'happy', scale:6.6});
+  const bg = c.createLinearGradient(0, 470, 0, 800);
+  bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(0.45, 'rgba(0,0,0,.72)'); bg.addColorStop(1, 'rgba(0,0,0,.9)');
+  c.fillStyle = bg; c.fillRect(0, 470, W2, 330);
+  // Etiket + isim + söz
+  c.textAlign = 'center';
+  const tag = cv.tier >= 3 ? 'ÖZEL RÖPORTAJ' : 'RÖPORTAJ';
+  c.font = '900 20px system-ui, sans-serif';
+  const tw = c.measureText(tag).width + 28;
+  c.fillStyle = '#ffc94a'; c.fillRect(300 - tw / 2, 568, tw, 34);
+  c.fillStyle = '#2b1d14'; c.fillText(tag, 300, 592);
+  c.fillStyle = '#fff';
+  size = 52; c.font = `900 ${size}px Georgia, serif`;
+  const nm = displayName();
+  while (c.measureText(nm).width > 550 && size > 26){ size--; c.font = `900 ${size}px Georgia, serif`; }
+  c.fillText(nm, 300, 656);
+  c.font = 'italic 28px Georgia, serif'; c.fillStyle = '#ffe7b0';
+  wrapText(c, cv.quote, 300, 700, 540, 34);
+  c.font = 'bold 17px system-ui, sans-serif'; c.fillStyle = '#ffffffcc';
+  c.fillText(`${owner().shopName} · ${S.branches.length} dükkân · ${fmt(S.served)} mutlu müşteri`, 300, 778);
+}
+async function shareCover(){
+  const b = coverBlob;
+  if (!b){ toast('Kapak hazırlanıyor, bir saniye…'); return; }
+  const file = new File([b], 'cay-ocagi-kapak.png', {type:'image/png'});
+  const text = `${OUTLETS[S.lastCover.tier].name} kapağındayım! ☕ Çay Ocağı Tycoon`;
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text}); return; }
+  } catch(e){ if (e.name === 'AbortError') return; }
+  // Paylaşım desteklenmiyorsa resmi indir
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  toast('📥 Kapak resmi indirildi, istediğin yerde paylaş!');
+}
 
 // ---------- Etkileşim ----------
 function goBranch(i){
@@ -1910,13 +2160,14 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover]');
   if (!t) return;
   const d = t.dataset;
   if (d.open !== undefined){
-    newDay(); status = 'running'; SFX.open(); startDayEvent();
-    if (!desktopMQ.matches && tab !== 'mutfak') setTab('mutfak');
+    if (offerPending()){ showInvite(); SFX.event(); }
+    else openShop();
   }
+  else if (d.cover !== undefined && S.lastCover) showCover(false);
   else if (d.unlock){
     const p = P[d.unlock];
     if (S.money >= p.cost && !S.unlocked.includes(p.id) && !shopLocked(p)){ S.money -= p.cost; S.unlocked.push(p.id); toast(`${p.emoji} ${p.name} menüye eklendi!`); SFX.buy(); save(); }

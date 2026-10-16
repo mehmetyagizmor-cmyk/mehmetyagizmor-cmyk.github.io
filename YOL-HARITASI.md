@@ -11,6 +11,7 @@ Son güncelleme: 16 Ekim 2026
 | 4 | PWA, gizlilik politikası, mağaza görselleri, yayın rehberi |
 | 5 | Tarifler + 4 yeni ürün, kombo, günlük görevler (sürüm 1.1.0) |
 | 6a | Şube altyapısı, Türkiye'de 5 şehir, müdür geliri, şehir ürünleri (sürüm 1.2.0) |
+| 6b | Ünlülük basamakları, röportajlar, paylaşılabilir kapak (sürüm 1.3.0) |
 
 ---
 
@@ -90,6 +91,16 @@ Her basamakta yeni bir şey açılır: daha fazla müşteri, VIP davetleri, öze
 2. **Yumuşak batma:** Ana dükkân korunur, şubeler uyarı verir ve kurtarılabilir, batan şube paranın bir kısmını geri verir.
 3. Röportajı **reddetmenin faydası** var: o gün dükkâna odaklanma, ekstra gelir ve itibar.
 4. Türkiye şehirleri: **İstanbul, Ankara, İzmir, Rize, Gaziantep.**
+
+### 6b'de yapılanlar
+- 5 ünlülük basamağı: 0 / 100 / 350 / 1000 / 2500 🌟. Her basamakta müşteri sıklığı %5, bahşiş %5 artar.
+- Ünlülük kaynakları: mutlu müşteri (+0,25), gün sonu yıldızları, kusursuz gün, şube açma (+40), her gün şube başına +2, röportajlar.
+- Ünlü oyuncudan bazı müşteriler imza ister (✍️) ve fazladan bahşiş bırakır.
+- 3. günden sonra her gün %40 ihtimalle röportaj isteği gelir. 5 yayın var: Mahalle Postası → World Tea Times.
+- Kabul edersen 3 seçmeli soru gelir (samimi / iddialı / esprili) ve kapak olursun; ama dükkân 10:00'da açılır.
+- Reddedersen o gün satışlar %20 fazla olur ve +5⭐ itibar kazanırsın.
+- Kapakta oyuncunun karakteri, adı ve sözü yer alır. Paylaş düğmesi telefonun paylaşım menüsünü açar, desteklenmiyorsa resmi indirir.
+- ⚠️ Ünlülük hızı uzun oyunla dengelenmeli.
 
 ### 6a'da yapılanlar
 - Para, gün, menü ve tarifler ortak. Eşyalar, çalışanlar, dükkân seviyesi ve itibar her şubeye ayrı.
