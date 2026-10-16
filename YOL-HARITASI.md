@@ -15,6 +15,7 @@ Son güncelleme: 16 Ekim 2026
 | 6c | Dünya haritası, 5 yurt dışı şubesi ve yerel ürünleri (sürüm 1.4.0) |
 | 6d | Yumuşak batma: şube sorunları, kriz, kurtarma (sürüm 1.5.0) |
 | Denge | Simülasyonla şube, ünlülük ve batma ayarları (sürüm 1.5.1) |
+| Mutfak | Müşteri sabrı günlere göre azalır (sürüm 1.5.2) |
 
 ---
 
@@ -113,7 +114,21 @@ Oyunun kendi koduyla bir bot oyuncu 60 gün oynatıldı. Bot 0,5 ve 1 saniyede b
 - Sorun çözme bedeli açılış parasının %8'i, kurtarma 3 katı. Simülasyonda gelirin ~%18'i sorunlara gitti.
 - Ünlülük basamakları: 0 / 150 / 600 / 2000 / 4000.
 
-**Gözlem (değiştirilmedi):** Bot saniyede 1 hamleyle bile hiç müşteri kaçırmadı ve itibar 2. günde 100'e çıktı. Mutfak kısmı kolay olabilir; gerçek oyuncularla bakılmalı.
+### 🔥 Mutfak zorluğu (sürüm 1.5.2)
+Önceden 10. günde 4 ürünlük bir siparişte müşteri sabrı yaklaşık 67 saniyeydi (bir gün 120 saniye). Dalgın bir oyuncu bile hiç müşteri kaçırmıyordu.
+
+Yeni formül: . 3. günden sonra sabır her gün %1,8 azalır, en fazla %38'e kadar.
+
+Simülasyon sonucu (günde kaçan müşteri):
+
+| Oyuncu | 1–3. gün | 4–10 | 11–20 | 21–35 |
+|---|---|---|---|---|
+| İyi (saniyede 1 hamle) | 0 | 0 | 0–0,2 | 0–0,4 |
+| Dalgın (1,5 sn, %25 dikkatsiz) | 0,3–1 | 1–1,3 | 2,3–3,3 | 3–4,6 |
+| 25. günden sonra boş bırakılan dükkân | | | | 11–23 (dükkân çöker) |
+
+- Çalışanlar yardım eder ama oyuncunun yerini tutmaz.
+- ⚠️ Gerçek insanlarla denenmeli; bot hamle seçiminde kusursuz.
 
 ### 6d'de yapılanlar
 - Batma riski ilk yurt dışı şubesi açılınca başlar (S.riskOn). Ana dükkân asla batmaz.
@@ -162,7 +177,8 @@ Oyunun kendi koduyla bir bot oyuncu 60 gün oynatıldı. Bot 0,5 ve 1 saniyede b
 - [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
 - [ ] Gerçek Android / iPhone'da test
 - [x] Simülasyonla denge turu (şubeler, ünlülük, batma)
-- [ ] Mutfak zorluğu: müşteri sabrı gerçek oyuncularla denenmeli
+- [x] Mutfak zorluğu simülasyonla ayarlandı
+- [ ] Mutfak zorluğu gerçek oyuncularla denenmeli
 - [ ] Arka plan müziği
 - [ ] Müdavimler (isimli, sürekli gelen müşteriler)
 - [ ] Çalışan eğitimi

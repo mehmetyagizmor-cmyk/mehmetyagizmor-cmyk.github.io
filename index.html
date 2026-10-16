@@ -802,6 +802,14 @@ function freeSeats(){
   return free;
 }
 
+// Müşteri sabrı (saniye). İlk günler rahat; PAT.from'dan sonra her gün biraz azalır (en az PAT.floor katı)
+// Simülasyonla ayarlandı: iyi oyuncu neredeyse hiç kaçırmaz, dalgın oyuncu günde ~1-4 müşteri kaçırır
+const PAT = {base:15, item:5, dekor:2, rep:5, ramp:0.018, floor:0.62, from:3};
+function patienceFor(count){
+  const ramp = Math.max(PAT.floor, 1 - PAT.ramp * Math.max(0, S.day - PAT.from));
+  return (PAT.base + count * PAT.item + lv('dekor') * PAT.dekor + S.rep / 100 * PAT.rep) * ramp * (DE().patience || 1) * (CM().patience || 1);
+}
+
 // special: 'vip' | 'influencer' | 'turist' | undefined
 function spawnCustomer(special, delayPx = 0){
   const free = freeSeats();
@@ -815,7 +823,7 @@ function spawnCustomer(special, delayPx = 0){
     const p = fav.length && Math.random() < 0.55 ? pick(fav) : pick(S.unlocked);
     order.push({p, done:false});
   }
-  let max = (18 + count * 6 + lv('dekor') * 4 + S.rep / 100 * 5) * (DE().patience || 1) * (CM().patience || 1);
+  let max = patienceFor(count);
   if (special === 'vip') max *= 0.9;
   const look = randomLook();
   if (special === 'vip'){ look.shirt = '#1d1d2b'; look.suit = true; look.hat = 'crown'; }
@@ -1997,7 +2005,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
