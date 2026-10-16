@@ -10,6 +10,7 @@ Son güncelleme: 16 Ekim 2026
 | 3 | Günlük ödül, başarımlar, gün sonu karnesi |
 | 4 | PWA, gizlilik politikası, mağaza görselleri, yayın rehberi |
 | 5 | Tarifler + 4 yeni ürün, kombo, günlük görevler (sürüm 1.1.0) |
+| 6a | Şube altyapısı, Türkiye'de 5 şehir, müdür geliri, şehir ürünleri (sürüm 1.2.0) |
 
 ---
 
@@ -84,11 +85,18 @@ Her basamakta yeni bir şey açılır: daha fazla müşteri, VIP davetleri, öze
 | 6c | Dünya haritası + yurt dışı şubeleri | 5 Türkiye şubesi şartı 6a'ya bağlı |
 | 6d | Batma / kriz sistemi | Şubeler oturduktan sonra dengelemek daha güvenli |
 
-### ❓ Bir sonraki oturumda karar verilecekler
-1. Diğer şubeler nasıl işlesin: **müdürle pasif gelir mi** (önerilen), yoksa her şube tek tek oynanarak mı?
-2. Batma ne kadar sert olsun: **ana dükkân korunur, şubeler kurtarılabilir mi** (önerilen), yoksa her şey kaybedilebilir mi?
-3. Röportajı reddetmenin bir faydası olsun mu? (Ör. o gün dükkâna odaklanıp ekstra gelir.)
-4. Türkiye için hangi 5 şehir? (Öneri: İstanbul, Ankara, İzmir, Rize, Gaziantep)
+### ✅ Verilen kararlar (16 Ekim 2026, hepsi önerilen)
+1. Diğer şubeleri **müdür yönetir, pasif gelir** getirir; oyuncu istediği şubeye geçip oynayabilir.
+2. **Yumuşak batma:** Ana dükkân korunur, şubeler uyarı verir ve kurtarılabilir, batan şube paranın bir kısmını geri verir.
+3. Röportajı **reddetmenin faydası** var: o gün dükkâna odaklanma, ekstra gelir ve itibar.
+4. Türkiye şehirleri: **İstanbul, Ankara, İzmir, Rize, Gaziantep.**
+
+### 6a'da yapılanlar
+- Para, gün, menü ve tarifler ortak. Eşyalar, çalışanlar, dükkân seviyesi ve itibar her şubeye ayrı.
+- Şube açmak için ana dükkân Nostaljik Kafe olmalı. Fiyatlar: ₺5.000 / 9.000 / 14.000 / 20.000 / 28.000.
+- Şehir ürünleri: 🐟 Balık Ekmek, 🍪 Beypazarı Kurusu, 🫓 Boyoz, 🫖 Rize Çayı, 🥜 Fıstıklı Baklava.
+- Şehir karakterleri: İstanbul kalabalık ve acelecidir, Ankara sabırlıdır, İzmir'de bahşiş fazladır, Rize'de çay pahalıdır, Gaziantep'te baklava pahalıdır.
+- ⚠️ Şube fiyatları ve müdür geliri uzun oyunla dengelenmeli (henüz test edilmedi).
 
 ---
 
