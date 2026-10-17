@@ -251,7 +251,7 @@ Bot oyun testi (35 gün, 3 oyuncu tipi) sonrası:
 - Görev: etkinlik boyunca N müşteri (50–150). Ödül: para (600 × ana dükkân çarpanı) ve koleksiyon parçası (S.col; 7d'de raf). Ertesi yıl tekrar yapılabilir (anahtar: etkinlik-yıl), parça zaten varsa yalnızca para verilir.
 - Mutfakta etkinlik şeridi (kalan gün ve görev ilerlemesi). Etkinlik yoksa 14 gün içindekinin haberi. İlk açılışta "Etkinlik başladı" kartı.
 - Yeni başarım: Bayram Coşkusu.
-- Test için adres: .
+- Test için adres sonuna ?tarih=2026-10-29 eklenebilir.
 
 ---
 
