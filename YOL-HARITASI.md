@@ -19,6 +19,7 @@ Son güncelleme: 17 Ekim 2026
 | 7a | Müdavimler ve yemek eleştirmeni (sürüm 1.6.0) |
 | 7b | "Sen yokken" kasası (sürüm 1.7.0) |
 | 7a+ | İlk gün ve eleştirmen cilası (sürüm 1.7.1) |
+| 7c | Gerçek takvime bağlı etkinlikler (sürüm 1.8.0) |
 
 ---
 
@@ -230,6 +231,27 @@ Bot oyun testi (35 gün, 3 oyuncu tipi) sonrası:
   - Puan = 1 + ⌊4,4 × (0,35 hız + 0,45 tarif + 0,2 salonun huzuru)⌋. Huzur: o gün kızan yoksa 1, 1–2 kişi 0,5, fazlası 0.
   - Simülasyon: hızlı oyuncu çoğunlukla 4, 20. günden sonra ara sıra 5; yavaş 3–4; dalgın ~3; kızdırırsa 1.
 - Gün sonu karnesinde **"🛒 Şimdi alabilirsin"** satırı: alınabilecek en ucuz şey. "Sıradaki hedef" alınamayanları göstermeye devam eder.
+
+### 7c'de yapılanlar (sürüm 1.8.0, sw v12)
+- 8 etkinlik telefonun gerçek tarihine bağlı:
+  - 🎆 Cumhuriyet Bayramı (27–31 Ekim)
+  - 🎄 Yeni Yıl (26 Aralık–2 Ocak)
+  - 💕 Sevgililer Günü (12–15 Şubat)
+  - 🌙 Ramazan
+  - 🍬 Ramazan Bayramı
+  - 🎈 23 Nisan (21–24 Nisan)
+  - 🐑 Kurban Bayramı
+  - ☀️ Yaz Festivali (15 Temmuz–15 Ağustos)
+- Hicri bayramlar için 2026–2030 tablosu (HIJRI) var. ⚠️ Tarihler yaklaşık (±1 gün); yayından önce Diyanet takvimiyle kontrol edilmeli, 2030 sonrası eklenmeli.
+- Her etkinlikte:
+  - Dükkân süslemesi (bayraklar, kar, fener ve mahya, balon, şeker renkleri, güneş)
+  - Yalnızca etkinlikte menüde olan ürün (EV_PRODUCTS). Fiyatı ana dükkân seviyesiyle büyür, tarifi yoktur.
+  - Bahşiş, kalabalık veya fiyat bonusu
+- Ramazan: gündüz müşteri %30 seyrek, 17:00 sonrası (iftar) 2 kat sık.
+- Görev: etkinlik boyunca N müşteri (50–150). Ödül: para (600 × ana dükkân çarpanı) ve koleksiyon parçası (S.col; 7d'de raf). Ertesi yıl tekrar yapılabilir (anahtar: etkinlik-yıl), parça zaten varsa yalnızca para verilir.
+- Mutfakta etkinlik şeridi (kalan gün ve görev ilerlemesi). Etkinlik yoksa 14 gün içindekinin haberi. İlk açılışta "Etkinlik başladı" kartı.
+- Yeni başarım: Bayram Coşkusu.
+- Test için adres: .
 
 ---
 

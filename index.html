@@ -233,6 +233,11 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .quest.done b{color:var(--good)}
 .quest.done i{background:var(--good)}
 .quest.fail{opacity:.5}
+.evbar{position:relative;background:linear-gradient(90deg,#c0392b33,#e8a33a22);border:1px solid #e8a33a66;border-radius:10px;padding:6px 10px 8px;margin-bottom:10px;font-size:13px;overflow:hidden}
+.evbar:empty{display:none}
+.evbar small{display:block;color:var(--muted);font-size:12px}
+.evbar i{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);transition:width .3s}
+.evbar.soon{background:#0003;border-color:var(--line)}
 .quest.fail b{color:var(--bad)}
 /* Dükkân kapalıyken görevler tam metinle, alt alta */
 body:not(.running) .quests{flex-direction:column;gap:4px}
@@ -328,6 +333,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
     <section class="panel" id="p-mutfak">
       <h2>🔥 Mutfak</h2>
       <div class="coach" id="coach" hidden></div>
+      <div class="evbar" id="evBar"></div>
       <div class="quests" id="quests"></div>
       <p class="hint newbie">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
@@ -406,7 +412,18 @@ const PRODUCTS = [
   {id:'mochi',   name:'Mochi',        emoji:'🍡', price:75,  time:2.5, city:'tokyo'},
   {id:'dubaicik',name:'Dubai Çikolatası', emoji:'🍫', price:140, time:3.5, city:'dubai'},
 ];
-const P = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+// Etkinlik ürünleri: yalnızca etkinlik süresince menüde olur (S.unlocked'a girmez)
+const EV_PRODUCTS = [
+  {id:'pasta',    name:'Cumhuriyet Pastası', emoji:'🎂', price:60, time:3.0, ev:'cumhuriyet'},
+  {id:'kestane',  name:'Kestane Kebap',      emoji:'🌰', price:40, time:2.5, ev:'yilbasi'},
+  {id:'cilek',    name:'Çilekli Tatlı',      emoji:'🍓', price:55, time:2.5, ev:'sevgililer'},
+  {id:'pide',     name:'Ramazan Pidesi',     emoji:'🥖', price:35, time:2.5, ev:'ramazan'},
+  {id:'seker',    name:'Bayram Şekeri',      emoji:'🍬', price:20, time:1.0, ev:'rbayram'},
+  {id:'lolipop',  name:'Lolipop',            emoji:'🍭', price:20, time:1.0, ev:'cocuk'},
+  {id:'kavurma',  name:'Kavurma',            emoji:'🍖', price:80, time:4.0, ev:'kurban'},
+  {id:'dondurma', name:'Maraş Dondurması',   emoji:'🍦', price:30, time:1.5, ev:'yaz'},
+];
+const P = Object.fromEntries([...PRODUCTS, ...EV_PRODUCTS].map(p => [p.id, p]));
 const MAX_RECIPE = 5;
 const BASE_COUNT = PRODUCTS.filter(p => !p.city).length;
 
@@ -544,6 +561,72 @@ const LIVE_EVENTS = [
 // Yemek eleştirmeni rastgele gelmez: bir gün önceden haber verilir (gün sonu karnesinde)
 const CRITIC = {id:'elestirmen', emoji:'🧐', name:'Yemek Eleştirmeni', desc:'En pahalı ürünleri ister. Hız, tarif yıldızları ve salonun huzuru puanı belirler!'};
 
+// ---------- Etkinlik takvimi (gerçek tarih) ----------
+// Hicri takvime bağlı bayramlar her yıl ~11 gün kayar: Diyanet takvimine göre yaklaşık tarihler (±1 gün)
+const HIJRI = {
+  2026:{ramazan:['2026-02-19', '2026-03-19'], rbayram:['2026-03-20', '2026-03-22'], kurban:['2026-05-27', '2026-05-30']},
+  2027:{ramazan:['2027-02-08', '2027-03-08'], rbayram:['2027-03-09', '2027-03-11'], kurban:['2027-05-16', '2027-05-19']},
+  2028:{ramazan:['2028-01-28', '2028-02-25'], rbayram:['2028-02-26', '2028-02-28'], kurban:['2028-05-05', '2028-05-08']},
+  2029:{ramazan:['2029-01-16', '2029-02-13'], rbayram:['2029-02-14', '2029-02-16'], kurban:['2029-04-24', '2029-04-27']},
+  2030:{ramazan:['2030-01-05', '2030-02-03'], rbayram:['2030-02-04', '2030-02-06'], kurban:['2030-04-13', '2030-04-16']},
+};
+const fixedDays = (m1, d1, m2, d2) => y => [new Date(y, m1 - 1, d1), new Date(m2 < m1 ? y + 1 : y, m2 - 1, d2)];
+const hijriDays = id => y => HIJRI[y] && HIJRI[y][id] && HIJRI[y][id].map(s => new Date(s + 'T00:00'));
+// goal: etkinlik boyunca servis edilecek müşteri; col: görev ödülü koleksiyon parçası
+const EVENTS = [
+  {id:'cumhuriyet', emoji:'🎆', name:'Cumhuriyet Bayramı', at:fixedDays(10, 27, 10, 31), deco:'flags', tip:1.3, spawn:0.85, goal:60,
+   desc:'Dükkân bayraklarla süslendi! Bahşişler %30 fazla, 🎂 Cumhuriyet Pastası menüde.', col:{id:'bayrakfincan', name:'Bayraklı Fincan', emoji:'🎖️'}},
+  {id:'yilbasi', emoji:'🎄', name:'Yeni Yıl', at:fixedDays(12, 26, 1, 2), deco:'snow', tip:1.2, spawn:0.85, goal:60, priceMult:{cay:1.2, sahlep:1.2, kahve:1.2},
+   desc:'Kar yağıyor, ışıklar yandı! 🌰 Kestane Kebap menüde, sıcak içecekler %20 pahalı.', col:{id:'karkuresi', name:'Kar Küresi', emoji:'🔮'}},
+  {id:'sevgililer', emoji:'💕', name:'Sevgililer Günü', at:fixedDays(2, 12, 2, 15), deco:'hearts', tip:1.4, goal:50,
+   desc:'Çiftler masaları doldurdu! Bahşişler %40 fazla, 🍓 Çilekli Tatlı menüde.', col:{id:'kalpfincan', name:'Kalpli Fincan', emoji:'💞'}},
+  {id:'ramazan', emoji:'🌙', name:'Ramazan', at:hijriDays('ramazan'), deco:'lanterns', goal:150, iftar:true,
+   desc:'Gündüz sakin, iftar saatinde (17:00 sonrası) dükkân dolup taşar! 🥖 Ramazan Pidesi menüde.', col:{id:'fener', name:'Ramazan Feneri', emoji:'🏮'}},
+  {id:'rbayram', emoji:'🍬', name:'Ramazan Bayramı', at:hijriDays('rbayram'), deco:'candy', tip:2, spawn:0.85, goal:50,
+   desc:'Bayramınız mübarek! Bahşişler 2 katı, 🍬 Bayram Şekeri menüde.', col:{id:'sekerkutu', name:'Şeker Kutusu', emoji:'🎁'}},
+  {id:'cocuk', emoji:'🎈', name:'23 Nisan Çocuk Bayramı', at:fixedDays(4, 21, 4, 24), deco:'balloons', spawn:0.8, goal:60, priceMult:{limonata:1.3},
+   desc:'Çocuklar dükkânı bayram yerine çevirdi! 🍭 Lolipop menüde, limonata %30 pahalı.', col:{id:'ucurtma', name:'Uçurtma', emoji:'🪁'}},
+  {id:'kurban', emoji:'🐑', name:'Kurban Bayramı', at:hijriDays('kurban'), deco:'candy', tip:1.8, spawn:0.85, goal:60,
+   desc:'Bayram ziyaretleri başladı! Bahşişler %80 fazla, 🍖 Kavurma menüde.', col:{id:'mendil', name:'Bayram Mendili', emoji:'🎀'}},
+  {id:'yaz', emoji:'☀️', name:'Yaz Festivali', at:fixedDays(7, 15, 8, 15), deco:'sun', spawn:0.9, goal:150, priceMult:{limonata:1.4},
+   desc:'Sıcaklar bastırdı! 🍦 Maraş Dondurması menüde, limonata %40 pahalı.', col:{id:'kabuk', name:'Deniz Kabuğu', emoji:'🐚'}},
+];
+// Test için adres çubuğuna ?tarih=2026-10-29 yazılabilir
+const today = () => { const q = new URLSearchParams(location.search).get('tarih'); return q ? new Date(q + 'T12:00') : new Date(); };
+const DAY_MS = 86400000;
+function eventOn(d){
+  for (const ev of EVENTS) for (const y of [d.getFullYear() - 1, d.getFullYear()]){
+    const r = ev.at(y);
+    if (r && d >= r[0] && d < +r[1] + DAY_MS) return {ev, key:`${ev.id}-${r[0].getFullYear()}`, left:Math.ceil((+r[1] + DAY_MS - d) / DAY_MS)};
+  }
+  return null;
+}
+// Bugünün etkinliği ve 14 gün içindeki ilk etkinlik; tarih değişmedikçe yeniden hesaplanmaz
+let evCache = {};
+function calendar(){
+  const d = today(), k = d.toDateString();
+  if (evCache.k !== k){
+    const cur = eventOn(d);
+    let next = null;
+    for (let i = 1; i <= 14 && !next; i++){ const e = eventOn(new Date(+d + i * DAY_MS)); if (e && (!cur || e.ev !== cur.ev)) next = {ev:e.ev, days:i}; }
+    evCache = {k, cur, next};
+  }
+  return evCache;
+}
+const EV = () => (calendar().cur || {}).ev || null;
+const evProduct = () => EV() && EV_PRODUCTS.find(p => p.ev === EV().id);
+const evProg = () => { const c = calendar().cur; if (!c) return null; S.evp = S.evp || {}; return S.evp[c.key] = S.evp[c.key] || {n:0, done:false, seen:false}; };
+function evReward(ep){
+  const ev = EV(), gift = Math.round(600 * (1 + mainLv()) * (1 + 0.5 * worldCount()));
+  ep.done = true; S.col = S.col || {};
+  const dup = S.col[ev.col.id];
+  S.col[ev.col.id] = true;
+  S.money += gift; S.total += gift;
+  announce({emoji:ev.col.emoji, name:`${ev.name} görevi tamam!`, desc:`${dup ? '' : `Koleksiyonuna ${ev.col.name} eklendi · `}+₺${fmt(gift)}`, ach:true}, '🎉 Etkinlik');
+  if (status === 'running') confetti();
+  save();
+}
+
 // Karakter görünümleri
 const SKINS  = ['#f8d9bf','#eab68f','#c98b5f','#8d5a3b'];
 const HAIRS  = ['#24160f','#5a3420','#a0622d','#e0b85f','#9b9b9b','#c2412d'];
@@ -626,7 +709,7 @@ const DAY_LEN = 120; // saniye (08:00 - 20:00)
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
   served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0, questsDone:0, quests:null,
-  fame:0, offer:null, interviews:0, lastCover:null, regs:{}, reviews:null});
+  fame:0, offer:null, interviews:0, lastCover:null, regs:{}, reviews:null, evp:{}, col:{}});
 // S.lv ve S.rep her zaman bulunulan şubeyi gösterir; S.lv, S.branches[S.cur].lv ile aynı nesnedir
 function link(d){
   if (!d.branches || !d.branches.length) d.branches = [{city:'ana', lv:d.lv, rep:d.rep}]; // eski kayıt → ana dükkân
@@ -661,9 +744,13 @@ const speed = () => (1 + 0.15 * lv('semaver')) * (effect('elektrik') ? 0.5 : 1);
 const prepTime = id => P[id].time / speed();
 // Tarif seviyesi: her seviye +%25 fiyat; maliyet katlanarak artar (uzun vadeli para hedefi)
 const recLv = id => (S.rec || {})[id] || 0;
-const basePrice = id => Math.round(P[id].price * (1 + 0.25 * recLv(id)));
+// Etkinlik ürünleri tarif almaz; fiyatı ana dükkânın seviyesiyle büyür (geç oyunda da değerli kalsın)
+const basePrice = id => Math.round(P[id].price * (P[id].ev ? 1 + 0.6 * mainLv() : 1 + 0.25 * recLv(id)));
 const recipeCost = id => Math.round(P[id].price * 15 * Math.pow(1.9, recLv(id)));
-const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1) * ((CM().priceMult || {})[id] || 1));
+const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1) * ((CM().priceMult || {})[id] || 1)
+  * (((EV() || {}).priceMult || {})[id] || 1));
+// Mutfaktaki ürünler: menü + (varsa) etkinlik ürünü en sonda
+const kitchenMenu = () => [...PRODUCTS.filter(p => S.unlocked.includes(p.id)), ...(evProduct() ? [evProduct()] : [])];
 const shopLocked = p => p.city ? !hasCity(p.city) : (p.shop || 0) > lv('dukkan');
 const lockText = p => p.city ? `${CITY[p.city].name} şubesiyle` : `${SHOP_LEVELS[p.shop].name} olunca`;
 
@@ -862,7 +949,9 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
   return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv())
-    * (S.day <= 2 ? 0.7 : 1);   // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
+    * (S.day <= 2 ? 0.7 : 1)    // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
+    * ((EV() || {}).spawn || 1)
+    * (EV() && EV().iftar ? (R.t > DAY_LEN * 0.75 ? 0.45 : 1.3) : 1);   // Ramazan: gündüz sakin, iftarda kalabalık
 }
 
 function freeSeats(){
@@ -892,9 +981,10 @@ function spawnCustomer(special, delayPx = 0){
   let count = 1 + Math.floor(Math.random() * maxItems);
   if (special === 'vip') count = Math.min(4, Math.max(3, S.unlocked.length));
   const fav = (DE().fav || []).filter(p => S.unlocked.includes(p));
+  const evp = evProduct();
   let order = [];
   for (let i = 0; i < count; i++){
-    const p = fav.length && Math.random() < 0.55 ? pick(fav) : pick(S.unlocked);
+    const p = evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(S.unlocked);
     order.push({p, done:false});
   }
   // Eleştirmen menünün en pahalı 5 ürününden 3-4 parça ister
@@ -949,7 +1039,8 @@ function pay(c){
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
   const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv())
-    * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1);   // müdavim: her kalp +%10 bahşiş
+    * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
+    * ((EV() || {}).tip || 1);
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameLv();
@@ -957,6 +1048,8 @@ function pay(c){
   S.money += base + tip; S.total += base + tip;
   addFame(0.25 + (c.special === 'influencer' ? 5 : 0) + (autograph ? 0.5 : 0));
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
+  const ep = evProg();
+  if (ep && !ep.done && ++ep.n >= EV().goal) evReward(ep);
   c.order.forEach(o => R.sold[o.p] = (R.sold[o.p] || 0) + 1);
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
   const s = SLOTS[c.seat];
@@ -1069,6 +1162,7 @@ const ACH = [
   {id:'sohret',   emoji:'🌟', name:'Ünlü Girişimci',     desc:'Ünlülükte "Ünlü girişimci" basamağına çık', goal:2,   val:fameLv,                        reward:3000},
   {id:'mudavim',  emoji:'💛', name:'Mahallenin Sevgilisi', desc:'Bir müdavimi 4 kalbe çıkar',             goal:4,     val:() => Math.max(0, ...REGULARS.map(r => regLv(r.id))), reward:2500},
   {id:'elest',    emoji:'📰', name:'Beş Yıldız',         desc:'Yemek eleştirmeninden 5 yıldız al',        goal:5,     val:() => (S.reviews || {}).best || 0, reward:3000},
+  {id:'etkinlik', emoji:'🎉', name:'Bayram Coşkusu',     desc:'Bir etkinlik görevini tamamla',            goal:1,     val:() => Object.values(S.evp || {}).filter(e => e.done).length, reward:1000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
 ];
 function checkAch(){
@@ -1144,6 +1238,12 @@ const dailyAmount = st => Math.round((20 + 30 * ((st - 1) % 7 + 1) + ((st - 1) %
 function tick(dt){
   R.t += dt;
   if (R.t >= DAY_LEN){ endDay(); return; }
+  // Etkinliğin ilk günü: tanıtım kartı
+  if (!R.evShown){
+    R.evShown = true;
+    const ep = evProg();
+    if (ep && !ep.seen){ ep.seen = true; announce(EV(), '🎉 Etkinlik başladı'); }
+  }
 
   R.spawnIn -= dt;
   if (R.spawnIn <= 0){ spawnCustomer(); R.spawnIn = spawnInterval() * rand(0.6, 1.4); }
@@ -1725,6 +1825,79 @@ function drawBubble(c){
   }
 }
 
+// ---------- Etkinlik süslemeleri ----------
+// Duvarın tepesinde sarkan ip boyunca bayrak/üçgen/emoji dizisi
+const ropeY = (x, RW, y0, sag) => { const t = x / RW; return y0 + 4 * sag * t * (1 - t); };
+function rope(y0, sag){
+  const RW = rightWall();
+  g.strokeStyle = '#3a2a20'; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(0, y0); g.quadraticCurveTo(RW / 2, y0 + sag * 2, RW, y0); g.stroke();
+}
+function bunting(colors, y0 = 6, sag = 9){
+  const RW = rightWall(), n = Math.floor(RW / 34);
+  rope(y0, sag);
+  for (let i = 0; i < n; i++){
+    const x = (i + 0.5) * RW / n, y = ropeY(x, RW, y0, sag);
+    g.fillStyle = colors[i % colors.length];
+    g.beginPath(); g.moveTo(x - 10, y); g.lineTo(x + 10, y); g.lineTo(x, y + 16); g.closePath(); g.fill();
+  }
+}
+function garland(chars, step, size, y0 = 6, sag = 9, sway = 0){
+  const RW = rightWall(), t = now();
+  rope(y0, sag);
+  for (let x = step / 2, i = 0; x < RW; x += step, i++){
+    const y = ropeY(x, RW, y0, sag), dx = sway ? Math.sin(t * 1.5 + i) * sway : 0;
+    g.strokeStyle = '#3a2a20'; g.lineWidth = 1; line(g, x, y, x + dx, y + 8);
+    emoji(g, chars[i % chars.length], x + dx, y + 8 + size / 2, size);
+  }
+}
+function star5(cx, cy, r){
+  g.beginPath();
+  for (let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, k = i % 2 ? r * 0.42 : r; g.lineTo(cx + Math.cos(a) * k, cy + Math.sin(a) * k); }
+  g.closePath(); g.fill();
+}
+function trFlag(x, y, w){
+  const h = w * 2 / 3;
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + 2, y + 2, w, h);
+  g.fillStyle = '#e30a17'; g.fillRect(x, y, w, h);
+  g.fillStyle = '#fff'; ell(g, x + w * 0.36, y + h / 2, h * 0.25, h * 0.25); g.fill();
+  g.fillStyle = '#e30a17'; ell(g, x + w * 0.41, y + h / 2, h * 0.2, h * 0.2); g.fill();
+  g.fillStyle = '#fff'; star5(x + w * 0.58, y + h / 2, h * 0.13);
+}
+function drawDeco(type){
+  const RW = rightWall(), t = now();
+  if (type === 'flags'){
+    bunting(['#e30a17', '#fff']);
+    trFlag(RW - 66, 100, 46);
+  } else if (type === 'snow'){
+    garland(['🎄', '⭐', '🎁'], 110, 16, 6, 9, 2);
+    for (let i = 0; i < 45; i++){
+      const x = (i * 97 + Math.sin(t + i) * 12) % RW, y = (t * (14 + i % 5 * 4) + i * 53) % H;
+      g.fillStyle = 'rgba(255,255,255,.75)'; ell(g, x, y, 2 + i % 2, 2 + i % 2); g.fill();
+    }
+  } else if (type === 'hearts'){
+    garland(['💕', '❤️', '💗'], 70, 15);
+  } else if (type === 'lanterns'){
+    // Mahya ışıkları + sallanan fenerler
+    for (let x = 12; x < RW; x += 18){ g.fillStyle = `rgba(255,214,120,${0.55 + 0.45 * Math.sin(t * 3 + x)})`; ell(g, x, ropeY(x, RW, 4, 6), 2.5, 2.5); g.fill(); }
+    garland(['🏮', '🌙'], 110, 24, 6, 9, 3);
+  } else if (type === 'candy'){
+    bunting(['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6']);
+  } else if (type === 'balloons'){
+    bunting(['#e74c3c', '#f1c40f', '#3498db']);
+    const cols = ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#e84393'];
+    [[RW - 60, 70], [RW - 38, 84], [RW - 82, 88]].forEach(([x, y], i) => {
+      const by = y + Math.sin(t * 1.4 + i) * 4;
+      g.strokeStyle = '#555'; g.lineWidth = 1; line(g, x, by + 15, RW - 60, 170);
+      g.fillStyle = cols[i]; ell(g, x, by, 12, 15); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.4)'; ell(g, x - 4, by - 5, 3, 4); g.fill();
+    });
+  } else if (type === 'sun'){
+    bunting(['#f1c40f', '#3498db', '#fff']);
+    emoji(g, '🌞', RW - 50, 80, 30);
+  }
+}
+
 function drawPlant(x, y, big){
   g.fillStyle = 'rgba(0,0,0,.2)'; ell(g, x, y, 16, 5); g.fill();
   g.fillStyle = '#b5562d'; g.beginPath(); g.moveTo(x - 13, y - 26); g.lineTo(x + 13, y - 26); g.lineTo(x + 9, y); g.lineTo(x - 9, y); g.fill();
@@ -1813,6 +1986,7 @@ function drawCombo(){
 function drawScene(){
   const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
   drawRoom(frac);
+  if (EV()) drawDeco(EV().deco);
 
   // Derinliğe göre sıralanan nesneler (aşağıdakiler önde)
   const items = [];
@@ -1886,6 +2060,19 @@ function coach(){
 function renderUI(){
   ensureQuests(); checkQuests(); checkAch();
   setHTML('#quests', questsHTML());
+  // Etkinlik şeridi: süren etkinlik ve görevi, yoksa 14 gün içindeki etkinliğin haberi
+  const cal = calendar();
+  let eb = '';
+  if (cal.cur){
+    const ev = cal.cur.ev, ep = evProg(), n = Math.min(ep.n, ev.goal);
+    eb = `<b>${ev.emoji} ${ev.name}</b> · ${cal.cur.left > 1 ? `${cal.cur.left} gün kaldı` : 'son gün!'}
+      <small>${ep.done ? `✅ Görev tamam: ${ev.col.emoji} ${ev.col.name} koleksiyonunda` : `🎯 ${ev.goal} müşteriye servis et → ${ev.col.emoji} ${ev.col.name} + para · ${n}/${ev.goal}`}</small>
+      <i style="width:${ep.done ? 100 : n / ev.goal * 100}%"></i>`;
+  } else if (cal.next && status !== 'running'){
+    eb = `📅 <b>${cal.next.ev.emoji} ${cal.next.ev.name}</b> ${cal.next.days} gün sonra!<small>Etkinlik ürünü, süslemeler ve koleksiyon ödülü geliyor.</small>`;
+  }
+  setHTML('#evBar', eb);
+  $('#evBar').classList.toggle('soon', !cal.cur);
   $('#money').textContent = '₺' + fmt(S.money);
   $('#rep').textContent = '⭐ ' + Math.round(S.rep);
   const frac = Math.min(1, R.t / DAY_LEN);
@@ -1919,7 +2106,7 @@ function renderUI(){
   $('#coach').hidden = !co.msg;
   if (co.msg) $('#coach').textContent = co.msg;
   const room = hasRoom() && R.queue.length < 5;
-  const menu = PRODUCTS.filter(p => S.unlocked.includes(p.id));
+  const menu = kitchenMenu();
   $('#products').classList.toggle('many', menu.length > 6); // telefonda 4 sütun
   setHTML('#products', menu.map((p, i) =>
     `<button class="prod${room ? '' : ' full'}${co.want.includes(p.id) ? ' pulse' : ''}" data-prod="${p.id}"><kbd>${(i + 1) % 10}</kbd><span class="em">${p.emoji}</span>
@@ -1968,7 +2155,7 @@ function renderUI(){
 
   // Menü: tarif geliştirme + açılabilecek ürünler
   let m = '<h3>Tarifler</h3><p class="hint">Tarifi geliştirdikçe ürün daha lezzetli olur: her yıldız +%25 satış fiyatı.</p>';
-  menu.forEach(p => {
+  menu.filter(p => !p.ev).forEach(p => {
     const l = recLv(p.id), isMax = l >= MAX_RECIPE, c = recipeCost(p.id);
     m += `<div class="shop-item"><div class="em">${p.emoji}</div>
       <div class="info"><b>${p.name} <span class="lvl">${stars5(l)}</span></b><small>Satış ₺${basePrice(p.id)}${isMax ? ' · Usta tarifi!' : ` → ₺${Math.round(p.price * (1 + 0.25 * (l + 1)))}`}</small></div>
@@ -2169,7 +2356,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -2634,7 +2821,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P'){ pauseGame(); return; }
   const n = parseInt(e.key);
   if (n >= 0 && n <= 9){
-    const list = PRODUCTS.filter(p => S.unlocked.includes(p.id));
+    const list = kitchenMenu();
     const i = n === 0 ? 9 : n - 1; // 0 tuşu = 10. ürün
     if (list[i]) makeProduct(list[i].id);
   }
