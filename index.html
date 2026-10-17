@@ -540,6 +540,7 @@ const LIVE_EVENTS = [
   {id:'turist',     emoji:'🚌', name:'Turist Kafilesi',    desc:'Boş masalar bir anda doldu!', seats:2},
   {id:'elektrik',   emoji:'🔌', name:'Elektrik Kesintisi', desc:'Ocak 15 saniye yarı hızda çalışır.', dur:15},
   {id:'happy',      emoji:'⏰', name:'Mutlu Saat',          desc:'20 saniye boyunca bahşişler 3 katı!', dur:20},
+  {id:'elestirmen', emoji:'🧐', name:'Yemek Eleştirmeni',  desc:'Hızlı servis ve iyi tarif yüksek puan getirir. Puanı ünlülüğünü etkiler!', seats:1, day:5},
 ];
 
 // Karakter görünümleri
@@ -549,6 +550,65 @@ const SHIRTS = ['#c0392b','#2e86c1','#27ae60','#8e44ad','#e67e22','#34495e','#e8
 const STYLES = ['Kısa','Uzun','Kel','Topuz','Kıvırcık'];
 const randomLook = () => ({skin:pick(SKINS), hair:pick(HAIRS), style:Math.floor(Math.random() * STYLES.length),
   shirt:pick(SHIRTS), beard:Math.random() < 0.25});
+
+// ---------- Müdavimler ----------
+// Mahallenin isimli müşterileri: yalnızca ana dükkâna gelir ve "her zamankini" ister.
+// Mutlu ayrıldıkça kalp kazanır; her yeni kalp bir söz ve hediye getirir. lines[0] ilk tanışma sözüdür.
+const REGULARS = [
+  {id:'ali', name:'Ali Amca', emoji:'👴', day:1, want:['cay','simit'],
+   look:{skin:SKINS[1], hair:'#9b9b9b', style:2, shirt:'#6d5a3a', beard:true, hat:'kasket'},
+   lines:['Bir çay ver evlat, demli olsun.', 'Senin çayın gibisi yok bu mahallede.', 'Torunlara senden bahsettim, gelecekler!',
+          'Kırk yıldır bu sokaktayım, böyle esnaf görmedim.', 'Sen benim evladım gibisin artık.']},
+  {id:'ayse', name:'Ayşe Teyze', emoji:'👵', day:2, want:['cay','pogaca'],
+   look:{skin:SKINS[0], hair:'#9b9b9b', style:3, shirt:'#8e44ad', beard:false, glasses:true},
+   lines:['Pazara giderken bir uğrayayım dedim.', 'Poğaçan rahmetli annemin poğaçasına benziyor.', 'Kızıma da anlattım seni, çok merak ediyor!',
+          'Sana yün atkı ördüm, kışın üşüme.', 'Allah bereket versin evladım, hep böyle kal.']},
+  {id:'zeynep', name:'Öğrenci Zeynep', emoji:'🎒', day:3, want:['kahve','simit'],
+   look:{skin:SKINS[2], hair:HAIRS[0], style:1, shirt:'#2e86c1', beard:false, glasses:true},
+   lines:['Sınav haftası, kahve şart!', 'Burada ders çalışmak çok iyi geliyor.', 'Bütün sınıf artık buraya geliyor!',
+          'Seni okul gazetesine yazdım.', 'Sınavı birincilikle geçtim, sayende!']},
+  {id:'riza', name:'Taksici Rıza', emoji:'🚕', day:4, want:['cay','tost'],
+   look:{skin:SKINS[2], hair:HAIRS[1], style:0, shirt:'#f1c40f', beard:true, hat:'kasket'},
+   lines:['Taksi kapıda, çabuk bir tost!', 'Müşterilere hep seni öneriyorum.', 'Durakta senin çayın konuşuluyor.',
+          'Turistleri hep sana getiriyorum!', 'Sana taksi bedava, ömür boyu!']},
+  {id:'muhtar', name:'Muhtar Hüsnü', emoji:'🎖️', day:6, want:['kahve','baklava'],
+   look:{skin:SKINS[1], hair:'#9b9b9b', style:2, shirt:'#34495e', beard:true, suit:true, glasses:true},
+   lines:['Muhtarlık işleri yorucu, bir kahve lazım.', 'Mahalle toplantısını burada yapalım.', 'Seni mahallenin en iyi esnafı seçtik!',
+          'Kapına "Mahallenin Gururu" plaketi astırdım.', 'Bu mahalle seninle güzel evlat.']},
+  {id:'defne', name:'Ressam Defne', emoji:'🎨', day:8, want:['limonata','sutlac'],
+   look:{skin:SKINS[0], hair:HAIRS[5], style:4, shirt:'#e84393', beard:false, hat:'bere'},
+   lines:['Buranın ışığı resim yapmaya çok uygun.', 'Dükkânının bir eskizini çizdim.', 'Resmin sergide çok beğenildi!',
+          'Tablonu galeriye astılar, herkes soruyor.', 'Sana en güzel tablomu hediye ediyorum.']},
+  {id:'kemal', name:'Berber Kemal', emoji:'💈', day:10, want:['cay','menemen'],
+   look:{skin:SKINS[3], hair:HAIRS[0], style:0, shirt:'#ecf0f1', beard:true},
+   lines:['Komşu, dükkân boşken bir menemen yiyeyim.', 'Müşterilerim tıraş olurken senin çayını içiyor.', 'Senin için bedava tıraş, ne zaman istersen.',
+          'Berberde herkes senin dükkânını konuşuyor.', 'İyi ki komşuyuz be usta!']},
+  {id:'selim', name:'Postacı Selim', emoji:'📮', day:12, want:['sahlep','pogaca'],
+   look:{skin:SKINS[1], hair:HAIRS[2], style:0, shirt:'#e67e22', beard:false, hat:'kasket'},
+   lines:['Mektuplar bekleyebilir, sahlep bekleyemez!', 'Bütün mahalleye senin selamını taşıyorum.', 'Sana hayran mektupları geliyor!',
+          'Uzak şehirlerden bile mektup var, ünlüsün!', 'Mahallenin postası sensin artık.']},
+];
+const REG = Object.fromEntries(REGULARS.map(r => [r.id, r]));
+const REG_HEARTS = [0, 3, 8, 15, 25];                 // kalp eşikleri (bağ puanı)
+const regData = id => (S.regs[id] = S.regs[id] || {pts:0, visits:0, got:0});
+const regLv = id => { const p = regData(id).pts; let l = 0; REG_HEARTS.forEach((n, i) => { if (p >= n) l = i; }); return l; };
+const hearts = l => '❤️'.repeat(l) + '🤍'.repeat(REG_HEARTS.length - 1 - l);
+const regOrder = r => { const w = r.want.filter(p => S.unlocked.includes(p)); return w.length ? w : ['cay']; };
+const regGift = l => Math.round(150 * l * (1 + 0.5 * mainLv()));
+
+// Yemek eleştirmeni: hız (sabır) ve tarif yıldızları puanı belirler
+const REVIEW_QUOTES = ['', 'Çay soğuktu, bekleyiş uzundu.', 'Fena değil ama daha iyisi olabilir.', 'Sıcak, samimi bir mahalle mekânı.',
+  'Lezzet ve hız bir arada. Kesinlikle tavsiye ederim!', 'Kusursuz! Şehrin en iyi çay ocağı.'];
+const starStr = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+function review(score){
+  S.reviews = S.reviews || {n:0, best:0};
+  S.reviews.n++; S.reviews.best = Math.max(S.reviews.best, score); S.reviews.last = {score, day:S.day};
+  R.review = score;
+  addFame(score * score);
+  S.rep = Math.max(0, Math.min(100, S.rep + (score - 3) * 4));
+  const rp = (score - 3) * 4;
+  announce({emoji:'📰', name:`Lezzet Rehberi: ${starStr(score)}`, desc:`"${REVIEW_QUOTES[score]}" · 🌟 +${score * score}${rp ? ` · ${rp > 0 ? '+' : ''}${rp}⭐` : ''}`, ach:score >= 4});
+}
 const DEFAULT_OWNER = {name:'Usta', shopName:'Çay Ocağı', skin:SKINS[1], hair:HAIRS[0], style:0, shirt:SHIRTS[0], beard:true};
 const CIRAK_LOOKS = [
   {skin:SKINS[0], hair:HAIRS[2], style:4, shirt:'#3a7bd5', beard:false},
@@ -565,7 +625,7 @@ const DAY_LEN = 120; // saniye (08:00 - 20:00)
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
   served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0, questsDone:0, quests:null,
-  fame:0, offer:null, interviews:0, lastCover:null});
+  fame:0, offer:null, interviews:0, lastCover:null, regs:{}, reviews:null});
 // S.lv ve S.rep her zaman bulunulan şubeyi gösterir; S.lv, S.branches[S.cur].lv ile aynı nesnedir
 function link(d){
   if (!d.branches || !d.branches.length) d.branches = [{city:'ana', lv:d.lv, rep:d.rep}]; // eski kayıt → ana dükkân
@@ -764,7 +824,9 @@ function newDay(){
   R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
        dayEvent:null, effects:[], eventIn:rand(20, 35),
        garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
-       combo:0, sold:{}, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}};
+       combo:0, sold:{}, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}, regsToday:[]};
+  // Bugün uğrayacak müdavimler (yalnızca ana dükkân): her biri %70 ihtimalle, en fazla 3 kişi
+  R.regs = S.cur ? [] : REGULARS.filter(r => S.day >= r.day && Math.random() < 0.7).sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.id);
 }
 newDay();
 
@@ -814,23 +876,30 @@ function patienceFor(count){
 function spawnCustomer(special, delayPx = 0){
   const free = freeSeats();
   if (!free.length) return null;
+  // Sıradan bir müşteri yerine bazen bugünün müdavimlerinden biri gelir (gün bitmeden)
+  const reg = !special && R.regs.length && R.t < DAY_LEN * 0.8 && Math.random() < 0.3 ? REG[R.regs.shift()] : null;
   const maxItems = Math.min(4, 2 + Math.floor(S.day / 4));
   let count = 1 + Math.floor(Math.random() * maxItems);
   if (special === 'vip') count = Math.min(4, Math.max(3, S.unlocked.length));
+  if (special === 'elestirmen') count = Math.min(3, S.unlocked.length);
   const fav = (DE().fav || []).filter(p => S.unlocked.includes(p));
-  const order = [];
+  let order = [];
   for (let i = 0; i < count; i++){
     const p = fav.length && Math.random() < 0.55 ? pick(fav) : pick(S.unlocked);
     order.push({p, done:false});
   }
-  let max = patienceFor(count);
+  if (reg) order = regOrder(reg).map(p => ({p, done:false}));
+  let max = patienceFor(order.length);
   if (special === 'vip') max *= 0.9;
-  const look = randomLook();
+  if (special === 'elestirmen') max *= 0.85;
+  if (reg) max *= 1 + 0.08 * regLv(reg.id);   // eski dost biraz daha sabırlıdır
+  const look = reg ? {...reg.look} : randomLook();
   if (special === 'vip'){ look.shirt = '#1d1d2b'; look.suit = true; look.hat = 'crown'; }
   if (special === 'influencer'){ look.shirt = '#ff6fae'; look.prop = 'phone'; }
   if (special === 'turist'){ look.shirt = '#21b3a5'; look.hat = 'sun'; look.prop = 'camera'; }
+  if (special === 'elestirmen'){ look.shirt = '#3d3d46'; look.glasses = true; look.hat = 'bere'; look.prop = 'note'; }
   const seat = pick(free);
-  const c = {id:R.nextId++, seat, look, order, patience:max, max, special,
+  const c = {id:R.nextId++, seat, look, order, patience:max, max, special, reg:reg && reg.id,
              state:'in', x:rightWall() + 40 + delayPx, y:AISLE, path:pathIn(seat), walk:0};
   R.customers.push(c);
   SFX.arrive();
@@ -865,7 +934,8 @@ function pay(c){
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv());
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv())
+    * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1);   // müdavim: her kalp +%10 bahşiş
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameLv();
@@ -884,7 +954,40 @@ function pay(c){
   coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
   bump('#money', 'bump');
   SFX.pay();
+  if (c.reg) regHappy(c, ratio);
+  if (c.special === 'elestirmen'){
+    const taste = c.order.reduce((t, o) => t + recLv(o.p), 0) / c.order.length / MAX_RECIPE;
+    review(Math.max(1, Math.min(5, Math.round(1 + 4 * (0.55 * ratio + 0.45 * taste)))));
+  }
   leave(c, 'happy');
+}
+
+// Müdavim mutlu ayrıldı: bağ puanı artar; yeni kalpte söz + hediye
+function regHappy(c, ratio){
+  const r = REG[c.reg], d = regData(r.id), before = regLv(r.id), s = SLOTS[c.seat];
+  d.pts += ratio > 0.5 ? 2 : 1; d.visits++;
+  if (!R.regsToday.includes(r.id)) R.regsToday.push(r.id);
+  const l = regLv(r.id);
+  floatText(s.x, s.y - 130, `💛 ${r.name}`, '#ffb3c6', 0.3);
+  if (l > before && l > d.got){
+    d.got = l;
+    const gift = regGift(l);
+    S.money += gift; S.total += gift;
+    announce({emoji:r.emoji, name:`${r.name} ${hearts(l)}`, desc:`"${r.lines[l]}" · Hediye +₺${fmt(gift)}`, ach:true}, '💛 Müdavim');
+  }
+}
+function regAngry(c){
+  const r = REG[c.reg], d = regData(r.id), s = SLOTS[c.seat];
+  d.pts = Math.max(0, d.pts - 3);
+  floatText(s.x, s.y - 160, `💔 ${r.name} küstü`, '#ff8a8a', 0.2);
+}
+// Masaya oturunca selam verir; ilk tanışmada kart çıkar
+function regGreet(c){
+  const r = REG[c.reg], d = regData(r.id), s = SLOTS[c.seat];
+  if (!d.met){
+    d.met = true;
+    announce({emoji:r.emoji, name:r.name, desc:`"${r.lines[0]}" · Her zamanki: ${regOrder(r).map(p => P[p].emoji).join('')}`}, '💛 Yeni müdavim');
+  } else floatText(s.x, s.y - 150, regLv(r.id) ? '💬 Her zamankinden!' : '💬 Merhaba usta!', '#fff3d6');
 }
 
 // ---------- Özel olaylar ----------
@@ -897,13 +1000,15 @@ function startDayEvent(){
 
 function triggerLiveEvent(){
   const free = freeSeats().length;
-  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id));
+  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id) && (!e.day || S.day >= e.day)
+    && !(e.id === 'elestirmen' && R.review != null));   // günde en fazla bir eleştirmen
   if (!options.length) return;
   // Dubai: VIP müşteriler çok sık gelir
   const vip = CM().vip && Math.random() < 0.5 && options.find(e => e.id === 'vip');
   const ev = vip || pick(options);
   if (ev.dur) R.effects.push({id:ev.id, left:ev.dur, ev});
-  if (ev.id === 'vip' || ev.id === 'influencer') spawnCustomer(ev.id);
+  if (ev.id === 'vip' || ev.id === 'influencer' || ev.id === 'elestirmen') spawnCustomer(ev.id);
+  if (ev.id === 'elestirmen') R.review = 0;
   if (ev.id === 'turist') for (let i = 0; i < free; i++) spawnCustomer('turist', i * 40);
   announce(ev);
 }
@@ -947,6 +1052,8 @@ const ACH = [
   {id:'kurtar',   emoji:'🛟', name:'Kriz Yöneticisi',     desc:'Krizdeki bir şubeyi kurtar',               goal:1,     val:() => S.rescues || 0,          reward:5000},
   {id:'roportaj', emoji:'🎤', name:'Basın Sever',        desc:'5 röportaj ver',                           goal:5,     val:() => S.interviews || 0,       reward:2000},
   {id:'sohret',   emoji:'🌟', name:'Ünlü Girişimci',     desc:'Ünlülükte "Ünlü girişimci" basamağına çık', goal:2,   val:fameLv,                        reward:3000},
+  {id:'mudavim',  emoji:'💛', name:'Mahallenin Sevgilisi', desc:'Bir müdavimi 4 kalbe çıkar',             goal:4,     val:() => Math.max(0, ...REGULARS.map(r => regLv(r.id))), reward:2500},
+  {id:'elest',    emoji:'📰', name:'Beş Yıldız',         desc:'Yemek eleştirmeninden 5 yıldız al',        goal:5,     val:() => (S.reviews || {}).best || 0, reward:3000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
 ];
 function checkAch(){
@@ -1088,14 +1195,14 @@ function tick(dt){
   // Müşteriler
   for (const c of [...R.customers]){
     if (c.state === 'in'){
-      if (moveAlong(c, dt, 150)){ c.state = 'seated'; c.flip = false; }
+      if (moveAlong(c, dt, 150)){ c.state = 'seated'; c.flip = false; if (c.reg) regGreet(c); }
     } else if (c.state === 'out'){
       if (moveAlong(c, dt, 150)) R.customers = R.customers.filter(x => x !== c);
     } else {
       c.patience -= dt;
       if (c.patience <= 0){
         c.patience = 0;
-        const penalty = c.special === 'vip' || c.special === 'influencer' ? 10 : 4;
+        const penalty = c.special === 'vip' || c.special === 'influencer' || c.special === 'elestirmen' ? 10 : 4;
         const s = SLOTS[c.seat];
         floatText(s.x, s.y - 100, `💢 -${penalty}⭐`, '#ff6b5e');
         if (R.combo >= 3) floatText(s.x, s.y - 130, `Kombo bitti (${R.combo})`, '#c9b39a', 0.2);
@@ -1104,6 +1211,8 @@ function tick(dt){
         R.stats.lost++;
         bump('#rep', 'shake');
         SFX.angry();
+        if (c.reg) regAngry(c);
+        if (c.special === 'elestirmen') review(1);
         leave(c, 'angry');
       }
     }
@@ -1147,6 +1256,8 @@ function endDay(){
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
       <tr><td>Kızıp giden müşteri</td><td>${st.lost}</td></tr>
       <tr><td>En uzun kombo</td><td>🔥 ${st.bestCombo}</td></tr>
+      ${R.regsToday.length ? `<tr><td>Gelen müdavimler</td><td>${R.regsToday.map(id => REG[id].emoji).join(' ')}</td></tr>` : ''}
+      ${R.review ? `<tr><td>🧐 Eleştirmen puanı</td><td style="color:#f5c518">${starStr(R.review)}</td></tr>` : ''}
       ${S.quests && S.quests.day === S.day ? `<tr><td>Günlük görevler</td><td>📋 ${S.quests.list.filter(q => q.done).length}/3</td></tr>` : ''}
       <tr><td>Satış</td><td>₺${fmt(st.earned)}</td></tr>
       <tr><td>Bahşiş</td><td>₺${fmt(st.tips)}</td></tr>
@@ -1161,7 +1272,9 @@ function endDay(){
     <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button>
       ${troubled() ? '<button class="btn2" id="goSube">🏙️ Şubelere git</button>' : ''}</div>`);
   // Ünlülük: iyi geçen gün ve her şube adını biraz daha duyurur
-  addFame(stars + (perfect ? 5 : 0) + 2 * trCount() + 5 * worldCount());
+  // 4 kalpli müdavimler seni herkese anlatır: kişi başı her gün +1 ünlülük
+  const family = REGULARS.filter(r => regLv(r.id) >= REG_HEARTS.length - 1).length;
+  addFame(stars + (perfect ? 5 : 0) + 2 * trCount() + 5 * worldCount() + family);
   S.day++;
   // Yarın için röportaj isteği (3. günden sonra, %40 ihtimal)
   S.offer = null;
@@ -1286,7 +1399,18 @@ function drawPerson(ctx, o){
     ctx.beginPath(); ctx.arc(0, hy + 6.5, 4, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
   }
 
+  if (L.glasses){
+    ctx.strokeStyle = '#2a1a12'; ctx.lineWidth = 1.3;
+    ell(ctx, -5, hy + 2, 4.2, 3.6); ctx.stroke(); ell(ctx, 5, hy + 2, 4.2, 3.6); ctx.stroke(); line(ctx, -1, hy + 1.5, 1, hy + 1.5);
+  }
+
   // şapkalar
+  if (L.hat === 'kasket'){
+    ctx.fillStyle = '#5b4a3a'; ell(ctx, 0, hy - 10, 14, 7); ctx.fill(); ell(ctx, 7, hy - 6, 10, 3); ctx.fill();
+  }
+  if (L.hat === 'bere'){
+    ctx.fillStyle = L.prop === 'note' ? '#8b1e2d' : '#2c3e50'; ell(ctx, -2, hy - 11, 15, 6); ctx.fill(); ell(ctx, -1, hy - 17, 2, 2); ctx.fill();
+  }
   if (L.hat === 'crown'){
     ctx.fillStyle = '#f5c518';
     ctx.beginPath(); ctx.moveTo(-10, hy - 12); ctx.lineTo(-10, hy - 24); ctx.lineTo(-5, hy - 18); ctx.lineTo(0, hy - 27);
@@ -1304,6 +1428,9 @@ function drawPerson(ctx, o){
     else emoji(ctx, o.carry, 24, base - 52, 16);
   } else if (L.prop === 'phone'){
     ctx.fillStyle = '#222'; rr(ctx, 25, base - 46, 7, 12, 2); ctx.fill();
+  } else if (L.prop === 'note'){
+    ctx.fillStyle = '#fff8e1'; rr(ctx, 22, base - 46, 11, 14, 1.5); ctx.fill();
+    ctx.strokeStyle = '#9a8a70'; ctx.lineWidth = 1; line(ctx, 24, base - 41, 31, base - 41); line(ctx, 24, base - 37, 31, base - 37);
   }
   ctx.restore();
 }
@@ -1563,12 +1690,14 @@ function drawBubble(c){
   const ratio = Math.max(0, c.patience / c.max);
   g.fillStyle = 'rgba(0,0,0,.45)'; rr(g, x + 2, y - 9, w - 4, 6, 3); g.fill();
   g.fillStyle = `hsl(${ratio * 120},75%,50%)`; rr(g, x + 2, y - 9, (w - 4) * ratio, 6, 3); g.fill();
-  if (c.special && c.special !== 'turist'){
-    const label = c.special === 'vip' ? '👑 VIP' : '📸 Influencer';
+  const tag = c.reg ? [`${REG[c.reg].emoji} ${REG[c.reg].name}${regLv(c.reg) ? ' ' + '♥'.repeat(regLv(c.reg)) : ''}`, '#ffd0dc', '#5a1f2e']
+    : c.special === 'vip' ? ['👑 VIP', '#ffd54a', '#2b1d14'] : c.special === 'influencer' ? ['📸 Influencer', '#d36cff', '#fff']
+    : c.special === 'elestirmen' ? ['🧐 Eleştirmen', '#3d3d46', '#ffe9a8'] : null;
+  if (tag){
     g.font = `bold 12px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    const lw = g.measureText(label).width + 14;
-    g.fillStyle = c.special === 'vip' ? '#ffd54a' : '#d36cff'; rr(g, s.x - lw / 2, y - 28, lw, 17, 8); g.fill();
-    g.fillStyle = c.special === 'vip' ? '#2b1d14' : '#fff'; g.fillText(label, s.x, y - 19);
+    const lw = g.measureText(tag[0]).width + 14;
+    g.fillStyle = tag[1]; rr(g, s.x - lw / 2, y - 28, lw, 17, 8); g.fill();
+    g.fillStyle = tag[2]; g.fillText(tag[0], s.x, y - 19);
   }
 }
 
@@ -1843,6 +1972,17 @@ function renderUI(){
     <div><small>En uzun kombo</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>Tamamlanan görev</small><b>📋 ${S.questsDone || 0}</b></div>
     <div><small>Ünlülük</small><b>🌟 ${fmt(S.fame)}</b></div><div><small>Röportaj</small><b>🎤 ${S.interviews || 0}</b></div></div>
     ${S.lastCover ? '<button class="btn2" data-cover style="width:100%;margin-top:8px">📰 Son kapağını gör ve paylaş</button>' : ''}`;
+  const metN = REGULARS.filter(r => (S.regs[r.id] || {}).met).length;
+  v += `<h3>💛 Müdavimler (${metN}/${REGULARS.length})</h3><p class="hint">Mahallenin sakinleri yalnızca ana dükkâna uğrar. Mutlu ettikçe kalp kazanırlar: her kalp +%10 bahşiş ve bir hediye. 4 kalpli müdavim seni herkese anlatır (her gün +1 🌟).</p>`;
+  REGULARS.forEach(r => {
+    const d = S.regs[r.id] || {}, l = d.met ? regLv(r.id) : 0;
+    v += d.met
+      ? `<div class="ach${l >= REG_HEARTS.length - 1 ? ' done' : ''}"><div class="em">${r.emoji}</div>
+          <div class="info"><b>${r.name} <span class="hearts">${hearts(l)}</span></b><small>"${r.lines[l]}"</small>
+          <small>Her zamanki: ${regOrder(r).map(p => P[p].emoji).join('')} · ${d.visits || 0} ziyaret</small></div></div>`
+      : `<div class="ach"><div class="em">❔</div><div class="info"><b>Henüz tanışmadın</b><small>${S.day >= r.day ? 'Ana dükkânda bir gün uğrar…' : `${r.day}. günden sonra uğramaya başlar`}</small></div></div>`;
+  });
+  if (S.reviews) v += `<p class="hint">📰 Eleştirmen yazıları: ${S.reviews.n} · En iyi puan <span style="color:#f5c518">${starStr(S.reviews.best)}</span></p>`;
   const done = ACH.filter(a => S.ach[a.id]).length;
   v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
   // Tamamlanmamışlar önce, en çok ilerleyen en üstte
@@ -2005,7 +2145,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.5.2';
+const APP_VERSION = '1.6.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;

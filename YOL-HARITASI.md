@@ -1,6 +1,6 @@
 # 🗺️ Yol Haritası: Çay Ocağı Tycoon
 
-Son güncelleme: 16 Ekim 2026
+Son güncelleme: 17 Ekim 2026
 
 ## ✅ Tamamlananlar
 | Faz | İçerik |
@@ -16,6 +16,7 @@ Son güncelleme: 16 Ekim 2026
 | 6d | Yumuşak batma: şube sorunları, kriz, kurtarma (sürüm 1.5.0) |
 | Denge | Simülasyonla şube, ünlülük ve batma ayarları (sürüm 1.5.1) |
 | Mutfak | Müşteri sabrı günlere göre azalır (sürüm 1.5.2) |
+| 7a | Müdavimler ve yemek eleştirmeni (sürüm 1.6.0) |
 
 ---
 
@@ -173,6 +174,43 @@ Simülasyon sonucu (günde kaçan müşteri):
 
 ---
 
+## 🚧 Faz 7: Piyasadaki tycoon oyunlarından dersler (17 Ekim 2026)
+
+Kullanıcı piyasadaki tycoon oyunlarının başarı unsurlarını oyuna taşımak istedi.
+
+| Oyun | Başarısının sırrı |
+|---|---|
+| Good Pizza, Great Pizza | Müşterilerle arkadaşlık, eleştirmenler ve rakipler. Reklamsız, bir yılda günlük 3.000 oyuncudan 60.000'e çıktı (GDC 2018). |
+| Cooking Fever | Bir sonraki restoran için mevcut olanın bölümlerini bitirmek gerekir; net ilerleme. |
+| Idle Miner / AdVenture Capitalist | Oyuncu yokken para birikir; prestij (baştan başlayıp kalıcı bonus). Etkinlikler ilerlemenin merkezinde. |
+| Kolibri Games | Önce 1. gün, sonra 7. ve 30. gün oyuncu tutma. |
+
+| # | Fikir | Örnek aldığı oyun | Genel |
+|---|---|---|:-:|
+| 1 | Müdavimler ve eleştirmen | Good Pizza | **9.5** |
+| 2 | "Sen yokken" geliri (en fazla 8 saat) | Idle Miner | **9** |
+| 3 | Gerçek takvime bağlı etkinlikler (29 Ekim, Ramazan, bayramlar, yılbaşı) | Cooking Fever | **8.5** |
+| 4 | Koleksiyon (bardak, çaydanlık, semaver) | Kairosoft | **7.5** |
+| 5 | Mahalledeki rakip çaycı, haftalık yarışma | Good Pizza | **7.5** |
+| 6 | Usta mirası (prestij) | AdVenture Capitalist | **6.5** |
+| 7 | Müzik ve ses efektleri | Hepsi | **7** |
+
+**Sıra (kullanıcı önerileni seçti):** 7a müdavimler ve eleştirmen → 7b "sen yokken" geliri → 7c etkinlik takvimi → 7d koleksiyon → sonra rakip çaycı, prestij, müzik.
+
+### 7a'da yapılanlar (sürüm 1.6.0, sw v9)
+- 8 müdavim: Ali Amca (1. gün), Ayşe Teyze (2), Öğrenci Zeynep (3), Taksici Rıza (4), Muhtar Hüsnü (6), Ressam Defne (8), Berber Kemal (10), Postacı Selim (12).
+- Yalnızca **ana dükkâna** gelirler. Her gün her biri %70 ihtimalle uğrar, günde en fazla 3 kişi. Sıradan bir müşterinin yerine gelirler.
+- Sabit görünüm (kasket, gözlük vb.) ve "her zamanki" sipariş. Ürün açık değilse çay ister.
+- Mutlu ayrılınca bağ puanı +1 (hızlı servis +2), kızarsa −3. Kalp eşikleri: 3 / 8 / 15 / 25 (4 kalp).
+- Her kalp: +%10 bahşiş, +%8 sabır, yeni bir söz ve hediye (₺150 × kalp × ana dükkân çarpanı).
+- 4 kalpli her müdavim her gün +1 ünlülük getirir.
+- 🧐 Yemek eleştirmeni: 5. günden sonra canlı olay, günde en fazla bir kez. Puan = hız %55 + tarif yıldızları %45, 1–5 yıldız. Ünlülük +puan², itibar (puan−3)×4. Kızarsa 1 yıldız.
+- Eşyalarım'da Müdavimler bölümü, gün sonu karnesinde gelen müdavimler ve eleştirmen puanı.
+- 2 yeni başarım: Mahallenin Sevgilisi (₺2.500), Beş Yıldız (₺3.000).
+- ⚠️ Kalp hızı ve hediye miktarı uzun oyunla dengelenmeli (yaklaşık 18 günde 4 kalp bekleniyor).
+
+---
+
 ## 📝 Bekleyen diğer işler
 - [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
 - [ ] Gerçek Android / iPhone'da test
@@ -180,9 +218,7 @@ Simülasyon sonucu (günde kaçan müşteri):
 - [x] Mutfak zorluğu simülasyonla ayarlandı
 - [ ] Mutfak zorluğu gerçek oyuncularla denenmeli
 - [ ] Arka plan müziği
-- [ ] ⭐ **Müdavimler: bir sonraki iş** (kullanıcı beğendi, 16 Ekim 2026). Fikir:
-  - Her gün gelen, isimli müşteriler. Örneğin Ali Amca her sabah "her zamankinden" ister.
-  - İyi servis edilen müdavim oyuncuya bağlanır; bağlılık arttıkça bahşiş artar ve küçük hikâyeler, sözler gelir.
-  - Zorlaşan mutfağa (sürüm 1.5.2) duygusal bir ödül katar. Sabırsız günlerde bile müdavimi kızdırmamak için ayrı bir motivasyon olur.
+- [x] Müdavimler (7a, sürüm 1.6.0)
+- [ ] ⭐ **Sıradaki: 7b "Sen yokken" geliri**
 - [ ] Çalışan eğitimi
 - [ ] İngilizce dil desteği
