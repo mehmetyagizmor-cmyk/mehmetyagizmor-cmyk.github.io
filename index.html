@@ -540,8 +540,9 @@ const LIVE_EVENTS = [
   {id:'turist',     emoji:'🚌', name:'Turist Kafilesi',    desc:'Boş masalar bir anda doldu!', seats:2},
   {id:'elektrik',   emoji:'🔌', name:'Elektrik Kesintisi', desc:'Ocak 15 saniye yarı hızda çalışır.', dur:15},
   {id:'happy',      emoji:'⏰', name:'Mutlu Saat',          desc:'20 saniye boyunca bahşişler 3 katı!', dur:20},
-  {id:'elestirmen', emoji:'🧐', name:'Yemek Eleştirmeni',  desc:'Hızlı servis ve iyi tarif yüksek puan getirir. Puanı ünlülüğünü etkiler!', seats:1, day:5},
 ];
+// Yemek eleştirmeni rastgele gelmez: bir gün önceden haber verilir (gün sonu karnesinde)
+const CRITIC = {id:'elestirmen', emoji:'🧐', name:'Yemek Eleştirmeni', desc:'En pahalı ürünleri ister. Hız, tarif yıldızları ve salonun huzuru puanı belirler!'};
 
 // Karakter görünümleri
 const SKINS  = ['#f8d9bf','#eab68f','#c98b5f','#8d5a3b'];
@@ -829,6 +830,10 @@ function newDay(){
        combo:0, sold:{}, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}, regsToday:[]};
   // Bugün uğrayacak müdavimler (yalnızca ana dükkân): her biri %70 ihtimalle, en fazla 3 kişi
   R.regs = S.cur ? [] : REGULARS.filter(r => S.day >= r.day && Math.random() < 0.7).sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.id);
+  // Henüz tanışılmamış en erken müdavim (ör. 1. gün Ali Amca) bugün mutlaka gelir
+  const newcomer = !S.cur && REGULARS.find(r => S.day >= r.day && !(S.regs[r.id] || {}).met);
+  if (newcomer) R.regs = [newcomer.id, ...R.regs.filter(id => id !== newcomer.id)].slice(0, 3);
+  R.criticAt = S.critic === S.day ? rand(25, 70) : null;
 }
 newDay();
 
@@ -856,7 +861,8 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
-  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv());
+  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv())
+    * (S.day <= 2 ? 0.7 : 1);   // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
 }
 
 function freeSeats(){
@@ -879,21 +885,27 @@ function spawnCustomer(special, delayPx = 0){
   const free = freeSeats();
   if (!free.length) return null;
   // Sıradan bir müşteri yerine bazen bugünün müdavimlerinden biri gelir (gün bitmeden)
-  const reg = !special && R.regs.length && R.t < DAY_LEN * 0.8 && Math.random() < 0.3 ? REG[R.regs.shift()] : null;
+  // Tanışma günü: yeni müdavim 3. müşteriden sonra kesin gelir
+  const meet = R.regs.length && !(S.regs[R.regs[0]] || {}).met;
+  const reg = !special && R.regs.length && R.t < DAY_LEN * 0.8 && (meet ? R.nextId >= 3 : Math.random() < 0.3) ? REG[R.regs.shift()] : null;
   const maxItems = Math.min(4, 2 + Math.floor(S.day / 4));
   let count = 1 + Math.floor(Math.random() * maxItems);
   if (special === 'vip') count = Math.min(4, Math.max(3, S.unlocked.length));
-  if (special === 'elestirmen') count = Math.min(3, S.unlocked.length);
   const fav = (DE().fav || []).filter(p => S.unlocked.includes(p));
   let order = [];
   for (let i = 0; i < count; i++){
     const p = fav.length && Math.random() < 0.55 ? pick(fav) : pick(S.unlocked);
     order.push({p, done:false});
   }
+  // Eleştirmen menünün en pahalı 5 ürününden 3-4 parça ister
+  if (special === 'elestirmen'){
+    const top = [...S.unlocked].sort((a, b) => P[b].price - P[a].price).slice(0, 5);
+    order = Array.from({length:S.day >= 15 ? 4 : 3}, () => ({p:pick(top), done:false}));
+  }
   if (reg) order = regOrder(reg).map(p => ({p, done:false}));
   let max = patienceFor(order.length);
   if (special === 'vip') max *= 0.9;
-  if (special === 'elestirmen') max *= 0.85;
+  if (special === 'elestirmen') max *= 0.8;
   if (reg) max *= 1 + 0.08 * regLv(reg.id);   // eski dost biraz daha sabırlıdır
   const look = reg ? {...reg.look} : randomLook();
   if (special === 'vip'){ look.shirt = '#1d1d2b'; look.suit = true; look.hat = 'crown'; }
@@ -959,7 +971,10 @@ function pay(c){
   if (c.reg) regHappy(c, ratio);
   if (c.special === 'elestirmen'){
     const taste = c.order.reduce((t, o) => t + recLv(o.p), 0) / c.order.length / MAX_RECIPE;
-    review(Math.max(1, Math.min(5, Math.round(1 + 4 * (0.55 * ratio + 0.45 * taste)))));
+    // Salonun huzuru: bugün kimse kızmadıysa tam puan
+    const calm = R.stats.lost === 0 ? 1 : R.stats.lost <= 2 ? 0.5 : 0;
+    // 5 yıldız için pahalı ürünlerin tarifleri neredeyse tam olmalı (simülasyonla: iyi oyuncu ~3, ustalaşınca 4-5)
+    review(Math.max(1, Math.min(5, 1 + Math.floor(4.4 * (0.35 * ratio + 0.45 * taste + 0.2 * calm)))));
   }
   leave(c, 'happy');
 }
@@ -1002,15 +1017,13 @@ function startDayEvent(){
 
 function triggerLiveEvent(){
   const free = freeSeats().length;
-  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id) && (!e.day || S.day >= e.day)
-    && !(e.id === 'elestirmen' && R.review != null));   // günde en fazla bir eleştirmen
+  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id));
   if (!options.length) return;
   // Dubai: VIP müşteriler çok sık gelir
   const vip = CM().vip && Math.random() < 0.5 && options.find(e => e.id === 'vip');
   const ev = vip || pick(options);
   if (ev.dur) R.effects.push({id:ev.id, left:ev.dur, ev});
-  if (ev.id === 'vip' || ev.id === 'influencer' || ev.id === 'elestirmen') spawnCustomer(ev.id);
-  if (ev.id === 'elestirmen') R.review = 0;
+  if (ev.id === 'vip' || ev.id === 'influencer') spawnCustomer(ev.id);
   if (ev.id === 'turist') for (let i = 0; i < free; i++) spawnCustomer('turist', i * 40);
   announce(ev);
 }
@@ -1134,6 +1147,10 @@ function tick(dt){
 
   R.spawnIn -= dt;
   if (R.spawnIn <= 0){ spawnCustomer(); R.spawnIn = spawnInterval() * rand(0.6, 1.4); }
+  if (R.criticAt != null && R.t >= R.criticAt && freeSeats().length){
+    R.criticAt = null; R.review = 0; S.critic = null;
+    spawnCustomer('elestirmen'); announce(CRITIC);
+  }
 
   if (S.day >= 2 && DAY_LEN - R.t > 15){
     R.eventIn -= dt;
@@ -1247,6 +1264,9 @@ function endDay(){
   S.unlocked.filter(id => recLv(id) < MAX_RECIPE).forEach(id => goals.push({t:`${P[id].emoji} ${P[id].name} tarifi`, c:recipeCost(id)}));
   UPGRADES.filter(u => lv(u.id) < maxLv(u)).forEach(u => goals.push({t:`${u.emoji} ${u.name}`, c:upCost(u)}));
   const goal = goals.filter(x => x.c > S.money).sort((a, b) => a.c - b.c)[0];
+  const buyNow = goals.filter(x => x.c <= S.money).sort((a, b) => a.c - b.c)[0];
+  // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
+  S.critic = S.day + 1 >= 5 && Math.random() < 0.3 ? S.day + 1 : null;
   showModal(`
     <h2>🌙 ${S.day}. gün bitti!</h2>
     <div class="stars">${'⭐'.repeat(stars)}<span>${'⭐'.repeat(3 - stars)}</span></div>
@@ -1269,6 +1289,8 @@ function endDay(){
     </table>
     ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
     ${risk.news.length ? `<div class="news">${risk.news.map(n => `<div>${n}</div>`).join('')}</div>` : ''}
+    ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
+    ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
     ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
     <button class="big" id="modalOk">Tamam</button>
     <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button>
@@ -1872,7 +1894,7 @@ function renderUI(){
   $('#clockfill').style.width = frac * 100 + '%';
   const where = S.cur ? ` · ${city().name}` : '';
   $('#shopTitle').textContent = '🍵 ' + owner().shopName + where;
-  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name} şubesi · ` : '') + shopLevel().name + ' kapalı. Hazır olunca aç!' + (offerPending() ? ' 📞 Bir röportaj isteği var!' : '');
+  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name} şubesi · ` : '') + shopLevel().name + ' kapalı. Hazır olunca aç!' + (offerPending() ? ' 📞 Bir röportaj isteği var!' : '') + (S.critic === S.day ? ' 🧐 Bugün eleştirmen geliyor!' : '');
   $('#closedOverlay').hidden = status === 'running';
   $('#openBtn').textContent = `☀️ Dükkânı Aç (Gün ${S.day})`;
   $('#pName').textContent = owner().name;
@@ -2147,7 +2169,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.7.0';
+const APP_VERSION = '1.7.1';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;

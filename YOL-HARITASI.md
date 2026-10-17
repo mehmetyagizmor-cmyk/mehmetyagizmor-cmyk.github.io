@@ -18,6 +18,7 @@ Son güncelleme: 17 Ekim 2026
 | Mutfak | Müşteri sabrı günlere göre azalır (sürüm 1.5.2) |
 | 7a | Müdavimler ve yemek eleştirmeni (sürüm 1.6.0) |
 | 7b | "Sen yokken" kasası (sürüm 1.7.0) |
+| 7a+ | İlk gün ve eleştirmen cilası (sürüm 1.7.1) |
 
 ---
 
@@ -219,6 +220,16 @@ Kullanıcı piyasadaki tycoon oyunlarının başarı unsurlarını oyuna taşım
 - Önce kasa, sonra günlük ödül gösterilir. Oyun sırasında dönülürse kasadan sonra duraklatma ekranı gelir.
 - 2. günden önce (öğretici) gösterilmez. Uzaktayken şube sorunu çıkmaz, yalnızca gelir birikir.
 - ⚠️ Gerçek telefonda arka plana alıp dönme denenmeli. Saat ileri alınarak hile yapılabilir (kabul edildi, tek oyunculu oyun).
+
+### 7a+ cila (sürüm 1.7.1, sw v11)
+Bot oyun testi (35 gün, 3 oyuncu tipi) sonrası:
+- **Yeni müdavim garantisi:** Henüz tanışılmamış en erken müdavim o gün 3. müşteriden sonra kesin gelir. Ali Amca artık 1. gün hep geliyor; sonraki günlerde sırayla diğerleri.
+- **İlk 2 gün** müşteriler %30 daha sık gelir. 1. günde boş salon süresi %40'tan %6–27'ye indi; servis 16'dan 19–26'ya çıktı.
+- **Eleştirmen artık rastgele gelmez:** 5. günden sonra %30 ihtimalle gün sonu karnesinde "Yarın eleştirmen gelecek!" uyarısı çıkar; ertesi gün 25–70. saniye arasında gelir.
+  - En pahalı 5 üründen 3 parça ister (15. günden sonra 4). Sabrı ×0,8.
+  - Puan = 1 + ⌊4,4 × (0,35 hız + 0,45 tarif + 0,2 salonun huzuru)⌋. Huzur: o gün kızan yoksa 1, 1–2 kişi 0,5, fazlası 0.
+  - Simülasyon: hızlı oyuncu çoğunlukla 4, 20. günden sonra ara sıra 5; yavaş 3–4; dalgın ~3; kızdırırsa 1.
+- Gün sonu karnesinde **"🛒 Şimdi alabilirsin"** satırı: alınabilecek en ucuz şey. "Sıradaki hedef" alınamayanları göstermeye devam eder.
 
 ---
 
