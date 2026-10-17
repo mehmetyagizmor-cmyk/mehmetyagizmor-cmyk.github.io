@@ -637,9 +637,11 @@ function load(){
   try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return link(Object.assign(fresh(), d)); } catch(e) {}
   return link(fresh());
 }
-function save(){ S.branches[S.cur].rep = S.rep; try { localStorage.setItem('cayocagi', JSON.stringify(S)); } catch(e) {} }
+function save(){ S.branches[S.cur].rep = S.rep; S.lastSeen = Date.now(); try { localStorage.setItem('cayocagi', JSON.stringify(S)); } catch(e) {} }
 
 let S = load();
+// Oyundan uzak kalınan süre (ms): ilk kayıttan önce okunmalı, save() lastSeen'i yeniler
+let awayMs = S.lastSeen ? Date.now() - S.lastSeen : 0, hiddenAt = 0;
 let R;
 let status = 'closed'; // 'running' | 'closed'
 
@@ -2145,7 +2147,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.6.0';
+const APP_VERSION = '1.7.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -2215,6 +2217,47 @@ function claimDaily(){
   toast(`🪙 +₺${fmt(amt)} günlük ödül!`);
 }
 
+// ---------- Sen yokken ----------
+// Oyuncu uzaktayken çıraklar dükkânı, müdürler şubeleri işletir. Kasa en fazla OFF.cap saat dolar;
+// saatlik gelir bir oyun gününün OFF.share katıdır (8 saat ≈ 4 günlük pasif gelir, ~birkaç dakikalık oyun)
+const OFF = {min:10, cap:8, share:0.5};               // dakika, saat, saatlik pay
+const shopDaily = () => Math.max(30, Math.round(S.bestDay * (0.15 + 0.05 * (lv('cirak') + lv('garson')))));
+const branchDaily = () => S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
+const hm = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} sa ${m % 60} dk` : `${m} dk`; };
+let offline = null;
+function checkOffline(ms){
+  if (!S.owner || S.day < 2 || !(ms >= OFF.min * 60000)) return false;
+  const h = Math.min(OFF.cap, ms / 3600000);
+  const shop = Math.round(shopDaily() * OFF.share * h), br = Math.round(branchDaily() * OFF.share * h);
+  offline = {h, shop, br, full:ms / 3600000 >= OFF.cap};
+  const others = S.branches.length - 1;
+  showModal(`
+    <h2>👋 Tekrar hoş geldin, ${esc(owner().name)}!</h2>
+    <p>Sen yokken <b>${hm(ms / 3600000)}</b> geçti. Dükkân boş durmadı!</p>
+    <div style="height:8px;border-radius:4px;background:rgba(0,0,0,.35);overflow:hidden;margin:10px 0 4px">
+      <div style="height:100%;width:${Math.round(h / OFF.cap * 100)}%;background:linear-gradient(90deg,#e8a33a,#ffc94a)"></div></div>
+    <p class="hint">💰 Kasa: ${hm(h)} / ${OFF.cap} saat${offline.full ? ' · <b>doldu!</b>' : ''}</p>
+    <table>
+      <tr><td>🏪 ${esc(owner().shopName)}${S.cur ? ` (${city().name})` : ''} · ${lv('cirak') + lv('garson') ? 'çırakların idare etti' : 'kapıdaki semaver sattı'}</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(shop)}</td></tr>
+      ${others ? `<tr><td>🏙️ Şube müdürleri (${others} şube)</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(br)}</td></tr>` : ''}
+    </table>
+    <div class="reward">+₺${fmt(shop + br)}</div>
+    ${offline.full ? '<p class="hint">💡 Kasa 8 saatte dolar, fazlası birikmez. Sık uğra!</p>'
+      : !(lv('cirak') + lv('garson')) ? '<p class="hint">💡 Çırak ve garson tuttukça yokken daha çok kazanırsın.</p>' : ''}
+    <button class="big" id="claimOffline">Kasayı topla</button>`);
+  return true;
+}
+function claimOffline(){
+  if (offline){
+    const amt = offline.shop + offline.br;
+    S.money += amt; S.total += amt; offline = null; save();
+    SFX.pay(); bump('#money', 'bump'); coins(W / 2, H / 2, 8);
+    toast(`💰 +₺${fmt(amt)} sen yokken kazanıldı!`);
+  }
+  hideModal();
+  if (status === 'running') showPause(); else if (dailyPending()) showDaily();
+}
+
 function showWelcome(){
   showModal(`
     <h2>🍵 Hoş geldin, ${esc(owner().name)}!</h2>
@@ -2281,6 +2324,7 @@ $('#modal').addEventListener('click', e => {
   if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); window.scrollTo(0, 0); return; }
   if (e.target.id === 'goSube'){ hideModal(); setTab('sube'); window.scrollTo(0, 0); return; }
   if (e.target.id === 'claimDaily'){ claimDaily(); return; }
+  if (e.target.id === 'claimOffline'){ claimOffline(); return; }
   const btn = e.target.closest('button');
   const id = btn && btn.id;
   if (id === 'openSettings'){ showSettings(); return; }
@@ -2578,9 +2622,13 @@ $('#pauseBtn').addEventListener('click', pauseGame);
 $('#settingsBtn').addEventListener('click', () => { if (!modalOpen()) showSettings(); });
 // Telefon kilitlenince / başka uygulamaya geçince: duraklat ve kaydet
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden){ pauseGame(); save(); }
+  if (document.hidden){ pauseGame(); save(); hiddenAt = Date.now(); return; }
+  const away = hiddenAt ? Date.now() - hiddenAt : 0;
+  hiddenAt = 0;
+  // Uzun süre arka planda kaldıysa kasayı göster (günlük ödül ondan sonra gelir)
+  if (offline == null && checkOffline(away)) return;
   // Uygulama gece yarısını geçip açık kaldıysa, dönüşte günlük ödülü göster
-  else if (S.owner && status === 'closed' && !modalOpen() && dailyPending()) showDaily();
+  if (S.owner && status === 'closed' && !modalOpen() && dailyPending()) showDaily();
 });
 window.addEventListener('pagehide', save);
 $('#editOwner').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
@@ -2611,7 +2659,7 @@ requestAnimationFrame(frame);
 setInterval(renderUI, 100);
 renderUI();
 
-if (!S.owner) openOwnerEditor(true); else if (dailyPending()) showDaily();
+if (!S.owner) openOwnerEditor(true); else if (!checkOffline(awayMs) && dailyPending()) showDaily();
 </script>
 </body>
 </html>

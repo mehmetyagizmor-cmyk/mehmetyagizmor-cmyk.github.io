@@ -17,6 +17,7 @@ Son güncelleme: 17 Ekim 2026
 | Denge | Simülasyonla şube, ünlülük ve batma ayarları (sürüm 1.5.1) |
 | Mutfak | Müşteri sabrı günlere göre azalır (sürüm 1.5.2) |
 | 7a | Müdavimler ve yemek eleştirmeni (sürüm 1.6.0) |
+| 7b | "Sen yokken" kasası (sürüm 1.7.0) |
 
 ---
 
@@ -209,6 +210,16 @@ Kullanıcı piyasadaki tycoon oyunlarının başarı unsurlarını oyuna taşım
 - 2 yeni başarım: Mahallenin Sevgilisi (₺2.500), Beş Yıldız (₺3.000).
 - ⚠️ Kalp hızı ve hediye miktarı uzun oyunla dengelenmeli (yaklaşık 18 günde 4 kalp bekleniyor).
 
+### 7b'de yapılanlar (sürüm 1.7.0, sw v10)
+- Oyuncu en az 10 dakika uzak kalırsa dönüşte "Tekrar hoş geldin" kasası çıkar. Uygulama kapatılıp açılınca da, arka plandan dönünce de çalışır.
+- Kasa en fazla **8 saat** dolar; dolunca "Sık uğra!" uyarısı çıkar (geri dönme sebebi).
+- Saatlik gelir = (dükkân payı + şube müdürleri) × 0,5. 8 saat yaklaşık 4 günlük pasif gelire denk; birkaç dakikalık oyundan az.
+  - Dükkân payı: en kârlı günün %15'i + her çırak/garson için %5 (en az ₺30). Çalışanı olmayana "Çırak tuttukça daha çok kazanırsın" ipucu çıkar.
+  - Şube payı: krizdeki şube 0, sorunlu şube yarım (managedIncome).
+- Önce kasa, sonra günlük ödül gösterilir. Oyun sırasında dönülürse kasadan sonra duraklatma ekranı gelir.
+- 2. günden önce (öğretici) gösterilmez. Uzaktayken şube sorunu çıkmaz, yalnızca gelir birikir.
+- ⚠️ Gerçek telefonda arka plana alıp dönme denenmeli. Saat ileri alınarak hile yapılabilir (kabul edildi, tek oyunculu oyun).
+
 ---
 
 ## 📝 Bekleyen diğer işler
@@ -219,6 +230,7 @@ Kullanıcı piyasadaki tycoon oyunlarının başarı unsurlarını oyuna taşım
 - [ ] Mutfak zorluğu gerçek oyuncularla denenmeli
 - [ ] Arka plan müziği
 - [x] Müdavimler (7a, sürüm 1.6.0)
-- [ ] ⭐ **Sıradaki: 7b "Sen yokken" geliri**
+- [x] "Sen yokken" kasası (7b, sürüm 1.7.0)
+- [ ] ⭐ **Sıradaki: 7c Etkinlik takvimi** (29 Ekim Cumhuriyet Bayramı ile başlar)
 - [ ] Çalışan eğitimi
 - [ ] İngilizce dil desteği
