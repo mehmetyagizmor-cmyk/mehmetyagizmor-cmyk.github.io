@@ -591,6 +591,49 @@ const EVENTS = [
   {id:'yaz', emoji:'☀️', name:'Yaz Festivali', at:fixedDays(7, 15, 8, 15), deco:'sun', spawn:0.9, goal:150, priceMult:{limonata:1.4},
    desc:'Sıcaklar bastırdı! 🍦 Maraş Dondurması menüde, limonata %40 pahalı.', col:{id:'kabuk', name:'Deniz Kabuğu', emoji:'🐚'}},
 ];
+// ---------- Koleksiyon ----------
+// Antikacıdan alınan ya da etkinlik görevinden kazanılan parçalar küçük kalıcı bonus verir; set tamamlanınca büyük bonus
+const COL_SETS = [
+  {id:'cayset', name:'Çay Takımı', emoji:'🫖', bonus:'tip', per:0.02, full:0.06, what:'bahşiş', items:[
+    {id:'incebelli', name:'İnce Belli Bardak', emoji:'🍵', cost:1500}, {id:'zarf', name:'Gümüş Zarf', emoji:'☕', cost:4000},
+    {id:'caydanlik', name:'Bakır Çaydanlık', emoji:'🫖', cost:10000}, {id:'semaverk', name:'Antika Semaver', emoji:'🏺', cost:25000}]},
+  {id:'kiraat', name:'Kıraathane Köşesi', emoji:'🎲', bonus:'pat', per:0.02, full:0.06, what:'müşteri sabrı', items:[
+    {id:'tavla', name:'Sedef Tavla', emoji:'🎲', cost:6000}, {id:'okey', name:'Okey Takımı', emoji:'🀄', cost:15000},
+    {id:'tesbih', name:'Kehribar Tesbih', emoji:'📿', cost:35000}, {id:'iskambil', name:'Eski İskambil', emoji:'🃏', cost:80000}]},
+  {id:'nostalji', name:'Nostalji Rafı', emoji:'📻', bonus:'fame', per:0.03, full:0.1, what:'ünlülük kazancı', items:[
+    {id:'radyo', name:'Lambalı Radyo', emoji:'📻', cost:20000}, {id:'saat', name:'Guguklu Saat', emoji:'🕰️', cost:50000},
+    {id:'gramofon', name:'Gramofon', emoji:'📯', cost:120000}, {id:'fotograf', name:'Eski İstanbul Fotoğrafı', emoji:'🖼️', cost:250000}]},
+  {id:'ugur', name:'Uğur Getirenler', emoji:'🧿', bonus:'off', per:0.05, full:0.2, what:'"sen yokken" kasası', items:[
+    {id:'nazar', name:'Nazar Boncuğu', emoji:'🧿', cost:40000}, {id:'yonca', name:'Dört Yapraklı Yonca', emoji:'🍀', cost:90000},
+    {id:'ceyrek', name:'Altın Çeyrek', emoji:'🪙', cost:200000}, {id:'kanarya', name:'Sarı Kanarya', emoji:'🐤', cost:400000}]},
+  {id:'hatira', name:'Bayram Hatıraları', emoji:'🎉', bonus:'tip', per:0.02, full:0.1, what:'bahşiş', event:true, items:EVENTS.map(e => e.col)},
+];
+const COL_ITEMS = COL_SETS.flatMap(s => s.items.map(it => ({...it, set:s})));
+const COL = Object.fromEntries(COL_ITEMS.map(it => [it.id, it]));
+const ANTIQUE_DAY = 3;
+const owned = id => !!(S.col || {})[id];
+const setDone = s => s.items.every(it => owned(it.id));
+// Bonus türleri: tip (bahşiş), pat (sabır), fame (ünlülük), off (sen yokken kasası)
+const colBonus = type => COL_SETS.filter(s => s.bonus === type)
+  .reduce((b, s) => b + s.items.filter(it => owned(it.id)).length * s.per + (setDone(s) ? s.full : 0), 0);
+// Antikacı vitrini: her oyun günü 3 parça; henüz alınmamış en ucuz 6 parçadan güne göre seçilir
+function antiqueStock(){
+  const pool = COL_ITEMS.filter(it => !it.set.event && !owned(it.id)).sort((a, b) => a.cost - b.cost).slice(0, 6);
+  let seed = S.day * 9973 + 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  return pool.map(it => [rnd(), it]).sort((a, b) => a[0] - b[0]).slice(0, 3).map(x => x[1]).sort((a, b) => a.cost - b.cost);
+}
+const canAntique = () => S.day >= ANTIQUE_DAY && antiqueStock().some(it => S.money >= it.cost);
+// Parça eklendi: set tamamlandıysa kutla
+function colAdd(id){
+  const it = COL[id], was = setDone(it.set);
+  S.col = S.col || {}; S.col[id] = true;
+  if (!was && setDone(it.set)){
+    announce({emoji:it.set.emoji, name:`${it.set.name} tamamlandı!`, desc:`Set bonusu: +%${Math.round(it.set.full * 100)} ${it.set.what}`, ach:true}, '🏺 Koleksiyon');
+    if (status === 'running') confetti();
+  }
+}
+
 // Test için adres çubuğuna ?tarih=2026-10-29 yazılabilir
 const today = () => { const q = new URLSearchParams(location.search).get('tarih'); return q ? new Date(q + 'T12:00') : new Date(); };
 const DAY_MS = 86400000;
@@ -618,9 +661,9 @@ const evProduct = () => EV() && EV_PRODUCTS.find(p => p.ev === EV().id);
 const evProg = () => { const c = calendar().cur; if (!c) return null; S.evp = S.evp || {}; return S.evp[c.key] = S.evp[c.key] || {n:0, done:false, seen:false}; };
 function evReward(ep){
   const ev = EV(), gift = Math.round(600 * (1 + mainLv()) * (1 + 0.5 * worldCount()));
-  ep.done = true; S.col = S.col || {};
-  const dup = S.col[ev.col.id];
-  S.col[ev.col.id] = true;
+  ep.done = true;
+  const dup = owned(ev.col.id);
+  colAdd(ev.col.id);
   S.money += gift; S.total += gift;
   announce({emoji:ev.col.emoji, name:`${ev.name} görevi tamam!`, desc:`${dup ? '' : `Koleksiyonuna ${ev.col.name} eklendi · `}+₺${fmt(gift)}`, ach:true}, '🎉 Etkinlik');
   if (status === 'running') confetti();
@@ -862,7 +905,7 @@ function fameLv(){
 }
 function addFame(n){
   const before = fameLv();
-  S.fame = (S.fame || 0) + n;
+  S.fame = (S.fame || 0) + (n > 0 ? n * (1 + colBonus('fame')) : n);
   const after = fameLv();
   if (after > before){
     const F = FAME_LEVELS[after];
@@ -966,7 +1009,8 @@ function freeSeats(){
 const PAT = {base:15, item:5, dekor:2, rep:5, ramp:0.018, floor:0.62, from:3};
 function patienceFor(count){
   const ramp = Math.max(PAT.floor, 1 - PAT.ramp * Math.max(0, S.day - PAT.from));
-  return (PAT.base + count * PAT.item + lv('dekor') * PAT.dekor + S.rep / 100 * PAT.rep) * ramp * (DE().patience || 1) * (CM().patience || 1);
+  return (PAT.base + count * PAT.item + lv('dekor') * PAT.dekor + S.rep / 100 * PAT.rep) * ramp * (DE().patience || 1) * (CM().patience || 1)
+    * (1 + colBonus('pat'));
 }
 
 // special: 'vip' | 'influencer' | 'turist' | undefined
@@ -1040,7 +1084,7 @@ function pay(c){
   const cm = comboMult(R.combo);
   const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv())
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
-    * ((EV() || {}).tip || 1);
+    * ((EV() || {}).tip || 1) * (1 + colBonus('tip'));
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameLv();
@@ -1163,6 +1207,7 @@ const ACH = [
   {id:'mudavim',  emoji:'💛', name:'Mahallenin Sevgilisi', desc:'Bir müdavimi 4 kalbe çıkar',             goal:4,     val:() => Math.max(0, ...REGULARS.map(r => regLv(r.id))), reward:2500},
   {id:'elest',    emoji:'📰', name:'Beş Yıldız',         desc:'Yemek eleştirmeninden 5 yıldız al',        goal:5,     val:() => (S.reviews || {}).best || 0, reward:3000},
   {id:'etkinlik', emoji:'🎉', name:'Bayram Coşkusu',     desc:'Bir etkinlik görevini tamamla',            goal:1,     val:() => Object.values(S.evp || {}).filter(e => e.done).length, reward:1000},
+  {id:'koleksiyon', emoji:'🏺', name:'Koleksiyoncu',     desc:'Bir koleksiyon setini tamamla',            goal:1,     val:() => COL_SETS.filter(setDone).length, reward:5000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
 ];
 function checkAch(){
@@ -1677,6 +1722,14 @@ function drawRoom(frac){
   if (L >= 2){ g.fillStyle = '#6b4428'; g.fillRect(28, 172, 244, 7);
     ['#d35400', '#7f8c8d', '#27ae60', '#c0392b'].forEach((c, i) => { g.fillStyle = c; rr(g, 44 + i * 60, 148, 26, 24, 5); g.fill(); g.fillStyle = '#ddd'; g.fillRect(44 + i * 60, 145, 26, 5); }); }
 
+  // Koleksiyon rafı: sahip olunan parçalar pencerelerin altında sergilenir (sığdığı kadar, en yeniler)
+  const shown = COL_ITEMS.filter(it => owned(it.id));
+  if (shown.length){
+    const fit = Math.max(1, Math.floor((RW - 430) / 28)), list = shown.slice(-fit), sx0 = 300;
+    g.fillStyle = '#6b4428'; g.fillRect(sx0 - 8, 186, list.length * 28 + 16, 6);
+    list.forEach((it, i) => emoji(g, it.emoji, sx0 + 14 + i * 28, 173, 20));
+  }
+
   // Tabela
   drawSign();
 
@@ -2090,7 +2143,7 @@ function renderUI(){
   const fp = FN ? (S.fame - F.need) / (FN.need - F.need) : 1;
   setHTML('#pFame', `${F.emoji} ${F.name} · 🌟 ${fmt(S.fame)}${FN ? ' / ' + fmt(FN.need) : ''}<span class="fbar"><i style="width:${Math.round(fp * 100)}%"></i></span>`);
 
-  document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade()));
+  document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade() || canAntique()));
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
   const subeTab = document.querySelector('.tab[data-tab=sube]');
   subeTab.hidden = mainLv() < 1 && S.branches.length < 2;
@@ -2151,6 +2204,17 @@ function renderUI(){
         <button data-buy="${u.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
     });
   });
+  // Antikacı: koleksiyon parçaları
+  s += '<h3>🏺 Antikacı</h3>';
+  if (S.day < ANTIQUE_DAY) s += `<p class="hint">🔒 ${ANTIQUE_DAY}. günden itibaren mahalleye bir antikacı uğrar.</p>`;
+  else {
+    const stock = antiqueStock();
+    s += '<p class="hint">Vitrin her gün yenilenir. Koleksiyon parçaları kalıcı bonus verir; seti tamamla, büyük bonusu kap!</p>';
+    s += stock.length ? stock.map(it => `<div class="shop-item"><div class="em">${it.emoji}</div>
+      <div class="info"><b>${it.name}</b><small>${it.set.emoji} ${it.set.name} · +%${Math.round(it.set.per * 100)} ${it.set.what}</small></div>
+      <button data-col="${it.id}" ${S.money < it.cost ? 'disabled' : ''}>₺${fmt(it.cost)}</button></div>`).join('')
+      : '<p class="hint">🎉 Antikacının sana satacağı bir şey kalmadı!</p>';
+  }
   setHTML('#shop', s);
 
   // Menü: tarif geliştirme + açılabilecek ürünler
@@ -2194,6 +2258,16 @@ function renderUI(){
       : `<div class="ach"><div class="em">❔</div><div class="info"><b>Henüz tanışmadın</b><small>${S.day >= r.day ? 'Ana dükkânda bir gün uğrar…' : `${r.day}. günden sonra uğramaya başlar`}</small></div></div>`;
   });
   if (S.reviews) v += `<p class="hint">📰 Eleştirmen yazıları: ${S.reviews.n} · En iyi puan <span style="color:#f5c518">${starStr(S.reviews.best)}</span></p>`;
+  // Koleksiyon
+  const ownN = COL_ITEMS.filter(it => owned(it.id)).length;
+  const bon = [['tip', 'bahşiş'], ['pat', 'sabır'], ['fame', 'ünlülük'], ['off', 'sen yokken kasası']]
+    .filter(([k]) => colBonus(k) > 0).map(([k, w]) => `+%${Math.round(colBonus(k) * 100)} ${w}`);
+  v += `<h3>🏺 Koleksiyon (${ownN}/${COL_ITEMS.length})</h3>
+    <p class="hint">${bon.length ? 'Toplam bonus: ' + bon.join(' · ') : 'Mağazadaki antikacıdan parça al, etkinlik görevlerinden hatıra kazan.'}</p>`;
+  COL_SETS.forEach(st => {
+    v += `<p class="hint" style="margin:8px 0 4px"><b>${st.emoji} ${st.name}</b> · parça başı +%${Math.round(st.per * 100)}, set +%${Math.round(st.full * 100)} ${st.what}${setDone(st) ? ' ✅' : ''}</p><div class="inv">`
+      + st.items.map(it => card(owned(it.id) ? it.emoji : '❔', it.name, owned(it.id) ? 'Koleksiyonunda' : st.event ? 'Etkinlik ödülü' : `₺${fmt(it.cost)}`, '', !owned(it.id))).join('') + '</div>';
+  });
   const done = ACH.filter(a => S.ach[a.id]).length;
   v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
   // Tamamlanmamışlar önce, en çok ilerleyen en üstte
@@ -2356,7 +2430,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -2437,7 +2511,8 @@ let offline = null;
 function checkOffline(ms){
   if (!S.owner || S.day < 2 || !(ms >= OFF.min * 60000)) return false;
   const h = Math.min(OFF.cap, ms / 3600000);
-  const shop = Math.round(shopDaily() * OFF.share * h), br = Math.round(branchDaily() * OFF.share * h);
+  const ob = 1 + colBonus('off');   // Uğur Getirenler seti kasayı büyütür
+  const shop = Math.round(shopDaily() * OFF.share * h * ob), br = Math.round(branchDaily() * OFF.share * h * ob);
   offline = {h, shop, br, full:ms / 3600000 >= OFF.cap};
   const others = S.branches.length - 1;
   showModal(`
@@ -2756,7 +2831,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col]');
   if (!t) return;
   const d = t.dataset;
   if (d.open !== undefined){
@@ -2802,6 +2877,12 @@ document.addEventListener('click', e => {
     }
   } else if (d.switch){
     goBranch(+d.switch);
+  } else if (d.col){
+    const it = COL[d.col];
+    if (it && !owned(it.id) && !it.set.event && S.money >= it.cost && S.day >= ANTIQUE_DAY){
+      S.money -= it.cost; colAdd(it.id);
+      toast(`${it.emoji} ${it.name} koleksiyonuna eklendi!`); SFX.buy(); save();
+    }
   } else if (d.buy){
     const u = UPGRADES.find(u => u.id === d.buy), c = upCost(u);
     if (S.money >= c && lv(u.id) < maxLv(u)){

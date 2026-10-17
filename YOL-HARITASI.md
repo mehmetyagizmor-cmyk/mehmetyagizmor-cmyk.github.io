@@ -20,6 +20,7 @@ Son güncelleme: 17 Ekim 2026
 | 7b | "Sen yokken" kasası (sürüm 1.7.0) |
 | 7a+ | İlk gün ve eleştirmen cilası (sürüm 1.7.1) |
 | 7c | Gerçek takvime bağlı etkinlikler (sürüm 1.8.0) |
+| 7d | Koleksiyon ve antikacı (sürüm 1.9.0) |
 
 ---
 
@@ -253,6 +254,20 @@ Bot oyun testi (35 gün, 3 oyuncu tipi) sonrası:
 - Yeni başarım: Bayram Coşkusu.
 - Test için adres sonuna ?tarih=2026-10-29 eklenebilir.
 
+### 7d'de yapılanlar (sürüm 1.9.0, sw v13)
+- 5 set, 24 parça. Satın alınabilir 4 set:
+  - 🫖 Çay Takımı: bahşiş (₺1.500–25.000)
+  - 🎲 Kıraathane Köşesi: sabır (₺6.000–80.000)
+  - 📻 Nostalji Rafı: ünlülük (₺20.000–250.000)
+  - 🧿 Uğur Getirenler: sen yokken kasası (₺40.000–400.000)
+- 🎉 Bayram Hatıraları (8 parça) yalnızca etkinlik görevlerinden kazanılır.
+- Her parça küçük kalıcı bonus verir (%2–5); set tamamlanınca büyük bonus (%6–20).
+- Antikacı Mağaza'da, 3. günden sonra açılır. Vitrin her gün yenilenir: alınmamış en ucuz 6 parçadan 3'ü.
+- Sahip olunan parçalar dükkânda pencerelerin altındaki rafta görünür. Eşyalarım'da koleksiyon bölümü var.
+- Yeni başarım: Koleksiyoncu.
+- Bot (45 gün): 15. günde 10 parça ve 1 set; 40. günde satın alınabilir 16 parçanın hepsi alınmış.
+- ⚠️ 35. günden sonra para yine birikiyor; ileride prestij veya rakip çaycı düşünülebilir.
+
 ---
 
 ## 📝 Bekleyen diğer işler
@@ -264,6 +279,7 @@ Bot oyun testi (35 gün, 3 oyuncu tipi) sonrası:
 - [ ] Arka plan müziği
 - [x] Müdavimler (7a, sürüm 1.6.0)
 - [x] "Sen yokken" kasası (7b, sürüm 1.7.0)
-- [ ] ⭐ **Sıradaki: 7c Etkinlik takvimi** (29 Ekim Cumhuriyet Bayramı ile başlar)
+- [x] 7a+ cila, 7c etkinlik takvimi, 7d koleksiyon
+- [ ] Sonraki adaylar: rakip çaycı, prestij (usta mirası), müzik, İngilizce, gerçek telefonda test
 - [ ] Çalışan eğitimi
 - [ ] İngilizce dil desteği
