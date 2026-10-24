@@ -21,6 +21,7 @@ Son güncelleme: 17 Ekim 2026
 | 7a+ | İlk gün ve eleştirmen cilası (sürüm 1.7.1) |
 | 7c | Gerçek takvime bağlı etkinlikler (sürüm 1.8.0) |
 | 7d | Koleksiyon ve antikacı (sürüm 1.9.0) |
+| 8a | Play Store hazırlığı: manifest ekran görüntüleri, bayram tarihleri kontrolü (sürüm 2.0.0) |
 
 ---
 
