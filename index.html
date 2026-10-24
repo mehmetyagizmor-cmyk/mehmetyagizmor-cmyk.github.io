@@ -73,15 +73,21 @@ main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
   main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   .scene-sec{top:0}
   /* Sahne ekranın en fazla yarısı: ocak ve tepsi oyun sırasında görünür kalsın (--ar = genişlik/yükseklik) */
-  .scene{max-width:calc(50dvh * var(--ar, 1.78));margin:0 auto}
+  .scene{max-width:calc(max(36dvh, 50dvh - var(--pextra, 0px)) * var(--ar, 1.78));margin:0 auto}
   body.running #p-mutfak h2{display:none}
   /* Oyun sırasında mutfak sıkışık: ürünler tek satırda, ocak ve tepsi sahnenin hemen altında */
   body.running #p-mutfak{padding:10px}
-  body.running .products{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
-  body.running .prod{padding:5px 2px;gap:0}
-  body.running .prod .em{font-size:24px}
-  body.running .prod b{font-size:12px}
+  /* 5 sütun; ürünler ilk satırdan uzunsa fazlası sahnenin sınırından düşülür (--pextra, renderUI) */
+  body.running .products{grid-template-columns:repeat(5,1fr);gap:5px}
+  body.running .prod{padding:5px 1px;gap:0}
+  body.running .prod .em{font-size:22px}
+  body.running .prod b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   body.running .prod small{font-size:10px}
+  body.running .products.many .prod small{display:none}
+  /* 10'dan fazla ürün (geç oyun, şube ürünleri): yalnızca emoji, 7 sütun */
+  body.running .products.lots{grid-template-columns:repeat(7,1fr);gap:4px}
+  body.running .products.lots .prod{padding:6px 0}
+  body.running .products.lots .prod b{display:none}
   body.running .quests{margin-bottom:6px}
   body.running .quest{padding:3px 6px 5px}
   body.running #p-mutfak .row{margin-top:8px}
@@ -2204,6 +2210,7 @@ function coach(){
   return {msg:'🚶 Müşteri bekleniyor… Geldiğinde balonunda siparişini göreceksin.', want:[]};
 }
 
+let prodKey = '';
 function renderUI(){
   ensureQuests(); checkQuests(); checkAch();
   setHTML('#quests', questsHTML());
@@ -2255,6 +2262,11 @@ function renderUI(){
   const room = hasRoom() && R.queue.length < 5;
   const menu = kitchenMenu();
   $('#products').classList.toggle('many', menu.length > 6); // telefonda 4 sütun
+  $('#products').classList.toggle('lots', menu.length > 10);
+  // Dikey telefonda ürünler tek satırı aşarsa sahne o kadar küçülür (yalnızca menü ya da durum değişince ölç)
+  const pk = [menu.length, status, tab, portrait].join();
+  if (pk !== prodKey){ prodKey = pk; requestAnimationFrame(() =>
+    document.body.style.setProperty('--pextra', Math.max(0, $('#products').offsetHeight - 64) + 'px')); }
   setHTML('#products', menu.map((p, i) =>
     `<button class="prod${room ? '' : ' full'}${co.want.includes(p.id) ? ' pulse' : ''}" data-prod="${p.id}"><kbd>${(i + 1) % 10}</kbd><span class="em">${p.emoji}</span>
      <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span><span class="pt"> · ${prepTime(p.id).toFixed(1)} sn</span></small></button>`).join(''));
@@ -2566,7 +2578,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.3.1';
+const APP_VERSION = '2.3.2';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün

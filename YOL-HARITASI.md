@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 9b-3 | Dikey: çok ürünlü mutfak (5 sütun; 10+ ürün emoji, 7 sütun), sahne ürün alanına göre küçülür, en az %36 (sürüm 2.3.2) |
 
 ---
 
