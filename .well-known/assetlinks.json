@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.mehmetyagizmor_cmyk.twa",
+        "sha256_cert_fingerprints": ["1D:8B:94:E2:B1:8F:D3:9F:CC:FE:4F:80:D1:56:6B:EC:09:27:D4:9A:50:CD:8E:94:22:7D:49:9C:DA:25:87:51"]
+      }
+    }]

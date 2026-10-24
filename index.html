@@ -2507,7 +2507,7 @@ const modalOpen = () => $('#modal').classList.contains('show');
 // ---------- Uygulama olarak yükleme ----------
 const APP_VERSION = '2.2.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
-const PLAY_ID = '';
+const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
 const rateReady = () => PLAY_ID && /Android/i.test(navigator.userAgent) && !S.rated && S.day >= (S.rateNext || 5) && (S.rateAsks || 0) < 3;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
