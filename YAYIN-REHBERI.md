@@ -12,7 +12,7 @@ Bu rehber oyunu üç adımda yayına taşır:
 
 ## ✅ Yayından önce yapılacaklar
 
-- [ ] `privacy.html` içindeki `ornek@eposta.com` adresini **kendi iletişim e-postanla** değiştir (Play Store bir iletişim adresi ister).
+- [x] `privacy.html` içine iletişim e-postası yazıldı (Play Store bir iletişim adresi ister).
 - [ ] Oyunu **gerçek telefonlarda** dene: en az bir Android ve mümkünse bir iPhone; özellikle eski/ucuz bir telefon.
 - [ ] Bir gün baştan sona oyna; ses, titreşim, duraklatma ve günlük ödül çalışıyor mu bak.
 

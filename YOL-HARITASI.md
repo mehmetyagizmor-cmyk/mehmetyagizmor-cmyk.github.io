@@ -300,7 +300,7 @@ Kullanıcı oyunu Google Play'de yayınlamaya karar verdi. Sıra: 8a yayın haz�
 - ⚠️ Puan formülü uzun oyunla dengelenmeli: ikinci turun ne kadar hızlı geçtiği gerçek oyuncularla izlenmeli.
 
 ## 📝 Bekleyen diğer işler
-- [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
+- [x] `privacy.html` iletişim e-postası yazıldı
 - [ ] Gerçek Android / iPhone'da test
 - [x] Simülasyonla denge turu (şubeler, ünlülük, batma)
 - [x] Mutfak zorluğu simülasyonla ayarlandı
