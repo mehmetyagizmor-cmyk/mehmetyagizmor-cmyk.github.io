@@ -1,5 +1,5 @@
-﻿// Ã‡ay OcaÄŸÄ± Tycoon â€” Ã§evrimdÄ±ÅŸÄ± Ã§alÄ±ÅŸma
-// Yeni sÃ¼rÃ¼m yayÄ±nlarken VERSION'Ä± artÄ±r: eski Ã¶nbellek silinir, oyuncular gÃ¼ncel sÃ¼rÃ¼mÃ¼ alÄ±r.
+// Çay Ocağı Tycoon — çevrimdışı çalışma
+// Yeni sürüm yayınlarken VERSION'ı artır: eski önbellek silinir, oyuncular güncel sürümü alır.
 const VERSION = 'v19';
 const CACHE = 'cayocagi-' + VERSION;
 const FILES = [
@@ -24,7 +24,7 @@ self.addEventListener('activate', e => {
     .then(() => self.clients.claim()));
 });
 
-// Ã–nce Ã¶nbellekten anÄ±nda aÃ§, arka planda internetten gÃ¼ncelle (bir sonraki aÃ§Ä±lÄ±ÅŸta yeni sÃ¼rÃ¼m)
+// Önce önbellekten anında aç, arka planda internetten güncelle (bir sonraki açılışta yeni sürüm)
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
