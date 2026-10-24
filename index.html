@@ -789,7 +789,7 @@ const prepTime = id => P[id].time / speed();
 // Tarif seviyesi: her seviye +%25 fiyat; maliyet katlanarak artar (uzun vadeli para hedefi)
 const recLv = id => (S.rec || {})[id] || 0;
 // Etkinlik ürünleri tarif almaz; fiyatı ana dükkânın seviyesiyle büyür (geç oyunda da değerli kalsın)
-const basePrice = id => Math.round(P[id].price * (P[id].ev ? 1 + 0.6 * mainLv() : 1 + 0.25 * recLv(id)));
+const basePrice = id => Math.round(P[id].price * (P[id].ev ? 1 + 0.6 * mainLv() : 1 + 0.25 * recLv(id)) * legacyMult());
 const recipeCost = id => Math.round(P[id].price * 15 * Math.pow(1.9, recLv(id)));
 const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1) * ((CM().priceMult || {})[id] || 1)
   * (((EV() || {}).priceMult || {})[id] || 1));
@@ -803,6 +803,33 @@ const branch = () => S.branches[S.cur];
 const city = () => CITY[branch().city];
 const CM = () => city().mod;
 const mainLv = () => S.branches[0].lv.dukkan || 0;   // günlük ödül/görev ödülü ana dükkâna göre
+
+// ---------- Usta Mirası (prestij) ----------
+// Ana dükkân Ünlü Mekân olunca (15. günden sonra) dükkân çırağa devredilir: her şey baştan başlar,
+// her miras puanı kalıcı +%5 satış getirir. Sahip, ünlülük, başarımlar ve koleksiyon kalır
+const LEGACY_DAY = 15;
+const LEGACY_KEEP = ['owner', 'ach', 'col', 'fame', 'interviews', 'lastCover', 'streak', 'lastDate', 'evp', 'rated', 'rateAsks', 'rateNext'];
+const LEGACY_TITLES = ['Usta', 'Pir', 'Çay Efsanesi'];
+const legacy = () => S.legacy || {n:0, pts:0};
+const legacyMult = () => 1 + 0.05 * legacy().pts;
+const legacyGain = () => Math.floor(Math.sqrt(S.total / 5000));   // ₺80 bin → 4 puan, ₺1 milyon → 14 puan
+const canLegacy = () => mainLv() === SHOP_LEVELS.length - 1 && S.day >= LEGACY_DAY && legacyGain() > 0;
+const legacyTitle = (n = legacy().n) => n ? LEGACY_TITLES[Math.min(n, LEGACY_TITLES.length) - 1] : '';
+function passLegacy(){
+  const L = legacy(), keep = {legacy:{n:L.n + 1, pts:L.pts + legacyGain()}};
+  LEGACY_KEEP.forEach(k => keep[k] = S[k]);
+  S = link(Object.assign(fresh(), keep)); save(); newDay(); status = 'closed'; particles = [];
+}
+function showLegacy(){
+  const g = legacyGain(), L = legacy();
+  showModal(`
+    <h2>🎖️ Usta Mirası</h2>
+    <p><b>${esc(owner().shopName)}</b> artık bir efsane! Dükkânı çırağına devredip yeni bir mahallede sıfırdan başlayabilirsin.</p>
+    <p class="banner">+${g} miras puanı → kalıcı <b>+%${5 * (L.pts + g)} satış</b> · unvanın: <b>${legacyTitle(L.n + 1)}</b></p>
+    <p class="hint">✅ Kalanlar: karakterin, ünlülüğün, başarımların, koleksiyonun<br>🔄 Baştan başlayanlar: para, dükkân, menü, tarifler, şubeler, müdavimler</p>
+    <button class="big" id="legacyYes">🎖️ Devret ve baştan başla</button>
+    <div class="btns"><button class="btn2" id="modalOk">Vazgeç</button></div>`);
+}
 const hasCity = id => S.branches.some(b => b.city === id);
 const countIn = r => S.branches.filter(b => regionOf(b.city) === r).length;
 const trCount = () => countIn('tr');                  // ana dükkân hariç Türkiye şubeleri
@@ -1195,6 +1222,7 @@ const ACH = [
   {id:'tarif',    emoji:'📈', name:'Usta Tarif',         desc:'Bir ürünün tarifini 5 yıldıza çıkar',      goal:MAX_RECIPE, val:() => Math.max(0, ...Object.values(S.rec || {})), reward:1500},
   {id:'kiraat',   emoji:'🏪', name:'Kıraathane Sahibi',  desc:"Dükkânı Kıraathane'ye büyüt",              goal:1,     val:() => lv('dukkan'),            reward:300},
   {id:'unlu',     emoji:'🏆', name:'Ünlü Mekân',         desc:'Dükkânı en üst seviyeye çıkar',            goal:SHOP_LEVELS.length - 1, val:() => lv('dukkan'), reward:5000},
+  {id:'miras',    emoji:'🎖️', name:'Usta Mirası',        desc:'Dükkânını çırağına devredip baştan başla',  goal:1,     val:() => legacy().n,              reward:1000},
   {id:'kusursuz', emoji:'✨', name:'Kusursuz Gün',       desc:'Bir günde kimseyi kızdırmadan 15 müşteriye servis yap', goal:1, val:() => S.perfect, reward:400},
   {id:'yildiz',   emoji:'⭐', name:'Mahallenin Gözdesi', desc:'İtibarını 100 yap',                        goal:100,   val:() => S.rep,                   reward:500},
   {id:'ekip',     emoji:'👥', name:'Kalabalık Ekip',     desc:'2 çırak ve 2 garson çalıştır',             goal:4,     val:() => Math.min(2, lv('cirak')) + Math.min(2, lv('garson')), reward:800},
@@ -2143,7 +2171,7 @@ function renderUI(){
   $('#closedOverlay').hidden = status === 'running';
   $('#openBtn').textContent = `☀️ Dükkânı Aç (Gün ${S.day})`;
   $('#pName').textContent = owner().name;
-  $('#pShop').textContent = owner().shopName + where + ' · ' + shopLevel().name;
+  $('#pShop').textContent = owner().shopName + where + ' · ' + shopLevel().name + (legacy().n ? ' · 🎖️ ' + legacyTitle() : '');
   const fl = fameLv(), F = FAME_LEVELS[fl], FN = FAME_LEVELS[fl + 1];
   const fp = FN ? (S.fame - F.need) / (FN.need - F.need) : 1;
   setHTML('#pFame', `${F.emoji} ${F.name} · 🌟 ${fmt(S.fame)}${FN ? ' / ' + fmt(FN.need) : ''}<span class="fbar"><i style="width:${Math.round(fp * 100)}%"></i></span>`);
@@ -2198,6 +2226,12 @@ function renderUI(){
       <button data-grow ${locked || S.money < next.cost ? 'disabled' : ''}>${locked ? '🔒 Gün ' + next.day : '₺' + fmt(next.cost)}</button></div>`;
   } else {
     s += `<div class="shop-item hl"><div class="em">🏆</div><div class="info"><b>${shopLevel().name}</b><small>Dükkânın en üst seviyede!</small></div></div>`;
+    if (S.cur === 0){
+      const L = legacy(), ok = canLegacy();
+      s += `<div class="shop-item"><div class="em">🎖️</div><div class="info"><b>Usta Mirası</b><small>${ok ? `Dükkânı çırağına devret, baştan başla: +${legacyGain()} miras puanı (her puan kalıcı +%5 satış)`
+        : S.day < LEGACY_DAY ? `${LEGACY_DAY}. günden itibaren dükkânını çırağına devredip kalıcı bonusla baştan başlayabilirsin` : 'Biraz daha kazan: miras puanı toplam kazancınla büyür'}${L.pts ? ` · şu an +%${5 * L.pts}` : ''}</small></div>
+        <button data-legacy ${ok && status !== 'running' ? '' : 'disabled'}>${ok ? 'Devret' : '🔒 Gün ' + LEGACY_DAY}</button></div>`;
+    }
   }
   [['esya', 'Eşyalar'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
     s += `<h3>${title}</h3>`;
@@ -2471,7 +2505,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.1.0';
+const APP_VERSION = '2.2.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = '';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2671,6 +2705,14 @@ $('#modal').addEventListener('click', e => {
   if (btn && btn.dataset.ans && IV){ answer(btn.dataset.ans); return; }
   if (id === 'ivOpen'){ hideModal(); openShop({late:true}); return; }
   if (id === 'coverShare'){ shareCover(); return; }
+  if (id === 'legacyYes'){
+    passLegacy(); setTab('mutfak'); renderUI(); confetti(); SFX.levelUp();
+    showModal(`<h2>🎖️ Yeni bir başlangıç!</h2>
+      <p>${esc(displayName())} artık bir <b>${legacyTitle()}</b>. Eski dükkânı çırağı işletiyor; sen yeni bir mahallede sıfırdan başlıyorsun.</p>
+      <p class="banner">Satışların kalıcı olarak <b>+%${5 * legacy().pts}</b> fazla!</p>
+      <button class="big" id="modalOk">☀️ Hadi başlayalım</button>`);
+    return;
+  }
   if (id === 'rateYes' || id === 'rateLater'){
     if (id === 'rateYes'){ S.rated = true; save(); window.open(`https://play.google.com/store/apps/details?id=${PLAY_ID}`, '_blank'); }
     $('#rateRow').remove(); SFX.serve(); return;
@@ -2884,7 +2926,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy]');
   if (!t) return;
   const d = t.dataset;
   if (d.open !== undefined){
@@ -2892,6 +2934,7 @@ document.addEventListener('click', e => {
     else openShop();
   }
   else if (d.cover !== undefined && S.lastCover) showCover(false);
+  else if (d.legacy !== undefined){ if (canLegacy() && status !== 'running') showLegacy(); }
   else if (d.fix) fixBranch(+d.fix);
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat

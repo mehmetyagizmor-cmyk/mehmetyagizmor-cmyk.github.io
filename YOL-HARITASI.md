@@ -23,6 +23,7 @@ Son güncelleme: 17 Ekim 2026
 | 7d | Koleksiyon ve antikacı (sürüm 1.9.0) |
 | 8a | Play Store hazırlığı: manifest ekran görüntüleri, bayram tarihleri kontrolü (sürüm 2.0.0) |
 | 8b | Puan isteği ve arka plan müziği (sürüm 2.1.0) |
+| 8c | Usta Mirası (prestij) (sürüm 2.2.0) |
 
 ---
 
@@ -289,6 +290,14 @@ Kullanıcı oyunu Google Play'de yayınlamaya karar verdi. Sıra: 8a yayın haz�
 - **Müzik:** Web Audio ile kodla üretilen 32 vuruşluk Re hicaz melodisi (üçgen + oktav sinüs, kısa "saz" tınısı) ve 16 vuruşta bir alçak dem (Re-La). Yalnızca dükkân açıkken, pencere yokken ve sekme görünürken çalar; yumuşak açılıp kapanır.
 - Ayarlar'da ayrı 🎵 Müzik düğmesi (`cayocagi-muzik`). Ses kapalıysa müzik de çalmaz.
 - ⚠️ Müzik gerçek telefonda dinlenmeli: ses düzeyi ve uzun oyunda tekrar hissi.
+
+### 8c'de yapılanlar (sürüm 2.2.0, sw v16)
+- **Usta Mirası:** Ana dükkân Ünlü Mekân ve en az 15. gün olunca Mağaza'da (ana dükkândayken, dükkân kapalıyken) "Devret" düğmesi.
+- Miras puanı = ⌊√(toplam kazanç / 5000)⌋ (₺80 bin → 4, ₺1 milyon → 14). Her puan kalıcı +%5 satış (basePrice × legacyMult; etkinlik ürünleri dahil). Puanlar devirler boyunca birikir (S.legacy = {n, pts}).
+- Kalanlar (LEGACY_KEEP): sahip, ünlülük, röportajlar/kapak, başarımlar, koleksiyon, günlük seri, etkinlik görevleri, puan isteği durumu. Geri kalan her şey fresh().
+- Unvan: Usta → Pir → Çay Efsanesi; profil satırında 🎖️ ile görünür.
+- Yeni başarım: Usta Mirası (₺1.000, devirden hemen sonra verilir: yeni başlangıca küçük destek).
+- ⚠️ Puan formülü uzun oyunla dengelenmeli: ikinci turun ne kadar hızlı geçtiği gerçek oyuncularla izlenmeli.
 
 ## 📝 Bekleyen diğer işler
 - [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
