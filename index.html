@@ -72,6 +72,19 @@ main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
   .hud{flex:none}
   main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
   .scene-sec{top:0}
+  /* Sahne ekranın en fazla yarısı: ocak ve tepsi oyun sırasında görünür kalsın (--ar = genişlik/yükseklik) */
+  .scene{max-width:calc(50dvh * var(--ar, 1.78));margin:0 auto}
+  body.running #p-mutfak h2{display:none}
+  /* Oyun sırasında mutfak sıkışık: ürünler tek satırda, ocak ve tepsi sahnenin hemen altında */
+  body.running #p-mutfak{padding:10px}
+  body.running .products{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
+  body.running .prod{padding:5px 2px;gap:0}
+  body.running .prod .em{font-size:24px}
+  body.running .prod b{font-size:12px}
+  body.running .prod small{font-size:10px}
+  body.running .quests{margin-bottom:6px}
+  body.running .quest{padding:3px 6px 5px}
+  body.running #p-mutfak .row{margin-top:8px}
 }
 
 /* Yatay telefon: sahne solda, panel sağda */
@@ -1728,7 +1741,8 @@ function drawRoom(frac){
   }
   // Halı
   if (D >= 3){
-    const x = 320, y = 268, w = Math.min(RW - 20, 900) - x, h = 238;
+    // Dikeyde masa ızgarasının altına, genişte masaların altına
+    const [x, y, w, h] = portrait ? [36, 372, W - 72, aisleY() - 400] : [320, 268, Math.min(RW - 20, 900) - 320, 238];
     g.fillStyle = '#8e2b2b'; rr(g, x, y, w, h, 6); g.fill();
     g.strokeStyle = '#e6c98f'; g.lineWidth = 3; rr(g, x + 8, y + 8, w - 16, h - 16, 4); g.stroke();
     g.fillStyle = 'rgba(230,201,143,.35)';
@@ -1811,7 +1825,8 @@ function drawRoom(frac){
 
   // Sarkıt lambalar / avize
   if (D >= 4){
-    COLS.filter(x => x < RW - 60).forEach(x => {
+    // Dikeyde masa sütunları tabelanın önüne düşer: lambalar tabela–pencere ve tablo–saat arasındaki boşluklara asılır
+    (portrait ? [290, 488] : COLS.filter(x => x < RW - 60)).forEach(x => {
       g.strokeStyle = '#222'; g.lineWidth = 1.5; line(g, x, 0, x, 42);
       const gl = g.createRadialGradient(x, 52, 2, x, 52, 60); gl.addColorStop(0, 'rgba(255,214,130,.55)'); gl.addColorStop(1, 'rgba(255,214,130,0)');
       g.fillStyle = gl; g.fillRect(x - 60, 0, 120, 120);
@@ -2551,7 +2566,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.3.0';
+const APP_VERSION = '2.3.1';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3080,7 +3095,10 @@ function frame(ts){
   const dt = Math.min(0.1, (ts - last) / 1000); last = ts;
   // Dükkân büyüyünce / şube değişince / ekran dönünce sahnenin oranı değişir
   const vh = viewH(), view = W + '/' + vh;
-  if (view !== sceneView){ sceneView = view; scene.parentElement.style.aspectRatio = `${W} / ${vh}`; fitCanvas(scene, g, W, vh); }
+  if (view !== sceneView){
+    sceneView = view; const box = scene.parentElement;
+    box.style.aspectRatio = `${W} / ${vh}`; box.style.setProperty('--ar', W / vh); fitCanvas(scene, g, W, vh);
+  }
   if (status === 'running' && !modalOpen()){
     tick(dt);
     steamIn -= dt;
