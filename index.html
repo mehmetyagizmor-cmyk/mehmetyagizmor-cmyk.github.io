@@ -2509,14 +2509,17 @@ const APP_VERSION = '2.2.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
-const rateReady = () => PLAY_ID && /Android/i.test(navigator.userAgent) && !S.rated && S.day >= (S.rateNext || 5) && (S.rateAsks || 0) < 3;
+// Play uygulaması (TWA) sayfayı android-app:// yönlendirmesiyle açar; tarayıcıdan oynayana Play'i sorma
+const inPlayApp = (() => { try { if (document.referrer.startsWith('android-app://')) sessionStorage.setItem('cayocagi-twa', '1'); return sessionStorage.getItem('cayocagi-twa') === '1'; } catch(e) { return false; } })();
+const inFrame = (() => { try { return window.self !== window.top; } catch(e) { return true; } })();   // ör. itch.io
+const rateReady = () => PLAY_ID && inPlayApp && !S.rated && S.day >= (S.rateNext || 5) && (S.rateAsks || 0) < 3;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 window.addEventListener('appinstalled', () => { installEvt = null; toast('📲 Çay Ocağı ana ekrana eklendi!'); });
 function installRow(){
-  if (standalone()) return '';
+  if (standalone() || inFrame) return '';
   if (installEvt) return '<div class="set-row"><span>📲 Ana ekrana ekle</span><button class="btn2" id="installBtn">Yükle</button></div>';
   if (isIOS) return '<div class="set-row"><span>📲 Ana ekrana eklemek için Safari\'de <b>Paylaş</b> → <b>Ana Ekrana Ekle</b></span></div>';
   return '';
