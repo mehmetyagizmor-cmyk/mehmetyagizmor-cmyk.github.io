@@ -1413,6 +1413,8 @@ function endDay(){
   const buyNow = goals.filter(x => x.c <= S.money).sort((a, b) => a.c - b.c)[0];
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
   S.critic = S.day + 1 >= 5 && Math.random() < 0.3 ? S.day + 1 : null;
+  const askRate = stars === 3 && rateReady();
+  if (askRate){ S.rateAsks = (S.rateAsks || 0) + 1; S.rateNext = S.day + 7; }
   showModal(`
     <h2>🌙 ${S.day}. gün bitti!</h2>
     <div class="stars">${'⭐'.repeat(stars)}<span>${'⭐'.repeat(3 - stars)}</span></div>
@@ -1438,6 +1440,8 @@ function endDay(){
     ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
     ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
     ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
+    ${askRate ? `<div class="banner" id="rateRow">❤️ Çay Ocağı'nı sevdin mi? Bir yorumun oyunu büyütmemize çok yardım eder!
+      <div class="btns"><button class="btn2" id="rateYes">⭐ Puan ver</button><button class="btn2" id="rateLater">Sonra</button></div></div>` : ''}
     <button class="big" id="modalOk">Tamam</button>
     <div class="btns"><button class="btn2" id="goShop">🛒 Mağazaya git</button>
       ${troubled() ? '<button class="btn2" id="goSube">🏙️ Şubelere git</button>' : ''}</div>`);
@@ -2425,13 +2429,53 @@ const SFX = {
   levelUp:  () => { buzz([30, 40, 30, 40, 60]); [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.3, {type:'triangle', vol:0.07, delay:i * 0.09})); },
 };
 
+// ---------- Müzik ----------
+// Kodla üretilen hafif saz döngüsü: Re hicaz notaları + alçak dem. Yalnızca dükkân açıkken ve duraklatılmamışken çalar
+let musicOn = true;
+try { musicOn = localStorage.getItem('cayocagi-muzik') !== 'kapali'; } catch(e) {}
+const HICAZ = [293.7, 311.1, 370, 392, 440, 466.2, 523.3, 587.3];
+const MELODY = [0,-1,1,2, 3,-1,2,1, 2,-1,3,4, 3,2,1,-1, 4,-1,5,4, 3,-1,4,6, 5,4,3,2, 1,-1,0,-1];  // -1 = es
+const BEAT = 0.3;
+let musicGain = null, musicStep = 0, musicNext = 0;
+function pluck(freq, t, vol, dur){
+  const o = actx.createOscillator(), o2 = actx.createOscillator(), gn = actx.createGain();
+  o.type = 'triangle'; o.frequency.value = freq;
+  o2.type = 'sine'; o2.frequency.value = freq * 2;
+  gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(vol, t + 0.01); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(gn); o2.connect(gn); gn.connect(musicGain);
+  o.start(t); o2.start(t); o.stop(t + dur); o2.stop(t + dur);
+}
+function musicTick(){
+  const want = musicOn && !muted && userActive() && status === 'running' && !modalOpen() && !document.hidden;
+  if (!actx && !want) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (!musicGain){ musicGain = actx.createGain(); musicGain.gain.value = 0; musicGain.connect(actx.destination); }
+    musicGain.gain.setTargetAtTime(want ? 1 : 0, actx.currentTime, 0.3);
+    if (!want){ musicNext = 0; return; }
+    if (actx.state === 'suspended') actx.resume();
+    if (musicNext < actx.currentTime) musicNext = actx.currentTime + 0.05;
+    while (musicNext < actx.currentTime + 0.6){
+      const n = MELODY[musicStep % MELODY.length];
+      if (n >= 0) pluck(HICAZ[n], musicNext, 0.03, 0.7);
+      if (musicStep % 16 === 0){ pluck(73.4, musicNext, 0.03, 4); pluck(110, musicNext, 0.015, 4); }
+      musicStep++; musicNext += BEAT;
+    }
+  } catch(e) {}
+}
+setInterval(musicTick, 200);
+
 // ---------- Modal ----------
 function showModal(html, wide){ $('#modalBox').innerHTML = html; $('#modalBox').classList.toggle('wide', !!wide); $('#modal').classList.add('show'); }
 function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.0.0';
+const APP_VERSION = '2.1.0';
+// Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
+const PLAY_ID = '';
+// Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
+const rateReady = () => PLAY_ID && /Android/i.test(navigator.userAgent) && !S.rated && S.day >= (S.rateNext || 5) && (S.rateAsks || 0) < 3;
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;
@@ -2460,6 +2504,7 @@ function showSettings(){
   showModal(`
     <h2>⚙️ Ayarlar</h2>
     <div class="set-row"><span>🔊 Ses</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
+    <div class="set-row"><span>🎵 Müzik</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
     ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
     <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
     <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
@@ -2626,6 +2671,10 @@ $('#modal').addEventListener('click', e => {
   if (btn && btn.dataset.ans && IV){ answer(btn.dataset.ans); return; }
   if (id === 'ivOpen'){ hideModal(); openShop({late:true}); return; }
   if (id === 'coverShare'){ shareCover(); return; }
+  if (id === 'rateYes' || id === 'rateLater'){
+    if (id === 'rateYes'){ S.rated = true; save(); window.open(`https://play.google.com/store/apps/details?id=${PLAY_ID}`, '_blank'); }
+    $('#rateRow').remove(); SFX.serve(); return;
+  }
   if (id === 'installBtn' && installEvt){ installEvt.prompt(); installEvt = null; hideModal(); return; }
   if (id === 'resetYes'){
     S = link(fresh()); save(); newDay(); status = 'closed'; particles = [];
@@ -2635,6 +2684,9 @@ $('#modal').addEventListener('click', e => {
     if (btn.dataset.set === 'sound'){
       muted = !muted; btn.textContent = muted ? 'Kapalı' : 'Açık';
       try { localStorage.setItem('cayocagi-ses', muted ? 'kapali' : 'acik'); } catch(e) {}
+    } else if (btn.dataset.set === 'music'){
+      musicOn = !musicOn; btn.textContent = musicOn ? 'Açık' : 'Kapalı';
+      try { localStorage.setItem('cayocagi-muzik', musicOn ? 'acik' : 'kapali'); } catch(e) {}
     } else {
       vibOn = !vibOn; btn.textContent = vibOn ? 'Açık' : 'Kapalı';
       try { localStorage.setItem('cayocagi-titresim', vibOn ? 'acik' : 'kapali'); } catch(e) {}

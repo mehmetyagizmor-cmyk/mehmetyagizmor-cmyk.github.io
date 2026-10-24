@@ -22,6 +22,7 @@ Son güncelleme: 17 Ekim 2026
 | 7c | Gerçek takvime bağlı etkinlikler (sürüm 1.8.0) |
 | 7d | Koleksiyon ve antikacı (sürüm 1.9.0) |
 | 8a | Play Store hazırlığı: manifest ekran görüntüleri, bayram tarihleri kontrolü (sürüm 2.0.0) |
+| 8b | Puan isteği ve arka plan müziği (sürüm 2.1.0) |
 
 ---
 
@@ -281,6 +282,13 @@ Kullanıcı oyunu Google Play'de yayınlamaya karar verdi. Sıra: 8a yayın haz�
 - Gizlilik linki Ayarlar'da zaten vardı.
 - Bayram tarihleri: 2026–2027 Diyanet takvimiyle aynı. 2028–2030 Diyanet henüz açıklamadığı için tahmini; her yıl kontrol et. Aralık 2030'da başlayan ikinci Ramazan tabloda yok.
 - ⚠️ `privacy.html` e-postası hâlâ örnek; kullanıcı adresi verince değiştirilecek.
+
+### 8b'de yapılanlar (sürüm 2.1.0, sw v15)
+- **Puan isteği:** 5. günden sonra 3 yıldızlı bir günün karnesinde "⭐ Puan ver / Sonra" kutusu. Yalnızca Android'de ve `PLAY_ID` doluyken; en fazla 3 kez, arada en az 7 gün (S.rateAsks, S.rateNext). "Puan ver" Play sayfasını açar ve bir daha sormaz (S.rated).
+- ⚠️ `PLAY_ID` boş: PWABuilder'da Package ID belirlenince doldurulmalı (YAYIN-REHBERI 2a-5).
+- **Müzik:** Web Audio ile kodla üretilen 32 vuruşluk Re hicaz melodisi (üçgen + oktav sinüs, kısa "saz" tınısı) ve 16 vuruşta bir alçak dem (Re-La). Yalnızca dükkân açıkken, pencere yokken ve sekme görünürken çalar; yumuşak açılıp kapanır.
+- Ayarlar'da ayrı 🎵 Müzik düğmesi (`cayocagi-muzik`). Ses kapalıysa müzik de çalmaz.
+- ⚠️ Müzik gerçek telefonda dinlenmeli: ses düzeyi ve uzun oyunda tekrar hissi.
 
 ## 📝 Bekleyen diğer işler
 - [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
