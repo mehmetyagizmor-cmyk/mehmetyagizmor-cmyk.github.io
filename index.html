@@ -65,6 +65,15 @@ main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
 .badge{display:none;position:absolute;top:7px;left:calc(50% + 9px);width:11px;height:11px;border-radius:50%;background:var(--bad);border:2px solid #1e140d}
 .tab.has .badge{display:block}
 
+/* Dikey telefon: sayfa değil içerik kayar (itch.io gibi scrolling="no" çerçevelerde de çalışsın) */
+@media(max-width:999px) and (orientation:portrait){
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column}
+  .hud{flex:none}
+  main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  .scene-sec{top:0}
+}
+
 /* Yatay telefon: sahne solda, panel sağda */
 @media(max-width:999px) and (orientation:landscape) and (max-height:560px){
   :root{--hud:44px;--nav:46px}
@@ -2118,6 +2127,8 @@ function setHTML(sel, html){ const el = $(sel); if (el._html !== html){ el.inner
 const desktopMQ = matchMedia('(min-width:1000px)');
 let tab = 'mutfak';
 function setTab(t){ tab = t; applyTab(); }
+// Dikey telefonda sayfa yerine main kayar: ikisini de başa sar
+const toTop = () => { window.scrollTo(0, 0); $('main').scrollTop = 0; };
 function applyTab(){
   const desk = desktopMQ.matches, side = desk && tab === 'mutfak' ? 'magaza' : tab;
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'p-' + side || (desk && p.id === 'p-mutfak')));
@@ -2509,7 +2520,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.2.1';
+const APP_VERSION = '2.2.2';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2692,8 +2703,8 @@ function drawAvatar(){
 
 $('#modal').addEventListener('click', e => {
   if (e.target.id === 'modalOk'){ hideModal(); return; }
-  if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); window.scrollTo(0, 0); return; }
-  if (e.target.id === 'goSube'){ hideModal(); setTab('sube'); window.scrollTo(0, 0); return; }
+  if (e.target.id === 'goShop'){ hideModal(); setTab('magaza'); toTop(); return; }
+  if (e.target.id === 'goSube'){ hideModal(); setTab('sube'); toTop(); return; }
   if (e.target.id === 'claimDaily'){ claimDaily(); return; }
   if (e.target.id === 'claimOffline'){ claimOffline(); return; }
   const btn = e.target.closest('button');
@@ -2896,7 +2907,7 @@ function goBranch(i){
   switchBranch(i);
   SFX.open(); toast(`📍 ${city().emoji} ${S.cur ? city().name + ' şubesindesin' : 'Ana dükkândasın'}`);
   if (!desktopMQ.matches) setTab('mutfak');
-  window.scrollTo(0, 0);
+  toTop();
   renderUI();
 }
 function makeProduct(id){
@@ -3029,7 +3040,7 @@ $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('.tab');
   if (!b) return;
   setTab(b.dataset.tab);
-  if (!desktopMQ.matches) window.scrollTo(0, 0);
+  if (!desktopMQ.matches) toTop();
 });
 
 // ---------- Ana döngü ----------
