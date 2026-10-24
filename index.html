@@ -562,7 +562,8 @@ const LIVE_EVENTS = [
 const CRITIC = {id:'elestirmen', emoji:'🧐', name:'Yemek Eleştirmeni', desc:'En pahalı ürünleri ister. Hız, tarif yıldızları ve salonun huzuru puanı belirler!'};
 
 // ---------- Etkinlik takvimi (gerçek tarih) ----------
-// Hicri takvime bağlı bayramlar her yıl ~11 gün kayar: Diyanet takvimine göre yaklaşık tarihler (±1 gün)
+// Hicri takvime bağlı bayramlar her yıl ~11 gün kayar. 2026-2027 Diyanet takvimiyle doğrulandı (Ekim 2026);
+// 2028 sonrası hesaplanmış tahmin (±1 gün): Diyanet o yılın takvimini açıklayınca kontrol et
 const HIJRI = {
   2026:{ramazan:['2026-02-19', '2026-03-19'], rbayram:['2026-03-20', '2026-03-22'], kurban:['2026-05-27', '2026-05-30']},
   2027:{ramazan:['2027-02-08', '2027-03-08'], rbayram:['2027-03-09', '2027-03-11'], kurban:['2027-05-16', '2027-05-19']},
@@ -2430,7 +2431,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '2.0.0';
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let installEvt = null;

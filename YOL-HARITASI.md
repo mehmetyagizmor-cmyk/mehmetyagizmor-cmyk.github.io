@@ -270,6 +270,17 @@ Bot oyun testi (35 gün, 3 oyuncu tipi) sonrası:
 
 ---
 
+## 📲 Faz 8: Play Store yayını (25 Ekim 2026)
+
+Kullanıcı oyunu Google Play'de yayınlamaya karar verdi. Sıra: 8a yayın hazırlığı → 8b puan isteği + müzik → 8c prestij (usta mirası). Yayından sonra: rakip çaycı, İngilizce.
+
+### 8a'da yapılanlar (sürüm 2.0.0, sw v14)
+- Manifest'e 4 ekran görüntüsü eklendi (`screenshots`, form_factor narrow); PWABuilder ve Android kurulum ekranı için.
+- `orientation` bilerek `any` bırakıldı: oyunun yatay telefon düzeni var (index.html'deki landscape medya sorgusu).
+- Gizlilik linki Ayarlar'da zaten vardı.
+- Bayram tarihleri: 2026–2027 Diyanet takvimiyle aynı. 2028–2030 Diyanet henüz açıklamadığı için tahmini; her yıl kontrol et. Aralık 2030'da başlayan ikinci Ramazan tabloda yok.
+- ⚠️ `privacy.html` e-postası hâlâ örnek; kullanıcı adresi verince değiştirilecek.
+
 ## 📝 Bekleyen diğer işler
 - [ ] `privacy.html` içindeki `ornek@eposta.com` adresini değiştir (yayından önce)
 - [ ] Gerçek Android / iPhone'da test
