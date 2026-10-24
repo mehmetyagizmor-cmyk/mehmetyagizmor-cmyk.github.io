@@ -57,6 +57,7 @@ Artık oyun telefonda ikonuyla, tam ekran ve **internetsiz** çalışır.
    - `*.aab`: Play Store'a yükleyeceğin dosya
    - `signing.keystore` ve `signing-key-info.txt`: **🔐 ÇOK ÖNEMLİ!** Bunları güvenli bir yerde (bulut + harici disk) sakla. Kaybedersen oyunu bir daha **güncelleyemezsin**. Bu dosyaları asla GitHub'a yükleme.
    - `assetlinks.json`: alan adı doğrulama dosyası
+5. `index.html` içindeki `const PLAY_ID = '';` satırına aynı **Package ID**'yi yaz (ör. `'io.github.KULLANICIADIN.cayocagi'`). Oyundaki "Puan ver" isteği bu kimlikle Play sayfasını açar; boşken istek hiç gösterilmez.
 
 ### b) Alan adını doğrula
 
