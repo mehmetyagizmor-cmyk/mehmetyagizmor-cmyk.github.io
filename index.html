@@ -962,26 +962,54 @@ function switchBranch(i){
 const upCost = u => Math.round(u.base * Math.pow(u.mult, lv(u.id)));
 
 // ---------- Sahne geometrisi ----------
-const W = 960, H = 540, FLOOR = 200, AISLE = 525, DOOR_TOP = 440;
-const COLS = [360, 510, 660, 810], ROWS = [320, 470];
+// İki yerleşim: geniş (bilgisayar, yatay ekran) ve dikey telefon. Dikeyde masalar tezgâhın altında 3 sütun;
+// dükkân büyüdükçe aşağıya yeni sıra açılır. Müşteriler sağdaki kapıdan, son sıranın altındaki koridordan girer
+const FLOOR = 200;
+const LAND = {W:960, H:540, cols:[360, 510, 660, 810], rows:[320, 470]};
+const PORT = {W:600, H:775, cols:[120, 300, 480], rows:[430, 565, 700]};
+const portraitMQ = matchMedia('(max-width:999px) and (orientation:portrait)');
+let portrait, W, H, COLS;
 const SLOTS = [];
-COLS.forEach(x => ROWS.forEach(y => SLOTS.push({x, y})));
-const rightWall = () => shopLevel().right;
-// Dikey telefonda kamera yalnızca açık dükkân alanını gösterir (kilitli duvar ekran dışında): dükkân ekranı doldurur
-const zoomMQ = matchMedia('(max-width:999px) and (orientation:portrait)');
-const viewW = () => zoomMQ.matches ? Math.min(W, rightWall() + 24) : W;
-let sceneVW = 0;
-const garsonHome = i => ({x:288, y:380 + i * 45});
+function setLayout(){
+  portrait = portraitMQ.matches;
+  const G = portrait ? PORT : LAND;
+  W = G.W; H = G.H; COLS = G.cols; SLOTS.length = 0;
+  if (portrait) G.rows.forEach(y => G.cols.forEach(x => SLOTS.push({x, y})));
+  else G.cols.forEach(x => G.rows.forEach(y => SLOTS.push({x, y})));
+}
+setLayout();
+const rightWall = () => portrait ? W : shopLevel().right;
+const aisleY = () => portrait ? SLOTS[shopLevel().tables - 1].y + 50 : 525;
+// Dikeyde sahne koridorun hemen altında biter: kilitli sıralar görünmez
+const viewH = () => portrait ? Math.min(H, aisleY() + 25) : H;
+let sceneView = '';
+const garsonHome = i => portrait ? {x:330, y:290 + i * 30} : {x:288, y:380 + i * 45};
 const CIRAK_X = [72, 184, 34];
 
 function pathIn(seat){
-  const s = SLOTS[seat];
-  return [{x:s.x + 75, y:AISLE}, {x:s.x + 75, y:s.y - 6}, {x:s.x, y:s.y - 6}];
+  const s = SLOTS[seat], a = aisleY();
+  return [{x:s.x + 75, y:a}, {x:s.x + 75, y:s.y - 6}, {x:s.x, y:s.y - 6}];
 }
 function pathOut(seat){
-  const s = SLOTS[seat];
-  return [{x:s.x + 75, y:s.y - 6}, {x:s.x + 75, y:AISLE}, {x:rightWall() + 60, y:AISLE}];
+  const s = SLOTS[seat], a = aisleY();
+  return [{x:s.x + 75, y:s.y - 6}, {x:s.x + 75, y:a}, {x:rightWall() + 60, y:a}];
 }
+// Ekran dönünce yerleşim değişir: oturanlar yeni masalarına, yürüyenler kapıya, garsonlar tezgâha
+function relayout(){
+  setLayout();
+  if (!R) return;
+  R.customers = R.customers.filter(c => c.state !== 'out');
+  R.customers.forEach(c => {
+    const s = SLOTS[c.seat];
+    if (c.state === 'seated'){ c.x = s.x; c.y = s.y - 6; c.path = []; }
+    else { c.x = rightWall() + 40; c.y = aisleY(); c.path = pathIn(c.seat); }
+  });
+  R.garsons.forEach(gs => {
+    if (gs.carry && R.tray.length < trayCap()){ R.tray.push(gs.carry); R.trayT.push(R.t); }
+    Object.assign(gs, garsonHome(gs.i), {state:'idle', path:[], carry:null, cid:null});
+  });
+}
+portraitMQ.addEventListener('change', relayout);
 function moveAlong(e, dt, sp){
   if (!e.path.length) return true;
   const t = e.path[0], dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy), step = sp * dt;
@@ -1089,7 +1117,7 @@ function spawnCustomer(special, delayPx = 0){
   if (special === 'elestirmen'){ look.shirt = '#3d3d46'; look.glasses = true; look.hat = 'bere'; look.prop = 'note'; }
   const seat = pick(free);
   const c = {id:R.nextId++, seat, look, order, patience:max, max, special, reg:reg && reg.id,
-             state:'in', x:rightWall() + 40 + delayPx, y:AISLE, path:pathIn(seat), walk:0};
+             state:'in', x:rightWall() + 40 + delayPx, y:aisleY(), path:pathIn(seat), walk:0};
   R.customers.push(c);
   SFX.arrive();
   return c;
@@ -1378,7 +1406,8 @@ function tick(dt){
         trayRemove(R.tray.indexOf(p));
         const s = SLOTS[c.seat], home = garsonHome(gs.i);
         gs.carry = p; gs.cid = c.id; gs.state = 'go';
-        gs.path = [{x:home.x, y:AISLE}, {x:s.x + 75, y:AISLE}, {x:s.x + 75, y:s.y + 10}, {x:s.x + 42, y:s.y + 10}];
+        const a = aisleY();
+        gs.path = [{x:home.x, y:a}, {x:s.x + 75, y:a}, {x:s.x + 75, y:s.y + 10}, {x:s.x + 42, y:s.y + 10}];
         break;
       }
     } else if (gs.state === 'go'){
@@ -1391,7 +1420,8 @@ function tick(dt){
         } else if (R.tray.length < trayCap()) { R.tray.push(gs.carry); R.trayT.push(R.t); }
         gs.carry = null; gs.cid = null; gs.state = 'back';
         const home = garsonHome(gs.i), s = {x:gs.x, y:gs.y};
-        gs.path = [{x:s.x + 33, y:s.y}, {x:s.x + 33, y:AISLE}, {x:home.x, y:AISLE}, home];
+        const a = aisleY();
+        gs.path = [{x:s.x + 33, y:s.y}, {x:s.x + 33, y:a}, {x:home.x, y:a}, home];
       }
     } else if (gs.state === 'back'){
       if (moveAlong(gs, dt, 190)){ gs.state = 'idle'; gs.flip = false; }
@@ -1519,7 +1549,7 @@ function fitCanvas(c, ctx, w, h){
   c.width = Math.round(w * k); c.height = Math.round(h * k);
   ctx.setTransform(k, 0, 0, k, 0, 0);
 }
-new ResizeObserver(() => fitCanvas(scene, g, viewW(), H)).observe(scene);
+new ResizeObserver(() => fitCanvas(scene, g, W, viewH())).observe(scene);
 
 function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
 function ell(ctx, x, y, rx, ry){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
@@ -1724,7 +1754,7 @@ function drawRoom(frac){
 
   // Pencereler (gün ilerledikçe gökyüzü kararır)
   const sky = frac < 0.6 ? '#8fd0f5' : frac < 0.85 ? mix('#8fd0f5', '#f5a15a', (frac - 0.6) / 0.25) : mix('#f5a15a', '#33406a', Math.min(1, (frac - 0.85) / 0.15));
-  const n = [1, 2, 3, 3][L], x0 = 300, x1 = RW - 190, ww = 100;
+  const x0 = 300, x1 = RW - 190, ww = 100, n = Math.min([1, 2, 3, 3][L], Math.floor((x1 - x0) / (ww + 10)));
   const gap = (x1 - x0 - n * ww) / (n + 1);
   for (let i = 0; i < n; i++){
     const wx = x0 + gap + i * (ww + gap), wy = 28, wh = 85;
@@ -1792,9 +1822,10 @@ function drawRoom(frac){
   g.restore();
 
   // Sağ duvar ve kapı
-  g.fillStyle = '#4a3020'; g.fillRect(RW - 8, 0, 10, DOOR_TOP);
-  g.fillStyle = '#6b4428'; g.fillRect(RW - 14, DOOR_TOP - 6, 22, 8);
-  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(RW + 2, DOOR_TOP, 8, H - DOOR_TOP);
+  const doorTop = aisleY() - 85;
+  g.fillStyle = '#4a3020'; g.fillRect(RW - 8, 0, 10, doorTop);
+  g.fillStyle = '#6b4428'; g.fillRect(RW - 14, doorTop - 6, 22, 8);
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(RW + 2, doorTop, 8, H - doorTop);
 }
 
 function drawSign(){
@@ -2520,7 +2551,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.2.2';
+const APP_VERSION = '2.3.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2920,7 +2951,7 @@ function makeProduct(id){
 scene.addEventListener('pointerdown', e => {
   if (modalOpen() || status !== 'running') return;
   const r = scene.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width * viewW(), y = (e.clientY - r.top) / r.height * H;
+  const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * viewH();
   // Telefonda parmak küçük kalmasın: geniş alan, en yakın müşteri
   let best = null, bd = 1e9;
   R.customers.filter(seated).forEach(c => {
@@ -3048,8 +3079,8 @@ let last = performance.now(), steamIn = 0;
 function frame(ts){
   const dt = Math.min(0.1, (ts - last) / 1000); last = ts;
   // Dükkân büyüyünce / şube değişince / ekran dönünce sahnenin oranı değişir
-  const vw = viewW();
-  if (vw !== sceneVW){ sceneVW = vw; scene.parentElement.style.aspectRatio = `${vw} / ${H}`; fitCanvas(scene, g, vw, H); }
+  const vh = viewH(), view = W + '/' + vh;
+  if (view !== sceneView){ sceneView = view; scene.parentElement.style.aspectRatio = `${W} / ${vh}`; fitCanvas(scene, g, W, vh); }
   if (status === 'running' && !modalOpen()){
     tick(dt);
     steamIn -= dt;

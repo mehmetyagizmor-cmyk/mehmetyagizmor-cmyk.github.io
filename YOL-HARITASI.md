@@ -24,6 +24,8 @@ Son güncelleme: 17 Ekim 2026
 | 8a | Play Store hazırlığı: manifest ekran görüntüleri, bayram tarihleri kontrolü (sürüm 2.0.0) |
 | 8b | Puan isteği ve arka plan müziği (sürüm 2.1.0) |
 | 8c | Usta Mirası (prestij) (sürüm 2.2.0) |
+| 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
+| 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 
 ---
 
