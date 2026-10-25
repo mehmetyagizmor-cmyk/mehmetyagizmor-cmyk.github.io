@@ -1252,10 +1252,7 @@ function leave(c, mood){
   c.leaving = {mood};
   if (c.seat != null && R.stains.length < MAX_STAINS && Math.random() < 0.3){
     const sl = SLOTS[c.seat];
-    let x = sl.x + rand(-50, 50);
-    const y = Math.min(sl.y + rand(44, 56), viewH() - 18);
-    if (x < 345 && y > comboTop() - 12) x = rand(345, 395);   // kombo kutusunun altında kalıp görünmez olmasın
-    R.stains.push({x, y, r:Math.random()});
+    R.stains.push({x:sl.x + rand(-50, 50), y:Math.min(sl.y + rand(44, 56), viewH() - 18), r:Math.random()});
     if (!S.stainTip){ S.stainTip = 1; announce({emoji:'🧽', name:'Dükkân kirleniyor', desc:'Müşteriler kalkınca masaların önü kirlenir. Kire dokunup temizle ya da Mağaza’dan temizlikçi tut. Kirli dükkânda müşteri çabuk sabırsızlanır ve daha az gelir.'}); }
   }
   c.state = 'out';
@@ -1536,7 +1533,7 @@ function tick(dt){
     }
   }
   if (R.combo && (R.comboT -= dt) <= 0){
-    if (R.combo >= 3) floatText(140, 440, `⏱️ Kombo bitti (${R.combo})`, '#c9b39a');
+    if (R.combo >= 3) floatText(W - 160, 100, `⏱️ Kombo bitti (${R.combo})`, '#c9b39a');
     R.combo = 0;
   }
   R.effects.forEach(e => e.left -= dt);
@@ -2285,12 +2282,11 @@ function toast(msg){
 
 // Sol altta kombo göstergesi: sayı, çarpan ve bir sonraki kademeye ilerleme
 const COMBO_STEPS = [3, 6, 10, 15];
-const comboTop = () => Math.min(530, viewH() - 12) - 46 * 1.25;   // sol alttaki kombo kutusunun üst kenarı
 function drawCombo(){
   const n = R.combo, cm = comboMult(n), next = COMBO_STEPS.find(k => k > n);
   const prev = [...COMBO_STEPS].reverse().find(k => k <= n) || 0;
   const x = 0, y = 0, w = 236, h = 46, pulse = 1 + Math.sin(now() * 8) * 0.04 * Math.min(1, n / 6);
-  g.save(); g.translate(12, comboTop()); g.scale(1.25, 1.25); // telefonda okunaklı ama masaya taşmasın
+  g.save(); g.translate(W - 12 - w * 1.25, 12); g.scale(1.25, 1.25); // sağ üstte duvarda: masaları ve kirleri örtmesin
   g.translate(w / 2, h / 2); g.scale(pulse, pulse); g.translate(-w / 2, -h / 2);
   g.fillStyle = 'rgba(20,12,6,.82)'; rr(g, x, y, w, h, 12); g.fill();
   g.strokeStyle = cm > 1 ? '#ff9d3a' : 'rgba(255,255,255,.25)'; g.lineWidth = 2; rr(g, x, y, w, h, 12); g.stroke();
@@ -2783,7 +2779,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.10.3';
+const APP_VERSION = '2.10.4';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
