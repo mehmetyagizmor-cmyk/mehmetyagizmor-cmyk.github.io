@@ -2385,6 +2385,7 @@ function drawScene(){
 // scene3d.js yalnızca 3D seçilince yüklenir; 2D canvas üstte saydam katman olarak kalır (balonlar, yazılar, efektler)
 let sahne3d = null, want3d = false;
 try { want3d = localStorage.getItem('cayocagi-sahne') === '3d'; } catch(e) {}
+if (/[?&]3d\b/.test(location.search)) want3d = true;   // test: adrese ?3d eklenince 3D açılır
 const use3d = () => want3d && sahne3d;
 // Son 3D hatası Ayarlar'da kalıcı görünür (kart birkaç saniyede kaybolur): mesaj + hatanın çıktığı dosya/satır
 let err3d = '';
@@ -2860,7 +2861,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.1';
+const APP_VERSION = '2.11.2';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün

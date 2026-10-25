@@ -306,10 +306,10 @@ export function render(frac){
   drawSignTex();
   const dk = [(EV() || {}).deco, rightWall(), lv('dukkan')].join('|');
   if (dk !== decoKey){ decoKey = dk; buildEventDeco(); }
-  animateDecor(t, frac);
-  // Yeni masa "belirme" animasyonu (2D ile aynı tableBorn kaydını okur)
   const t = now();
   adapt(t);
+  animateDecor(t, frac);
+  // Yeni masa "belirme" animasyonu (2D ile aynı tableBorn kaydını okur)
   tables.forEach((tb, i) => {
     let k = 1;
     if (tableBorn[i] != null){ const a = (t - tableBorn[i]) / 0.6; if (a < 1) k = easeBack(Math.max(0.01, a)); }
