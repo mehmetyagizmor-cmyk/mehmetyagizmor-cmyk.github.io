@@ -105,6 +105,7 @@ Yalnızca ikon, uygulama adı veya paket ayarları değişirse PWABuilder'da **a
 
 1. Paket: `index.html`, `privacy.html`, `manifest.webmanifest` ve `icons/` tek zip'te; **`sw.js` koyma** (itch kendi sunucusundan dağıtır, önbellek eski sürümde takılabilir).
    Windows'ta zip'i `tar -a -c -f cay-ocagi-itch.zip index.html privacy.html manifest.webmanifest icons` ile yap (PowerShell'in Compress-Archive'ı klasör yollarını `\` ile yazar, itch tanımayabilir).
+   ⚠️ Bu komutu **PowerShell/cmd'de** çalıştır (Windows'un `tar.exe`'si). Git Bash'teki `tar` zip yapamaz, `.zip` adlı bir tar dosyası üretir ve itch oyunu açamaz. Doğru zip "PK" ile başlar.
 2. itch.io → **Upload new project** → Kind of project: **HTML** → zip'i yükle → **This file will be played in the browser**.
 3. Embed: Viewport **1000 × 700**, ✅ Mobile friendly (Orientation: Portrait), ✅ Fullscreen button.
 4. Güncelleme: eski zip'i sil, yenisini yükle. Kayıtlar korunur (aynı itch.io alan adı).
