@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| Denge | Faz 10 bot simülasyonu, ilk ürünler daha ucuz (sürüm 2.10.1) |
 | 10g | Kundakçı (dokunup kov), yangın, güvenlik görevlisi, seyrek gece olayları (sürüm 2.10.0) |
 | 10f | Şube konsepti, 🏪 dükkân paneli, uğranmayan şubede batma riski (sürüm 2.9.0) |
 | 10e | Şöhret ayrıcalıkları, röportaj cevabına göre ödül, kadın karakter (sürüm 2.8.0) |
@@ -374,6 +375,13 @@ Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullan�
 - 💂 Güvenlik Görevlisi (Çalışanlar, ₺3.000, en fazla 3): kundakçıyı 2,7 / 1,9 / 1,1 sn içinde kendisi yakalar; gece hırsızını %35 / %70 / %100 önler.
 - Gece olayları (5. günden sonra, gün başına %6): 🦹 hırsız paranın %10'unu alır (güvenlik önleyebilir), 💧 su borusu gün × ₺30. Gün sonu karnesinde 🌙 satırı.
 - ⚠️ Faz 10'un bütün dengesi (maliyet ×2, malzeme payı, kir, kötü olaylar) birlikte gerçek oyunda denenmeli; oyun fazla zorlaştıysa ilk ayarlanacaklar: malzeme payı, maliyet çarpanı, leke sıklığı.
+
+### Faz 10 denge simülasyonu (sürüm 2.10.1, sw v32)
+- Bot: oyunun kendi fonksiyonlarıyla, 0,65 sn'de bir hamle (orta hızlı oyuncu), gün sonu en ucuz geliştirmeyi alır, sonraki dükkân seviyesi için para ayırır. Betik yalnızca scratchpad'de.
+- Eski sürüm (2.3.2): Kıraathane 2., Kafe 5., Ünlü Mekân 9. gün; 13-15. günde her şey alınmış, sonra para yığılıyor (30. günde ₺594 bin).
+- 2.10.0: Kıraathane 3., Kafe 9., Ünlü Mekân 14. gün; 30. günde hâlâ 5 geliştirme ve alet ürünleri alınmamış. Ama 6-12. günler arası menü 3-5 üründe takılıyordu.
+- Ayar: ilk ürünlerin açılış fiyatı düşürüldü (simit 150, poğaça 350, kahve 500, limonata 900, tost 1.400, sahlep 3.200). Sonuç: 6. günde 4, 12. günde 6, 30. günde 17 ürün; Ünlü Mekân yine 14. gün, ilk Türkiye şubesi parası 13. gün.
+- Kundakçıyı bot hep yakaladı (yangın 0); 30 günde 2 gece olayı. Bot hiç müşteri kaçırmadı; gerçek oyuncu daha zor bulabilir.
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı

@@ -421,12 +421,12 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 // shop: ürünü açmak için gereken dükkân seviyesi (SHOP_LEVELS sırası)
 const PRODUCTS = [
   {id:'cay',     name:'Çay',          emoji:'🍵', price:10, time:1.5, cost:0},
-  {id:'simit',   name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:200},
-  {id:'pogaca',  name:'Poğaça',       emoji:'🥐', price:20, time:2.0, cost:500},
-  {id:'limonata',name:'Limonata',     emoji:'🍋', price:25, time:1.5, cost:1300,  shop:1},
-  {id:'kahve',   name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:750},
-  {id:'tost',    name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:2000},
-  {id:'sahlep',  name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:4500},
+  {id:'simit',   name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:150},
+  {id:'pogaca',  name:'Poğaça',       emoji:'🥐', price:20, time:2.0, cost:350},
+  {id:'limonata',name:'Limonata',     emoji:'🍋', price:25, time:1.5, cost:900,  shop:1},
+  {id:'kahve',   name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:500},
+  {id:'tost',    name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:1400},
+  {id:'sahlep',  name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:3200},
   {id:'menemen', name:'Menemen',      emoji:'🍳', price:70, time:4.5, cost:6500, shop:2},
   {id:'baklava', name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:9000},
   {id:'sutlac',  name:'Sütlaç',       emoji:'🍮', price:95, time:3.0, cost:14000, shop:3},
@@ -2768,7 +2768,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.10.0';
+const APP_VERSION = '2.10.1';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
