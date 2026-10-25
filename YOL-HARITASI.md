@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 10h | Yenilikler kartı, eski kayıt koruması, sevkiyat aşağıda (sürüm 2.10.2) |
 | Denge | Faz 10 bot simülasyonu, ilk ürünler daha ucuz (sürüm 2.10.1) |
 | 10g | Kundakçı (dokunup kov), yangın, güvenlik görevlisi, seyrek gece olayları (sürüm 2.10.0) |
 | 10f | Şube konsepti, 🏪 dükkân paneli, uğranmayan şubede batma riski (sürüm 2.9.0) |
@@ -382,6 +383,11 @@ Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullan�
 - 2.10.0: Kıraathane 3., Kafe 9., Ünlü Mekân 14. gün; 30. günde hâlâ 5 geliştirme ve alet ürünleri alınmamış. Ama 6-12. günler arası menü 3-5 üründe takılıyordu.
 - Ayar: ilk ürünlerin açılış fiyatı düşürüldü (simit 150, poğaça 350, kahve 500, limonata 900, tost 1.400, sahlep 3.200). Sonuç: 6. günde 4, 12. günde 6, 30. günde 17 ürün; Ünlü Mekân yine 14. gün, ilk Türkiye şubesi parası 13. gün.
 - Kundakçıyı bot hep yakaladı (yangın 0); 30 günde 2 gece olayı. Bot hiç müşteri kaçırmadı; gerçek oyuncu daha zor bulabilir.
+
+### 10h: Yayın öncesi (sürüm 2.10.2, sw v33)
+- Kayıtta ver alanı (fresh: '2.10'). ver'i olmayan (2.10 öncesi) kayıt yüklenince: news=true, oldLegacy=true (Usta Mirası 15. günde kalır, legacyDay()), şubelerin seen sayacı o günden başlar.
+- 🎉 Yenilikler kartı: eski kayıtlara bir kez, dükkân kapalıyken ve başka pencere yokken (günlük ödülden sonra) çıkar.
+- Mağaza'da Sevkiyat, Çalışanlar ile Antikacı arasına taşındı.
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı

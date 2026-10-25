@@ -53,6 +53,7 @@ main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
 #events{position:absolute;bottom:6px;left:6px;right:6px;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;pointer-events:none}
 .ev{background:#000a;border:1px solid var(--accent);border-radius:999px;padding:3px 9px;font-size:12px}
 .ev small{color:var(--muted)}
+.news{margin:0 0 10px;padding-left:2px;list-style:none;line-height:1.7}
 .ev.fans{pointer-events:auto;cursor:pointer;color:#fff;font:inherit;font-size:13px;padding:6px 12px;background:#7a3fb8e6;border-color:#e08bff;animation:pulseA 1.2s infinite}
 .panel{display:none;background:var(--panel);border-radius:14px;padding:14px;border:1px solid var(--line);margin:0 calc(8px + var(--sr)) 8px calc(8px + var(--sl))}
 .panel.active{display:block}
@@ -865,7 +866,7 @@ const COMBO_TIME = 12;
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
   served:0, bestDay:0, perfect:0, ach:{}, streak:0, lastDate:null, rec:{}, bestCombo:0, questsDone:0, quests:null,
-  fame:0, offer:null, interviews:0, lastCover:null, regs:{}, reviews:null, evp:{}, col:{}});
+  fame:0, offer:null, interviews:0, lastCover:null, regs:{}, reviews:null, evp:{}, col:{}, ver:'2.10'});
 // S.lv ve S.rep her zaman bulunulan şubeyi gösterir; S.lv, S.branches[S.cur].lv ile aynı nesnedir
 function link(d){
   if (!d.branches || !d.branches.length) d.branches = [{city:'ana', lv:d.lv, rep:d.rep}]; // eski kayıt → ana dükkân
@@ -874,7 +875,14 @@ function link(d){
   return d;
 }
 function load(){
-  try { const d = JSON.parse(localStorage.getItem('cayocagi')); if (d && d.money != null) return link(Object.assign(fresh(), d)); } catch(e) {}
+  try {
+    const d = JSON.parse(localStorage.getItem('cayocagi'));
+    if (d && d.money != null){
+      // 2.10 öncesi kayıt: yenilikleri bir kez göster, eski miras günü kalsın, şubelerin ihmal sayacı bugünden başlasın
+      if (!d.ver){ d.ver = '2.10'; d.news = true; d.oldLegacy = true; (d.branches || []).forEach(b => b.seen = d.day); }
+      return link(Object.assign(fresh(), d));
+    }
+  } catch(e) {}
   return link(fresh());
 }
 function save(){ S.branches[S.cur].rep = S.rep; S.lastSeen = Date.now(); try { localStorage.setItem('cayocagi', JSON.stringify(S)); } catch(e) {} }
@@ -929,7 +937,8 @@ const LEGACY_TITLES = ['Usta', 'Pir', 'Çay Efsanesi'];
 const legacy = () => S.legacy || {n:0, pts:0};
 const legacyMult = () => 1 + 0.05 * legacy().pts;
 const legacyGain = () => Math.floor(Math.sqrt(S.total / 5000));   // ₺80 bin → 4 puan, ₺1 milyon → 14 puan
-const canLegacy = () => mainLv() === SHOP_LEVELS.length - 1 && S.day >= LEGACY_DAY && legacyGain() > 0;
+const legacyDay = () => S.oldLegacy ? 15 : LEGACY_DAY;   // eski kayıtlar devret düğmesini kaybetmesin
+const canLegacy = () => mainLv() === SHOP_LEVELS.length - 1 && S.day >= legacyDay() && legacyGain() > 0;
 const legacyTitle = (n = legacy().n) => n ? LEGACY_TITLES[Math.min(n, LEGACY_TITLES.length) - 1] : '';
 function passLegacy(){
   const L = legacy(), keep = {legacy:{n:L.n + 1, pts:L.pts + legacyGain()}};
@@ -2471,13 +2480,14 @@ function renderUI(){
   setHTML('#tray', t);
 
   // Mağaza: dükkân büyütme + eşyalar + çalışanlar
-  let s = '<h3>🚚 Sevkiyat</h3><p class="hint">Malzeme kalitesini seç. Her satışın bir payı malzemeye gider. Dükkân kapalıyken değiştirilir.</p>';
+  let sev = '<h3>🚚 Sevkiyat</h3><p class="hint">Malzeme kalitesini seç. Her satışın bir payı malzemeye gider. Dükkân kapalıyken değiştirilir.</p>';
   Object.entries(QUALITY).forEach(([id, q]) => {
     const on = (S.quality || 'orta') === id;
-    s += `<div class="shop-item"><div class="em">${q.emoji}</div>
+    sev += `<div class="shop-item"><div class="em">${q.emoji}</div>
       <div class="info"><b>${q.name} <span class="lvl">%${Math.round(q.cost * 100)} malzeme payı</span></b><small>${q.desc}</small></div>
       <button data-qual="${id}" ${on || status === 'running' ? 'disabled' : ''}>${on ? '✓ Seçili' : 'Seç'}</button></div>`;
   });
+  let s = '';
   const next = SHOP_LEVELS[lv('dukkan') + 1];
   if (next){
     const locked = S.day < next.day;
@@ -2489,8 +2499,8 @@ function renderUI(){
     if (S.cur === 0){
       const L = legacy(), ok = canLegacy();
       s += `<div class="shop-item"><div class="em">🎖️</div><div class="info"><b>Usta Mirası</b><small>${ok ? `Dükkânı çırağına devret, baştan başla: +${legacyGain()} miras puanı (her puan kalıcı +%5 satış)`
-        : S.day < LEGACY_DAY ? `${LEGACY_DAY}. günden itibaren dükkânını çırağına devredip kalıcı bonusla baştan başlayabilirsin` : 'Biraz daha kazan: miras puanı toplam kazancınla büyür'}${L.pts ? ` · şu an +%${5 * L.pts}` : ''}</small></div>
-        <button data-legacy ${ok && status !== 'running' ? '' : 'disabled'}>${ok ? 'Devret' : '🔒 Gün ' + LEGACY_DAY}</button></div>`;
+        : S.day < legacyDay() ? `${legacyDay()}. günden itibaren dükkânını çırağına devredip kalıcı bonusla baştan başlayabilirsin` : 'Biraz daha kazan: miras puanı toplam kazancınla büyür'}${L.pts ? ` · şu an +%${5 * L.pts}` : ''}</small></div>
+        <button data-legacy ${ok && status !== 'running' ? '' : 'disabled'}>${ok ? 'Devret' : '🔒 Gün ' + legacyDay()}</button></div>`;
     }
   }
   [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
@@ -2504,6 +2514,7 @@ function renderUI(){
         <button data-buy="${u.id}" ${need || isMax || S.money < c ? 'disabled' : ''}>${need ? '🔒' : isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
     });
   });
+  s += sev;
   // Antikacı: koleksiyon parçaları
   s += '<h3>🏺 Antikacı</h3>';
   if (S.day < ANTIQUE_DAY) s += `<p class="hint">🔒 ${ANTIQUE_DAY}. günden itibaren mahalleye bir antikacı uğrar.</p>`;
@@ -2768,7 +2779,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.10.1';
+const APP_VERSION = '2.10.2';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2888,6 +2899,26 @@ function claimOffline(){
   if (status === 'running') showPause(); else if (dailyPending()) showDaily();
 }
 
+function showNews(){
+  S.news = false; save();
+  showModal(`<h2>🎉 Sürüm 2.10'da yenilikler</h2>
+    <p>Oyun büyüdü! Neler var:</p>
+    <ul class="news">
+      <li>📅 Hafta günleri: hafta sonu dükkân dolar</li>
+      <li>🔥 Kombo artık süreyle biter: hızlı servis et!</li>
+      <li>🧹 Dükkân kirlenir: kire dokun ya da temizlikçi tut</li>
+      <li>👔 Yeni çalışanlar: müdür, güvenlik, garson ve aşçı eğitimi</li>
+      <li>🧇 Tost makinesi, taş fırın, ızgara ve 7 yeni ürün</li>
+      <li>🚚 Sevkiyat: malzeme kalitesini seç, müşteriler yorum yapar</li>
+      <li>🌟 Şöhret ayrıcalıkları ve röportaj ödülleri</li>
+      <li>👩 Kadın karakter (Ayarlar → Dükkân Sahibi)</li>
+      <li>🍳 Şube konseptleri ve 🏪 dükkân paneli</li>
+      <li>🕵️ Kundakçılara dikkat: üstüne dokunup kov!</li>
+    </ul>
+    <p class="hint">⚠️ Fiyatlar arttı: dükkânı büyütmek artık daha uzun sürüyor.</p>
+    <button class="big" id="modalOk">Hadi başlayalım!</button>`);
+}
+setInterval(() => { if (S.news && S.owner && status === 'closed' && !modalOpen()) showNews(); }, 1000);
 function showWelcome(){
   showModal(`
     <h2>🍵 Hoş geldin, ${esc(owner().name)}!</h2>
