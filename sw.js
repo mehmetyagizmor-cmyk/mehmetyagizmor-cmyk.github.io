@@ -1,6 +1,6 @@
 // Çay Ocağı Tycoon — çevrimdışı çalışma
 // Yeni sürüm yayınlarken VERSION'ı artır: eski önbellek silinir, oyuncular güncel sürümü alır.
-const VERSION = 'v39';
+const VERSION = 'v40';
 const CACHE = 'cayocagi-' + VERSION;
 const FILES = [
   './',
@@ -34,7 +34,8 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(req, {ignoreSearch: true});
-    const net = fetch(req, {cache:'no-cache'}).then(res => {   // tarayıcı önbelleğini atla, sunucuya sor
+    // tarayıcı önbelleğini atla, sunucuya sor (sayfa açılışı isteği seçenekle kopyalanamaz, bu yüzden adresle)
+    const net = fetch(req.url, {cache:'no-cache'}).then(res => {
       if (res.ok) cache.put(req, res.clone());
       return res;
     }).catch(() => hit);
