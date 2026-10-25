@@ -46,7 +46,9 @@ main{padding-bottom:calc(var(--nav) + var(--sb) + 12px);transition:filter .6s}
 .left,.right{display:contents}
 .scene-sec{position:sticky;top:calc(var(--hud) + var(--st));z-index:20;background:var(--bg);padding:8px calc(8px + var(--sr)) 8px calc(8px + var(--sl))}
 .scene{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#1a110b}
-#scene{width:100%;height:100%;display:block;cursor:pointer;touch-action:manipulation}
+#scene{position:relative;width:100%;height:100%;display:block;cursor:pointer;touch-action:manipulation}
+#scene3d{position:absolute;inset:0;width:100%;height:100%;display:block}
+#scene3d[hidden]{display:none}
 .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:#0009;text-align:center;color:var(--muted);padding:10px}
 .overlay[hidden]{display:none}
 @media(max-width:999px){.overlay{gap:6px;font-size:14px}.overlay .big{padding:10px 20px;font-size:16px}}
@@ -357,6 +359,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
   <div class="left">
     <section class="scene-sec" id="sceneSec">
       <div class="scene">
+        <canvas id="scene3d" hidden></canvas>
         <canvas id="scene"></canvas>
         <div id="events"></div>
         <div class="overlay" id="closedOverlay">
@@ -1739,13 +1742,28 @@ function fitCanvas(c, ctx, w, h){
   c.width = Math.round(w * k); c.height = Math.round(h * k);
   ctx.setTransform(k, 0, 0, k, 0, 0);
 }
-new ResizeObserver(() => fitCanvas(scene, g, W, viewH())).observe(scene);
+new ResizeObserver(() => { fitCanvas(scene, g, W, viewH()); if (use3d()) sahne3d.resize(); }).observe(scene);
 
 function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
 function ell(ctx, x, y, rx, ry){ ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); }
 function line(ctx, x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+// Emoji bir kez küçük bir canvas'a çizilip saklanır: her karede yazı tipiyle çizmek (ör. 40 parçalık konfeti) takılma yapar
+const EMOJI_CACHE = new Map();
 function emoji(ctx, ch, x, y, size){
-  ctx.font = `${size}px ${EMOJI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ch, x, y);
+  const s = Math.max(4, Math.round(size)), key = ch + '|' + s;
+  let c = EMOJI_CACHE.get(key);
+  if (!c){
+    if (EMOJI_CACHE.size > 300) EMOJI_CACHE.clear();
+    const k = 3, font = `${s}px ${EMOJI}`;   // 3 kat çözünürlük: büyütülse de net kalsın
+    c = document.createElement('canvas');
+    let cx = c.getContext('2d'); cx.font = font;
+    c.w = Math.ceil(cx.measureText(ch).width) + 4; c.h = Math.ceil(s * 1.4);
+    c.width = c.w * k; c.height = c.h * k;
+    cx = c.getContext('2d'); cx.scale(k, k); cx.font = font; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(ch, c.w / 2, c.h / 2);
+    EMOJI_CACHE.set(key, c);
+  }
+  ctx.drawImage(c, x - c.w / 2, y - c.h / 2, c.w, c.h);
 }
 function mix(a, b, t){
   const pa = a.match(/\w\w/g).map(h => parseInt(h, 16)), pb = b.match(/\w\w/g).map(h => parseInt(h, 16));
@@ -2128,10 +2146,10 @@ function drawTable(i, c){
   g.restore();
 }
 
-function drawBubble(c){
-  const s = SLOTS[c.seat], rem = c.order.filter(o => !o.done);
+function drawBubble(c, bx = SLOTS[c.seat].x, by = SLOTS[c.seat].y - 118){
+  const s = {x:bx}, rem = c.order.filter(o => !o.done);
   if (!rem.length) return;
-  const w = rem.length * 26 + 14, h = 32, x = s.x - w / 2, y = s.y - 118;
+  const w = rem.length * 26 + 14, h = 32, x = s.x - w / 2, y = by;
   const can = canServe(c);
   g.fillStyle = '#fffaf0'; g.strokeStyle = can ? '#4caf50' : 'rgba(0,0,0,.3)'; g.lineWidth = can ? 3 : 1.5;
   rr(g, x, y, w, h, 10); g.fill(); g.stroke();
@@ -2244,7 +2262,7 @@ function coins(x, y, n){
   for (let i = 0; i < n; i++) particles.push({type:'emoji', x, y, vx:rand(-70, 70), vy:rand(-220, -150), g:420, life:0.9, max:0.9, text:'🪙', size:16, delay:i * 0.04});
 }
 function confetti(){
-  for (let i = 0; i < 40; i++) particles.push({type:'emoji', x:rand(80, rightWall() - 40), y:rand(-40, 0), vx:rand(-30, 30), vy:rand(40, 140), g:60, life:2.2, max:2.2,
+  for (let i = 0; i < 40; i++) particles.push({type:'emoji', x:rand(80, rightWall() - 40), y:rand(-40, 0), vx:rand(-30, 30), vy:rand(40, 140), g:60, life:2.2, max:2.2, screen:true,
     text:pick(['🎉', '✨', '🎊', '⭐']), size:rand(14, 22), delay:rand(0, 0.6)});
 }
 function puff(x, y){ particles.push({type:'puff', x:x + rand(-3, 3), y, vx:rand(-6, 6), vy:-28, life:1.3, max:1.3, r:4}); }
@@ -2258,19 +2276,19 @@ function updateParticles(dt){
   }
   particles = particles.filter(p => p.life > 0);
 }
-function drawParticles(){
+function drawParticles(map){
   for (const p of particles){
     if (p.delay > 0) continue;
-    const a = Math.min(1, p.life / p.max * 1.6);
+    const a = Math.min(1, p.life / p.max * 1.6), [x, y] = map ? map(p) : [p.x, p.y];
     g.globalAlpha = a;
     if (p.type === 'text'){
       g.font = `900 22px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeText(p.text, p.x, p.y);
-      g.fillStyle = p.color; g.fillText(p.text, p.x, p.y);
+      g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeText(p.text, x, y);
+      g.fillStyle = p.color; g.fillText(p.text, x, y);
     } else if (p.type === 'emoji'){
-      emoji(g, p.text, p.x, p.y, p.size);
+      emoji(g, p.text, x, y, p.size);
     } else {
-      g.globalAlpha = a * 0.5; g.fillStyle = '#fff'; ell(g, p.x, p.y, p.r, p.r); g.fill();
+      g.globalAlpha = a * 0.5; g.fillStyle = '#fff'; ell(g, x, y, p.r, p.r); g.fill();
     }
     g.globalAlpha = 1;
   }
@@ -2358,6 +2376,57 @@ function drawScene(){
   if (status === 'running' && R.combo >= 2) drawCombo();
 
   // Dükkân büyüyünce parlama
+  const lu = now() - levelUpAt;
+  if (lu < 0.8){ g.fillStyle = `rgba(255,240,200,${(1 - lu / 0.8) * 0.7})`; g.fillRect(0, 0, W, H); }
+  if (status !== 'running'){ g.fillStyle = 'rgba(10,14,30,.35)'; g.fillRect(0, 0, W, H); }
+}
+
+// ---------- 3D sahne (isteğe bağlı, Ayarlar → Sahne) ----------
+// scene3d.js yalnızca 3D seçilince yüklenir; 2D canvas üstte saydam katman olarak kalır (balonlar, yazılar, efektler)
+let sahne3d = null, want3d = false;
+try { want3d = localStorage.getItem('cayocagi-sahne') === '3d'; } catch(e) {}
+const use3d = () => want3d && sahne3d;
+function set3D(on){
+  want3d = on;
+  try { localStorage.setItem('cayocagi-sahne', on ? '3d' : '2d'); } catch(e) {}
+  $('#scene3d').hidden = !on || !sahne3d;
+  if (!on || sahne3d){ if (sahne3d) sahne3d.resize(); return; }
+  import('./scene3d.js').then(m => {
+    sahne3d = m.init($('#scene3d'));
+    $('#scene3d').hidden = !want3d; sahne3d.resize();
+  }).catch(err => {
+    console.error(err); want3d = false; $('#scene3d').hidden = true;
+    try { localStorage.setItem('cayocagi-sahne', '2d'); } catch(e) {}
+    announce({emoji:'⚠️', name:'3D sahne açılamadı, 2D kullanılıyor', desc:String(err && err.message || err).slice(0, 140)});
+  });
+}
+function drawScene3D(){
+  const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
+  sahne3d.render(frac);
+  g.clearRect(0, 0, W, H);
+  const S3 = sahne3d, t = now(), at = (x, h, z) => S3.toScreen(x, h, z);
+  if (R.stains.length >= 3){ const st = R.stains[0], [fx, fy] = at(st.x, 30, st.y); emoji(g, '🪰', fx + Math.sin(t * 5) * 14, fy + Math.cos(t * 8) * 6, 14); }
+  R.tray.forEach((p, i) => {   // tepsideki ürünler tezgâhın üstünde
+    const age = R.t - R.trayT[i], k = age < 0.35 ? easeBack(Math.max(0, age / 0.35)) : 1, [x, y] = at(34 + i * 22, 60, 318);
+    g.save(); g.translate(x, y); g.scale(k, k); emoji(g, P[p].emoji, 0, 0, 17); g.restore();
+  });
+  R.customers.forEach(c => {
+    if (c.state === 'seated'){   // teslim edilenler masada
+      const s = SLOTS[c.seat], done = c.order.filter(o => o.done);
+      done.forEach((o, j) => {
+        const age = t - o.doneAt, kk = age < 0.35 ? easeBack(Math.max(0.01, age / 0.35)) : 1, [x, y] = at(s.x + (j - (done.length - 1) / 2) * 20, 40, s.y);
+        g.save(); g.translate(x, y); g.scale(kk, kk); emoji(g, P[o.p].emoji, 0, 0, 15); g.restore();
+      });
+    } else if (c.leaving){ const hd = S3.anchor('c' + c.id); if (hd) emoji(g, c.leaving.mood === 'happy' ? '😋' : '💢', hd[0] + 16, hd[1] - 4, 16); }
+  });
+  R.garsons.forEach(gs => { const tr = gs.carry && S3.anchor('g' + gs.i, 'tray'); if (tr) emoji(g, P[gs.carry].emoji, tr[0], tr[1] - 8, 16); });
+  if (R.arson){ const a = R.arson, hd = S3.anchor('arson');
+    if (hd){ emoji(g, '🔥', hd[0] - 22, hd[1] + 44, 18);
+      g.fillStyle = '#ff4d3a'; g.font = '900 20px system-ui'; g.textAlign = 'center'; g.fillText(`❗ ${Math.ceil(a.t)}`, hd[0], hd[1] - 10); } }
+  if (effect('yangin')) for (let i = 0; i < 4; i++){ const [x, y] = at(60 + i * 90, 50 + Math.abs(Math.sin(t * 5 + i)) * 10, 318); emoji(g, '🔥', x + Math.sin(t * 7 + i) * 4, y, 30); }
+  R.customers.filter(seated).forEach(c => { const hd = S3.anchor('c' + c.id); if (hd) drawBubble(c, hd[0], hd[1] - 46); });
+  drawParticles(S3.from2D);
+  if (status === 'running' && R.combo >= 2) drawCombo();
   const lu = now() - levelUpAt;
   if (lu < 0.8){ g.fillStyle = `rgba(255,240,200,${(1 - lu / 0.8) * 0.7})`; g.fillRect(0, 0, W, H); }
   if (status !== 'running'){ g.fillStyle = 'rgba(10,14,30,.35)'; g.fillRect(0, 0, W, H); }
@@ -2784,7 +2853,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.10.5';
+const APP_VERSION = '2.11.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2822,6 +2891,7 @@ function showSettings(){
     <div class="set-row"><span>🔊 Ses</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
     <div class="set-row"><span>🎵 Müzik</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
     ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
+    <div class="set-row"><span>🧊 Sahne</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
     <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
     <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
     ${installRow()}
@@ -3033,6 +3103,8 @@ $('#modal').addEventListener('click', e => {
     } else if (btn.dataset.set === 'music'){
       musicOn = !musicOn; btn.textContent = musicOn ? 'Açık' : 'Kapalı';
       try { localStorage.setItem('cayocagi-muzik', musicOn ? 'acik' : 'kapali'); } catch(e) {}
+    } else if (btn.dataset.set === 'scene'){
+      set3D(!want3d); btn.textContent = want3d ? '3D' : '2D';
     } else {
       vibOn = !vibOn; btn.textContent = vibOn ? 'Açık' : 'Kapalı';
       try { localStorage.setItem('cayocagi-titresim', vibOn ? 'acik' : 'kapali'); } catch(e) {}
@@ -3261,7 +3333,15 @@ function makeProduct(id){
 scene.addEventListener('pointerdown', e => {
   if (modalOpen() || status !== 'running') return;
   const r = scene.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * viewH();
+  let x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * viewH();
+  if (use3d()){
+    const h = sahne3d.hit(e.clientX, e.clientY);
+    if (h.arson && R.arson){ catchArson('🏃 Kundakçıyı kovdun!'); return; }
+    const hc = h.cust && R.customers.find(c => c.id === h.cust && seated(c));
+    if (hc){ serve(hc); return; }
+    if (!h.ground) return;
+    ({x, y} = h.ground);
+  }
   if (R.arson && Math.abs(x - R.arson.x) < 50 && y > R.arson.y - 110 && y < R.arson.y + 20){ catchArson('🏃 Kundakçıyı kovdun!'); return; }
   const st = R.stains.find(st => Math.abs(x - st.x) < 32 && Math.abs(y - st.y) < 22);
   if (st){ R.stains = R.stains.filter(o => o !== st); floatText(st.x, st.y - 20, '✨', '#fff'); SFX.trash(); return; }
@@ -3402,13 +3482,18 @@ function frame(ts){
     if (steamIn <= 0 && inProgress() && R.steamTop){ puff(245, R.steamTop); steamIn = 0.12; }
   }
   updateParticles(dt);
-  drawScene();
+  if (use3d()){
+    // 3D'de bir hata çizim döngüsünü durdurmasın: 2D'ye dön ve sebebini göster
+    try { drawScene3D(); }
+    catch (err){ console.error(err); set3D(false); announce({emoji:'⚠️', name:'3D sahne hatası, 2D\'ye dönüldü', desc:String(err && err.message || err).slice(0, 140)}); drawScene(); }
+  } else drawScene();
   drawPreview();
   drawAvatar();
   requestAnimationFrame(frame);
 }
 fitCanvas(scene, g, W, H);
 requestAnimationFrame(frame);
+if (want3d) set3D(true);
 setInterval(renderUI, 100);
 renderUI();
 
