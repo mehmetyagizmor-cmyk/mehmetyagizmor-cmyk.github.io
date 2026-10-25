@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 10b | Ekip: garson ve aşçı eğitimi, 4. çırak, temizlikçi, müdür; dükkân kirlenir (sürüm 2.5.0) |
 | 10a | Yavaşlatma: maliyetler ~2 kat, hafta günleri, kombo sayacı (12 sn), tepsi 11'e kadar, seyrek elektrik kesintisi (sürüm 2.4.0) |
 | 9b-3 | Dikey: çok ürünlü mutfak (5 sütun; 10+ ürün emoji, 7 sütun), sahne ürün alanına göre küçülür, en az %36 (sürüm 2.3.2) |
 
@@ -332,6 +333,12 @@ Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullan�
 - Kombo: her servisten sonra 12 sn (COMBO_TIME) içinde yeni servis yoksa biter; kutunun üstünde kalan süre çubuğu. Kombo kutusu dikeyde artık sahnenin içinde kalıyor (önceden alttan kesiliyordu).
 - Tepsi geliştirmesi en fazla 8 (11 ürün); elektrik kesintisi %35 olasılıkla seçilir ve 10 sn sürer.
 - ⚠️ Denge simülasyonla denenmedi; gerçek oyunda ilerleme hızı izlenmeli.
+
+### 10b'de yapılanlar (sürüm 2.5.0, sw v26)
+- Yeni çalışan geliştirmeleri: 👨‍🍳 Aşçı Eğitimi (çırak +%20 hız, en fazla 4, önce çırak gerekir), 👟 Garson Eğitimi (+%20 yürüme, en fazla 4, önce garson gerekir), 🧹 Temizlikçi (en fazla 3), 👔 Müdür (en fazla 3). Çırak sınırı 4 oldu.
+- Kir: müşteri kalkınca %55 olasılıkla masanın önünde leke kalır (R.stains, en fazla 8, her gün sıfırlanır). Her leke sabrın %6 daha hızlı bitmesine ve müşteri aralığının %4 uzamasına yol açar. 4 ve üstü lekede ödeme anında %30 olasılıkla "🤢 Burası kirli! -1⭐". 3 lekeden sonra sinek uçar. İlk lekede bir kez bilgi kartı (S.stainTip).
+- Lekeye dokununca temizlenir. Temizlikçi her 9 / seviye saniyede en eski lekeyi siler.
+- Müdür: sabrı 2 sn'nin altına düşen müşteriyi günde seviye kadar kez yatıştırır (+%40 sabır). Varsa kira %25 düşer.
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı

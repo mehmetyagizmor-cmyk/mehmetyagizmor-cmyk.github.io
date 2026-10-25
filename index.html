@@ -556,8 +556,12 @@ const UPGRADES = [
   {id:'semaver', grp:'esya', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:240, mult:1.7, max:6},
   {id:'dekor',   grp:'esya', emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:300, mult:1.9, max:5},
   {id:'tabela',  grp:'esya', emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:400, mult:2.0, max:5},
-  {id:'cirak',   grp:'ekip', emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:1000, mult:2.2, max:3},
+  {id:'cirak',   grp:'ekip', emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:1000, mult:2.2, max:4},
+  {id:'cirakhiz', grp:'ekip', emoji:'👨‍🍳', name:'Aşçı Eğitimi', desc:'Çıraklar %20 daha hızlı hazırlar', base:900, mult:2, max:4, need:'cirak'},
   {id:'garson',  grp:'ekip', emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:1600, mult:2.2, max:3},
+  {id:'garsonhiz', grp:'ekip', emoji:'👟', name:'Garson Eğitimi', desc:'Garsonlar %20 daha hızlı yürür', base:1200, mult:2, max:4, need:'garson'},
+  {id:'temizlikci', grp:'ekip', emoji:'🧹', name:'Temizlikçi', desc:'Masa önlerindeki kirleri kendisi temizler', base:700, mult:2.4, max:3},
+  {id:'mudur',   grp:'ekip', emoji:'👔', name:'Müdür',         desc:'Kızmak üzere olan müşteriyi yatıştırır, kirayı %25 indirir', base:5000, mult:2.6, max:3},
 ];
 // Eşyalarım ekranında her geliştirmenin o anki etkisi
 const UP_FX = {
@@ -568,6 +572,10 @@ const UP_FX = {
   tabela:  l => `${l}. seviye neon`,
   cirak:   l => `${l} çırak`,
   garson:  l => `${l} garson`,
+  cirakhiz:  l => `%${l * 20} hızlı çırak`,
+  garsonhiz: l => `%${l * 20} hızlı garson`,
+  temizlikci: l => `${l} temizlikçi`,
+  mudur:     l => `günde ${l} yatıştırma`,
 };
 
 const DAY_EVENTS = [
@@ -814,7 +822,11 @@ let status = 'closed'; // 'running' | 'closed'
 
 const lv = id => S.lv[id] || 0;
 const shopLevel = () => SHOP_LEVELS[lv('dukkan')];
-const maxLv = u => u.id === 'masa' ? shopLevel().tables - 2 : u.max;
+const maxLv = u => u.id === 'masa' ? shopLevel().tables - 2 : u.need && !lv(u.need) ? 0 : u.max;
+const garsonSpeed = () => 190 * (1 + 0.2 * lv('garsonhiz'));
+// Kir: müşteri kalkınca masanın önünde leke kalabilir; her leke sabrı ve müşteri sıklığını biraz düşürür
+const MAX_STAINS = 8;
+const dirt = () => R.stains.length;
 // Eski kayıtlar: masa sayısı dükkân seviyesine sığmıyorsa dükkânı büyüt
 while (2 + lv('masa') > shopLevel().tables && lv('dukkan') < SHOP_LEVELS.length - 1) S.lv.dukkan = lv('dukkan') + 1;
 
@@ -1056,7 +1068,7 @@ function newDay(){
   R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
        dayEvent:null, effects:[], eventIn:rand(20, 35),
        garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
-       combo:0, sold:{}, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}, regsToday:[]};
+       combo:0, sold:{}, stains:[], cleanIn:0, calmed:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0}, regsToday:[]};
   // Bugün uğrayacak müdavimler (yalnızca ana dükkân): her biri %70 ihtimalle, en fazla 3 kişi
   R.regs = S.cur ? [] : REGULARS.filter(r => S.day >= r.day && Math.random() < 0.7).sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.id);
   // Henüz tanışılmamış en erken müdavim (ör. 1. gün Ali Amca) bugün mutlaka gelir
@@ -1091,7 +1103,7 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
   return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv())
-    * (WD().spawn || 1)
+    * (WD().spawn || 1) * (1 + 0.04 * (R.stains || []).length)
     * (S.day <= 2 ? 0.7 : 1)    // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
     * ((EV() || {}).spawn || 1)
     * (EV() && EV().iftar ? (R.t > DAY_LEN * 0.75 ? 0.45 : 1.3) : 1);   // Ramazan: gündüz sakin, iftarda kalabalık
@@ -1156,6 +1168,11 @@ function spawnCustomer(special, delayPx = 0){
 
 function leave(c, mood){
   c.leaving = {mood};
+  if (c.seat != null && R.stains.length < MAX_STAINS && Math.random() < 0.55){
+    const sl = SLOTS[c.seat];
+    R.stains.push({x:sl.x + rand(-50, 50), y:Math.min(sl.y + rand(44, 56), viewH() - 18), r:Math.random()});
+    if (!S.stainTip){ S.stainTip = 1; announce({emoji:'🧽', name:'Dükkân kirleniyor', desc:'Müşteriler kalkınca masaların önü kirlenir. Kire dokunup temizle ya da Mağaza’dan temizlikçi tut. Kirli dükkânda müşteri çabuk sabırsızlanır ve daha az gelir.'}); }
+  }
   c.state = 'out';
   c.path = pathOut(c.seat);
 }
@@ -1179,6 +1196,10 @@ function pay(c){
   if (c.special === 'vip') base *= 3;
   if (R.focus) base = Math.round(base * 1.2);   // röportajı reddedip dükkâna odaklanılan gün
   R.combo++; R.comboT = COMBO_TIME;
+  if (dirt() >= 4 && Math.random() < 0.3){
+    S.rep = Math.max(0, S.rep - 1);
+    floatText(SLOTS[c.seat].x, SLOTS[c.seat].y - 185, '🤢 Burası kirli! -1⭐', '#c9e06a', 0.3);
+  }
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
@@ -1403,6 +1424,10 @@ function tick(dt){
     R.eventIn -= dt;
     if (R.eventIn <= 0){ triggerLiveEvent(); R.eventIn = rand(25, 45); }
   }
+  if (lv('temizlikci') && R.stains.length && (R.cleanIn -= dt) <= 0){
+    const st = R.stains.shift(); floatText(st.x, st.y - 20, '🧹✨', '#fff');
+    R.cleanIn = 9 / lv('temizlikci');
+  }
   if (R.combo && (R.comboT -= dt) <= 0){
     if (R.combo >= 3) floatText(140, 440, `⏱️ Kombo bitti (${R.combo})`, '#c9b39a');
     R.combo = 0;
@@ -1424,7 +1449,7 @@ function tick(dt){
       const n = needed(); const p = Object.keys(n).find(k => n[k] > 0);
       if (p) R.helpers[i] = {p, prog:0};
     } else {
-      h.prog += dt * 0.7;
+      h.prog += dt * 0.7 * (1 + 0.2 * lv('cirakhiz'));
       if (h.prog >= prepTime(h.p)){ trayAdd(h.p); R.helpers[i] = null; }
     }
   }
@@ -1447,7 +1472,7 @@ function tick(dt){
         break;
       }
     } else if (gs.state === 'go'){
-      if (moveAlong(gs, dt, 190)){
+      if (moveAlong(gs, dt, garsonSpeed())){
         const c = R.customers.find(c => c.id === gs.cid);
         const o = c && seated(c) && c.order.find(o => !o.done && o.p === gs.carry);
         if (o){
@@ -1460,7 +1485,7 @@ function tick(dt){
         gs.path = [{x:s.x + 33, y:s.y}, {x:s.x + 33, y:a}, {x:home.x, y:a}, home];
       }
     } else if (gs.state === 'back'){
-      if (moveAlong(gs, dt, 190)){ gs.state = 'idle'; gs.flip = false; }
+      if (moveAlong(gs, dt, garsonSpeed())){ gs.state = 'idle'; gs.flip = false; }
     }
   }
 
@@ -1471,7 +1496,11 @@ function tick(dt){
     } else if (c.state === 'out'){
       if (moveAlong(c, dt, 150)) R.customers = R.customers.filter(x => x !== c);
     } else {
-      c.patience -= dt;
+      c.patience -= dt * (1 + 0.06 * dirt());
+      if (c.patience < 2 && !c.calmed && R.calmed < lv('mudur')){
+        c.calmed = true; R.calmed++; c.patience += c.max * 0.4;
+        floatText(SLOTS[c.seat].x, SLOTS[c.seat].y - 110, '👔 Müdür yatıştırdı', '#9fd8ff');
+      }
       if (c.patience <= 0){
         c.patience = 0;
         const penalty = c.special === 'vip' || c.special === 'influencer' || c.special === 'elestirmen' ? 10 : 4;
@@ -1494,7 +1523,7 @@ function tick(dt){
 function endDay(){
   status = 'closed';
   SFX.dayEnd();
-  const rent = 15 * S.day;
+  const rent = Math.round(15 * S.day * (lv('mudur') ? 0.75 : 1));
   S.money = Math.max(0, S.money - rent);
   const st = R.stats, net = st.earned + st.tips - rent;
   const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
@@ -2158,6 +2187,12 @@ function drawScene(){
   const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
   drawRoom(frac);
   if (EV()) drawDeco(EV().deco);
+  R.stains.forEach(st => {   // yerdeki kirler (masaların altında kalsın diye önce)
+    g.fillStyle = 'rgba(70,38,12,.78)';
+    g.beginPath(); g.ellipse(st.x, st.y, 15 + st.r * 6, 6 + st.r * 2, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(st.x + 14, st.y - 3, 5, 2.5, 0, 0, 7); g.fill();
+  });
+  if (R.stains.length >= 3){ const st = R.stains[0], t = now(); emoji(g, '🪰', st.x + Math.sin(t * 5) * 14, st.y - 22 + Math.cos(t * 8) * 6, 14); }
 
   // Derinliğe göre sıralanan nesneler (aşağıdakiler önde)
   const items = [];
@@ -2330,10 +2365,11 @@ function renderUI(){
     s += `<h3>${title}</h3>`;
     UPGRADES.filter(u => u.grp === grp).forEach(u => {
       const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
-      const desc = u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
+      const need = u.need && !lv(u.need) && UPGRADES.find(x => x.id === u.need);
+      const desc = need ? `🔒 Önce ${need.name.toLowerCase()} tut` : u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
       s += `<div class="shop-item"><div class="em">${u.emoji}</div>
-        <div class="info"><b>${u.name} <span class="lvl">${l}/${m}</span></b><small>${desc}</small></div>
-        <button data-buy="${u.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
+        <div class="info"><b>${u.name} <span class="lvl">${l}/${u.max || m}</span></b><small>${desc}</small></div>
+        <button data-buy="${u.id}" ${need || isMax || S.money < c ? 'disabled' : ''}>${need ? '🔒' : isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
     });
   });
   // Antikacı: koleksiyon parçaları
@@ -2598,7 +2634,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.4.0';
+const APP_VERSION = '2.5.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2999,6 +3035,8 @@ scene.addEventListener('pointerdown', e => {
   if (modalOpen() || status !== 'running') return;
   const r = scene.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * viewH();
+  const st = R.stains.find(st => Math.abs(x - st.x) < 32 && Math.abs(y - st.y) < 22);
+  if (st){ R.stains = R.stains.filter(o => o !== st); floatText(st.x, st.y - 20, '✨', '#fff'); SFX.trash(); return; }
   // Telefonda parmak küçük kalmasın: geniş alan, en yakın müşteri
   let best = null, bd = 1e9;
   R.customers.filter(seated).forEach(c => {
