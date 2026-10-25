@@ -1,6 +1,6 @@
 // Çay Ocağı Tycoon — çevrimdışı çalışma
 // Yeni sürüm yayınlarken VERSION'ı artır: eski önbellek silinir, oyuncular güncel sürümü alır.
-const VERSION = 'v38';
+const VERSION = 'v39';
 const CACHE = 'cayocagi-' + VERSION;
 const FILES = [
   './',
@@ -18,7 +18,8 @@ const FILES = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache:'reload': GitHub Pages dosyaları 10 dk önbellekte tutar; yeni sürüm kurulurken eskisi alınmasın
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, {cache:'reload'})))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -33,7 +34,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(req, {ignoreSearch: true});
-    const net = fetch(req).then(res => {
+    const net = fetch(req, {cache:'no-cache'}).then(res => {   // tarayıcı önbelleğini atla, sunucuya sor
       if (res.ok) cache.put(req, res.clone());
       return res;
     }).catch(() => hit);
