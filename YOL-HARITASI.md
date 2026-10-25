@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 10f | Şube konsepti, 🏪 dükkân paneli, uğranmayan şubede batma riski (sürüm 2.9.0) |
 | 10e | Şöhret ayrıcalıkları, röportaj cevabına göre ödül, kadın karakter (sürüm 2.8.0) |
 | 10d | Sevkiyat: malzeme kalitesi (ucuz / orta / birinci), malzeme gideri, müşteri yorumları (sürüm 2.7.0) |
 | 10c | Mutfak aletleri: tost makinesi, taş fırın, mangal ızgara ve 7 yeni ürün; aletler ocaktan ayrı, aynı anda pişirir (sürüm 2.6.0) |
@@ -359,6 +360,13 @@ Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullan�
 - Şöhret ayrıcalıkları (FAME_PERKS, Eşyalarım'da liste): 1. basamak 📣 "Hayranlarını çağır" (mutfakta günde bir kez düğme, 25 sn müşteri 2 kat sık), 2. 📺 reklam geliri (gün sonu gün × ₺25), 3. 🫖 çay markası (gün sonu müşteri başı +₺5), 4. ✈️ şube müdür geliri +%25. Karnede "Reklam ve çay markası" satırı.
 - Röportaj: baskın cevap tarzı o güne ödül verir (S.ivBuff): samimi → müşteriler %20 sabırlı, iddialı → sponsor parası (yayın ünlülüğü × ₺40), esprili → müşteriler %25 sık gelir. Üç cevap aynı tarzsa +%50 ünlülük ("Tutarlı duruş"), iddialıda para ×1,5. Kapak notunda ödül yazar.
 - Kadın karakter: sahip editöründe Cinsiyet (owner.g = 'e' / 'k'). Kadında bıyık gizlenir ve çizilmez, kısa saç uzuna döner; kirpik ve ruj çizilir.
+
+### 10f'de yapılanlar (sürüm 2.9.0, sw v30)
+- Kullanıcı seçimleri: 1a (konsept yalnızca menüyü değiştirir), 2a (üstte panel), 3a (şubeler de büyür; zaten her şubenin kendi dükkân seviyesi ve eşyaları vardı, testte doğrulandı).
+- CONCEPTS: 🍵 Klasik (bütün menü), ☕ Kahveci, 🍯 Tatlıcı, 🥙 Kebapçı, 🍳 Kahvaltıcı. Şube açarken konsept penceresi çıkar (kaç ürünün açık olduğu yazar). Konseptli şubede yalnızca konsept ürünleri satılır (sellable(): açık + konsepte uyan + aleti olan), %30 pahalı; müdür geliri +%15. Ana dükkân hep klasik.
+- Müşteri siparişleri ve günlük "sat" görevi de sellable()'dan seçilir; aleti olmayan şubede alet ürünü menüde çıkmaz.
+- Üst çubukta dükkân kapalıyken (duraklat düğmesinin yerinde) bulunduğun şehrin emojisiyle düğme: 🏪 Dükkânlarım paneli. Her dükkânda konsept, seviye, itibar, günlük gelir, durum, "X gündür uğramadın" ve "Git".
+- İhmal: batma riski artık yurt dışına çıkmadan da (en az bir şube varken) başlar. Sorun olasılığı yurt dışı öncesi yarı; her uğramadan geçen 7 günde bir kat daha artar (b.seen).
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı
