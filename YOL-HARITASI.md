@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 10a | Yavaşlatma: maliyetler ~2 kat, hafta günleri, kombo sayacı (12 sn), tepsi 11'e kadar, seyrek elektrik kesintisi (sürüm 2.4.0) |
 | 9b-3 | Dikey: çok ürünlü mutfak (5 sütun; 10+ ürün emoji, 7 sütun), sahne ürün alanına göre küçülür, en az %36 (sürüm 2.3.2) |
 
 ---
@@ -302,6 +303,35 @@ Kullanıcı oyunu Google Play'de yayınlamaya karar verdi. Sıra: 8a yayın haz�
 - Unvan: Usta → Pir → Çay Efsanesi; profil satırında 🎖️ ile görünür.
 - Yeni başarım: Usta Mirası (₺1.000, devirden hemen sonra verilir: yeni başlangıca küçük destek).
 - ⚠️ Puan formülü uzun oyunla dengelenmeli: ikinci turun ne kadar hızlı geçtiği gerçek oyuncularla izlenmeli.
+
+## 🧩 Faz 10: Oyunu uzatma (25 Ekim 2026)
+
+Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullanıcının 26 maddelik listesi 7 alt faza bölündü. Her alt faz ayrı tur ve ayrı commit.
+
+| Faz | İçerik | Listedeki maddeler |
+|---|---|---|
+| 10a | Yavaşlatma ve ekonomi: fiyatlar ve maliyetler artar, hafta günleri (hafta sonu kalabalık, pazartesi sakin), tepsi üst sınırı artar, elektrik kesintisi seyrekleşir, bonus sayacı kısalır | fiyatlar, yavaşlat, hafta günleri, tepsi, elektrik, bonus |
+| 10b | Ekip: garson hızı ve aşçı (çırak) hızı parayla artar, müdür, temizlikçi; müşteri geldikçe dükkân kirlenir | garson, aşçı, müdür, temizlikçi |
+| 10c | Mutfak aletleri: tost makinesi, fırın, ızgara; her alet kendi ürünlerini açar (ör. kaşarlı/karışık tost, pide, lahmacun, kurabiye, köfte, sucuk ekmek, hellim) | aletler, yeni ürünler |
+| 10d | Malzeme kalitesi (iyi / orta / kötü) ve sevkiyat; müşteri yorumları kaliteye göre olur, kötü yorumlar artar; iyi mal daha çok müşteri getirir | malzeme, sevkiyat, yorumlar |
+| 10e | Şöhret işe yarar (şöhret dükkânı / ayrıcalıklar), röportajda cevaba göre ödül, girişte kadın karakter | şöhret, röportaj, kadın karakter |
+| 10f | Dükkânlar: yeni dükkân açılırken konsept sorulur (kahveci, tatlıcı, kebapçı, kahvaltıcı…), her konseptin menüsü ve kazancı ayrı, her dükkân sıfırdan başlar, eski dükkânlara dönülebilir, dükkân genişler, az ilgilenilen dükkân batmaya başlar | konsept, sıfırdan, eski dükkân, genişleme, batma |
+| 10g | Kötü olaylar (az): kundaklama ve güvenlik görevlisi, ara sıra dükkânı kötü etkileyen olaylar | kundaklama, kötü olaylar |
+
+Önerilen sıra: 10a → 10b → 10c → 10d → 10e → 10f → 10g. 10a en hızlı biçimde oyunu uzatır; 10f en büyük iş olduğu için sona yakın.
+
+### Kullanıcının cevapları
+1. Alt sekmelere dokunulmayacak (madde iptal).
+2. "Bonus sayacı" = kombo: kombo artık süreyle biter (10a).
+3. Girişte kadın karakter seçeneği eklenecek (10e).
+4. Dükkânlar arası geçiş paneli: hangi şehre tıklanırsa oranın durumu görünsün (10f).
+
+### 10a'da yapılanlar (sürüm 2.4.0, sw v25)
+- Ürün açma, eşya/ekip geliştirmeleri ~2 kat; dükkân seviyeleri ₺1.500 / 6.000 / 20.000 ve 4. / 9. / 15. gün; şubeler ~1,5 kat; kira günde 15 × gün; Usta Mirası 25. günden sonra. Satış fiyatları aynı.
+- Hafta günleri (WEEK, WD()): 1. gün pazartesi. Pazartesi sakin (müşteri aralığı ×1,2), cuma ×0,9, cumartesi ×0,75 ve pazar ×0,8 + %20 bahşiş. Üst çubukta "Gün 5 · Cum", gün sonu karnesinde "Yarın …".
+- Kombo: her servisten sonra 12 sn (COMBO_TIME) içinde yeni servis yoksa biter; kutunun üstünde kalan süre çubuğu. Kombo kutusu dikeyde artık sahnenin içinde kalıyor (önceden alttan kesiliyordu).
+- Tepsi geliştirmesi en fazla 8 (11 ürün); elektrik kesintisi %35 olasılıkla seçilir ve 10 sn sürer.
+- ⚠️ Denge simülasyonla denenmedi; gerçek oyunda ilerleme hızı izlenmeli.
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı

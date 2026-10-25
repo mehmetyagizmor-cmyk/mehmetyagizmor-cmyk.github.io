@@ -419,15 +419,15 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 // shop: ürünü açmak için gereken dükkân seviyesi (SHOP_LEVELS sırası)
 const PRODUCTS = [
   {id:'cay',     name:'Çay',          emoji:'🍵', price:10, time:1.5, cost:0},
-  {id:'simit',   name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:100},
-  {id:'pogaca',  name:'Poğaça',       emoji:'🥐', price:20, time:2.0, cost:250},
-  {id:'limonata',name:'Limonata',     emoji:'🍋', price:25, time:1.5, cost:600,  shop:1},
-  {id:'kahve',   name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:350},
-  {id:'tost',    name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:900},
-  {id:'sahlep',  name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:2000},
-  {id:'menemen', name:'Menemen',      emoji:'🍳', price:70, time:4.5, cost:3000, shop:2},
-  {id:'baklava', name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:4000},
-  {id:'sutlac',  name:'Sütlaç',       emoji:'🍮', price:95, time:3.0, cost:6500, shop:3},
+  {id:'simit',   name:'Simit',        emoji:'🥯', price:15, time:2.0, cost:200},
+  {id:'pogaca',  name:'Poğaça',       emoji:'🥐', price:20, time:2.0, cost:500},
+  {id:'limonata',name:'Limonata',     emoji:'🍋', price:25, time:1.5, cost:1300,  shop:1},
+  {id:'kahve',   name:'Türk Kahvesi', emoji:'☕', price:30, time:3.0, cost:750},
+  {id:'tost',    name:'Tost',         emoji:'🥪', price:45, time:4.0, cost:2000},
+  {id:'sahlep',  name:'Sahlep',       emoji:'🥛', price:55, time:3.5, cost:4500},
+  {id:'menemen', name:'Menemen',      emoji:'🍳', price:70, time:4.5, cost:6500, shop:2},
+  {id:'baklava', name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:9000},
+  {id:'sutlac',  name:'Sütlaç',       emoji:'🍮', price:95, time:3.0, cost:14000, shop:3},
   // Şehir ürünleri: o şehirde şube açılınca bütün şubelerin menüsüne girer
   {id:'balik',   name:'Balık Ekmek',  emoji:'🐟', price:60,  time:3.5, city:'istanbul'},
   {id:'kurusu',  name:'Beypazarı Kurusu', emoji:'🍪', price:35, time:2.0, city:'ankara'},
@@ -458,9 +458,9 @@ const BASE_COUNT = PRODUCTS.filter(p => !p.city).length;
 // Dükkân seviyeleri: hem para hem zaman (gün) ister; görünümü ve alanı değiştirir
 const SHOP_LEVELS = [
   {name:'Mahalle Çay Ocağı', tables:3, right:600, cost:0,    day:0},
-  {name:'Kıraathane',        tables:5, right:750, cost:600,  day:3},
-  {name:'Nostaljik Kafe',    tables:7, right:950, cost:2500, day:6},
-  {name:'Ünlü Mekân',        tables:8, right:950, cost:8000, day:10},
+  {name:'Kıraathane',        tables:5, right:750, cost:1500,  day:4},
+  {name:'Nostaljik Kafe',    tables:7, right:950, cost:6000,  day:9},
+  {name:'Ünlü Mekân',        tables:8, right:950, cost:20000, day:15},
 ];
 
 // Şubeler: oyuncu bulunduğu şubeyi oynar, diğerlerini müdür yönetir (pasif gelir)
@@ -488,7 +488,7 @@ const CITY = Object.fromEntries(CITIES.map(c => [c.id, c]));
 const regionOf = id => CITY[id].region || 'tr';
 const TR_GOAL = 5;                                   // yurt dışı için gereken Türkiye şubesi
 const WORLD_GOAL = 5;
-const BRANCH_COSTS = {tr:[10000, 20000, 35000, 55000, 80000], world:[150000, 250000, 400000, 600000, 850000]};
+const BRANCH_COSTS = {tr:[15000, 30000, 50000, 80000, 120000], world:[220000, 375000, 600000, 900000, 1300000]};
 const TR_PIN = [33, 39];                             // haritada Türkiye
 const BRANCH_NEED = 2;                               // ana dükkân en az Nostaljik Kafe olmalı
 
@@ -551,13 +551,13 @@ const IV_QS = [
 ];
 
 const UPGRADES = [
-  {id:'masa',    grp:'esya', emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:80,  mult:1.8},
-  {id:'tepsi',   grp:'esya', emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:60,  mult:1.6, max:5},
-  {id:'semaver', grp:'esya', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:120, mult:1.7, max:6},
-  {id:'dekor',   grp:'esya', emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:150, mult:1.9, max:5},
-  {id:'tabela',  grp:'esya', emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:200, mult:2.0, max:5},
-  {id:'cirak',   grp:'ekip', emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:500, mult:2.2, max:3},
-  {id:'garson',  grp:'ekip', emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:800, mult:2.2, max:3},
+  {id:'masa',    grp:'esya', emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:160,  mult:1.8},
+  {id:'tepsi',   grp:'esya', emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:120, mult:1.75, max:8},
+  {id:'semaver', grp:'esya', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:240, mult:1.7, max:6},
+  {id:'dekor',   grp:'esya', emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:300, mult:1.9, max:5},
+  {id:'tabela',  grp:'esya', emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:400, mult:2.0, max:5},
+  {id:'cirak',   grp:'ekip', emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:1000, mult:2.2, max:3},
+  {id:'garson',  grp:'ekip', emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:1600, mult:2.2, max:3},
 ];
 // Eşyalarım ekranında her geliştirmenin o anki etkisi
 const UP_FX = {
@@ -583,7 +583,7 @@ const LIVE_EVENTS = [
   {id:'vip',        emoji:'👑', name:'VIP Müşteri',        desc:'Önemli biri geldi! Büyük sipariş, 3 kat ödeme. Kızdırırsan -10⭐', seats:1},
   {id:'influencer', emoji:'📸', name:'Influencer',         desc:'Mutlu ayrılırsa +10⭐, kızarsa -10⭐!', seats:1},
   {id:'turist',     emoji:'🚌', name:'Turist Kafilesi',    desc:'Boş masalar bir anda doldu!', seats:2},
-  {id:'elektrik',   emoji:'🔌', name:'Elektrik Kesintisi', desc:'Ocak 15 saniye yarı hızda çalışır.', dur:15},
+  {id:'elektrik',   emoji:'🔌', name:'Elektrik Kesintisi', desc:'Ocak 10 saniye yarı hızda çalışır.', dur:10},
   {id:'happy',      emoji:'⏰', name:'Mutlu Saat',          desc:'20 saniye boyunca bahşişler 3 katı!', dur:20},
 ];
 // Yemek eleştirmeni rastgele gelmez: bir gün önceden haber verilir (gün sonu karnesinde)
@@ -777,6 +777,17 @@ const GARSON_LOOKS = [
   {skin:SKINS[0], hair:HAIRS[4], style:2, shirt:'#f4f4f4', beard:true,  vest:true},
 ];
 const DAY_LEN = 120; // saniye (08:00 - 20:00)
+// Hafta günleri: 1. gün pazartesi. Hafta sonu kalabalık ve bahşiş bol, pazartesi sakin
+const WEEK = [
+  {name:'Pazartesi', short:'Pzt', spawn:1.2},
+  {name:'Salı', short:'Sal'}, {name:'Çarşamba', short:'Çar'}, {name:'Perşembe', short:'Per'},
+  {name:'Cuma', short:'Cum', spawn:0.9},
+  {name:'Cumartesi', short:'Cmt', spawn:0.75, tip:1.2},
+  {name:'Pazar', short:'Paz', spawn:0.8, tip:1.2},
+];
+const WD = (d = S.day) => WEEK[(d - 1) % 7];
+// Kombo: her servisten sonra bu kadar saniye içinde yenisi gelmezse biter
+const COMBO_TIME = 12;
 
 // ---------- Kayıt ----------
 const fresh = () => ({money:50, rep:50, day:1, unlocked:['cay'], lv:{}, total:0, owner:null,
@@ -835,7 +846,7 @@ const mainLv = () => S.branches[0].lv.dukkan || 0;   // günlük ödül/görev �
 // ---------- Usta Mirası (prestij) ----------
 // Ana dükkân Ünlü Mekân olunca (15. günden sonra) dükkân çırağa devredilir: her şey baştan başlar,
 // her miras puanı kalıcı +%5 satış getirir. Sahip, ünlülük, başarımlar ve koleksiyon kalır
-const LEGACY_DAY = 15;
+const LEGACY_DAY = 25;
 const LEGACY_KEEP = ['owner', 'ach', 'col', 'fame', 'interviews', 'lastCover', 'streak', 'lastDate', 'evp', 'rated', 'rateAsks', 'rateNext'];
 const LEGACY_TITLES = ['Usta', 'Pir', 'Çay Efsanesi'];
 const legacy = () => S.legacy || {n:0, pts:0};
@@ -1080,6 +1091,7 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
   return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv())
+    * (WD().spawn || 1)
     * (S.day <= 2 ? 0.7 : 1)    // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
     * ((EV() || {}).spawn || 1)
     * (EV() && EV().iftar ? (R.t > DAY_LEN * 0.75 ? 0.45 : 1.3) : 1);   // Ramazan: gündüz sakin, iftarda kalabalık
@@ -1166,13 +1178,13 @@ function pay(c){
   let base = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
   if (c.special === 'vip') base *= 3;
   if (R.focus) base = Math.round(base * 1.2);   // röportajı reddedip dükkâna odaklanılan gün
-  R.combo++;
+  R.combo++; R.comboT = COMBO_TIME;
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
   const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv())
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
-    * ((EV() || {}).tip || 1) * (1 + colBonus('tip'));
+    * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1);
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameLv();
@@ -1242,7 +1254,8 @@ function startDayEvent(){
 
 function triggerLiveEvent(){
   const free = freeSeats().length;
-  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id));
+  const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id)
+    && (e.id !== 'elektrik' || Math.random() < 0.35));   // kesinti seyrek olsun
   if (!options.length) return;
   // Dubai: VIP müşteriler çok sık gelir
   const vip = CM().vip && Math.random() < 0.5 && options.find(e => e.id === 'vip');
@@ -1390,6 +1403,10 @@ function tick(dt){
     R.eventIn -= dt;
     if (R.eventIn <= 0){ triggerLiveEvent(); R.eventIn = rand(25, 45); }
   }
+  if (R.combo && (R.comboT -= dt) <= 0){
+    if (R.combo >= 3) floatText(140, 440, `⏱️ Kombo bitti (${R.combo})`, '#c9b39a');
+    R.combo = 0;
+  }
   R.effects.forEach(e => e.left -= dt);
   R.effects = R.effects.filter(e => e.left > 0);
 
@@ -1477,7 +1494,7 @@ function tick(dt){
 function endDay(){
   status = 'closed';
   SFX.dayEnd();
-  const rent = 10 * S.day;
+  const rent = 15 * S.day;
   S.money = Math.max(0, S.money - rent);
   const st = R.stats, net = st.earned + st.tips - rent;
   const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
@@ -1511,6 +1528,7 @@ function endDay(){
     ${record ? '<p class="banner">🎉 Yeni rekor! En kârlı günün!</p>' : ''}
     ${perfect ? '<p class="banner">✨ Kusursuz gün: kimse kızmadı!</p>' : ''}
     ${R.dayEvent ? `<p class="hint">Günün olayı: ${R.dayEvent.emoji} ${R.dayEvent.name}</p>` : ''}
+    <p class="hint">📅 Yarın ${WD(S.day + 1).name}${WD(S.day + 1).tip ? ': hafta sonu, dükkân dolar, bahşiş bol!' : WD(S.day + 1).spawn > 1 ? ': haftanın ilk günü, sakin geçer.' : ''}</p>
     ${R.focus ? '<p class="hint">🧹 Odak günü: satışlar %20 fazlaydı</p>' : ''}
     <table>
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
@@ -2115,7 +2133,7 @@ function drawCombo(){
   const n = R.combo, cm = comboMult(n), next = COMBO_STEPS.find(k => k > n);
   const prev = [...COMBO_STEPS].reverse().find(k => k <= n) || 0;
   const x = 0, y = 0, w = 236, h = 46, pulse = 1 + Math.sin(now() * 8) * 0.04 * Math.min(1, n / 6);
-  g.save(); g.translate(12, 530 - h * 1.25); g.scale(1.25, 1.25); // telefonda okunaklı ama masaya taşmasın
+  g.save(); g.translate(12, Math.min(530, viewH() - 12) - h * 1.25); g.scale(1.25, 1.25); // telefonda okunaklı ama masaya taşmasın
   g.translate(w / 2, h / 2); g.scale(pulse, pulse); g.translate(-w / 2, -h / 2);
   g.fillStyle = 'rgba(20,12,6,.82)'; rr(g, x, y, w, h, 12); g.fill();
   g.strokeStyle = cm > 1 ? '#ff9d3a' : 'rgba(255,255,255,.25)'; g.lineWidth = 2; rr(g, x, y, w, h, 12); g.stroke();
@@ -2124,6 +2142,8 @@ function drawCombo(){
   g.fillStyle = '#fff'; g.font = '900 19px system-ui'; g.fillText(`${n} KOMBO`, x + 44, y + 17);
   g.fillStyle = cm > 1 ? '#ffc94a' : '#c9b39a'; g.font = '700 13px system-ui';
   g.fillText(cm > 1 ? `bahşiş x${cm}` : `${next} kombo: bahşiş x${comboMult(next)}`, x + 44, y + 34);
+  const tf = Math.max(0, (R.comboT || 0) / COMBO_TIME);   // kalan kombo süresi
+  g.fillStyle = tf < 0.3 ? '#ff6b5e' : '#ffc94a'; rr(g, x + 10, y + 3, (w - 20) * tf, 3, 1.5); g.fill();
   if (next){ // ilerleme çubuğu
     const f = (n - prev) / (next - prev);
     g.fillStyle = 'rgba(255,255,255,.15)'; rr(g, x + 170, y + 12, 54, 6, 3); g.fill();
@@ -2231,7 +2251,7 @@ function renderUI(){
   $('#rep').textContent = '⭐ ' + Math.round(S.rep);
   const frac = Math.min(1, R.t / DAY_LEN);
   const mins = 8 * 60 + Math.floor(frac * 12 * 60);
-  $('#day').textContent = `Gün ${S.day} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#day').textContent = `Gün ${S.day} · ${WD().short} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
   $('#clockfill').style.width = frac * 100 + '%';
   const where = S.cur ? ` · ${city().name}` : '';
   $('#shopTitle').textContent = '🍵 ' + owner().shopName + where;
@@ -2578,7 +2598,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.3.2';
+const APP_VERSION = '2.4.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
