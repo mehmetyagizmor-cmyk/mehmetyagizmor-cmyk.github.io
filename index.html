@@ -2386,6 +2386,13 @@ function drawScene(){
 let sahne3d = null, want3d = false;
 try { want3d = localStorage.getItem('cayocagi-sahne') === '3d'; } catch(e) {}
 const use3d = () => want3d && sahne3d;
+// Son 3D hatası Ayarlar'da kalıcı görünür (kart birkaç saniyede kaybolur): mesaj + hatanın çıktığı dosya/satır
+let err3d = '';
+function note3d(err){
+  const at = String(err && err.stack || '').split('\n').find(l => /\.js:\d+/.test(l)) || '';
+  err3d = (String(err && err.message || err) + ' @ ' + at.replace(/^.*\//, '').replace(/\)$/, '')).slice(0, 220);
+  return err3d.slice(0, 140);
+}
 function set3D(on){
   want3d = on;
   try { localStorage.setItem('cayocagi-sahne', on ? '3d' : '2d'); } catch(e) {}
@@ -2397,7 +2404,7 @@ function set3D(on){
   }).catch(err => {
     console.error(err); want3d = false; $('#scene3d').hidden = true;
     try { localStorage.setItem('cayocagi-sahne', '2d'); } catch(e) {}
-    announce({emoji:'⚠️', name:'3D sahne açılamadı, 2D kullanılıyor', desc:String(err && err.message || err).slice(0, 140)});
+    announce({emoji:'⚠️', name:'3D sahne açılamadı, 2D kullanılıyor', desc:note3d(err)});
   });
 }
 function drawScene3D(){
@@ -2853,7 +2860,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.0';
+const APP_VERSION = '2.11.1';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2892,6 +2899,7 @@ function showSettings(){
     <div class="set-row"><span>🎵 Müzik</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
     ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
     <div class="set-row"><span>🧊 Sahne (3D deneme)</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
+    ${err3d ? `<p class="hint" style="margin:4px 0 8px;color:#ff9d8a">⚠️ Son 3D hatası: ${esc(err3d)}</p>` : ''}
     <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
     <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
     ${installRow()}
@@ -3485,7 +3493,7 @@ function frame(ts){
   if (use3d()){
     // 3D'de bir hata çizim döngüsünü durdurmasın: 2D'ye dön ve sebebini göster
     try { drawScene3D(); }
-    catch (err){ console.error(err); set3D(false); announce({emoji:'⚠️', name:'3D sahne hatası, 2D\'ye dönüldü', desc:String(err && err.message || err).slice(0, 140)}); drawScene(); }
+    catch (err){ console.error(err); set3D(false); announce({emoji:'⚠️', name:'3D sahne hatası, 2D\'ye dönüldü', desc:note3d(err)}); drawScene(); }
   } else drawScene();
   drawPreview();
   drawAvatar();
