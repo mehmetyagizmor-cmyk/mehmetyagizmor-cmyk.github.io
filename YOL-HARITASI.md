@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 10e | Şöhret ayrıcalıkları, röportaj cevabına göre ödül, kadın karakter (sürüm 2.8.0) |
 | 10d | Sevkiyat: malzeme kalitesi (ucuz / orta / birinci), malzeme gideri, müşteri yorumları (sürüm 2.7.0) |
 | 10c | Mutfak aletleri: tost makinesi, taş fırın, mangal ızgara ve 7 yeni ürün; aletler ocaktan ayrı, aynı anda pişirir (sürüm 2.6.0) |
 | 10b | Ekip: garson ve aşçı eğitimi, 4. çırak, temizlikçi, müdür; dükkân kirlenir (sürüm 2.5.0) |
@@ -353,6 +354,11 @@ Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullan�
 - QUALITY: 📦 Ucuz (%10 malzeme payı, müşteri aralığı ×1,15, bahşiş ×0,9, kötü yorum %30), 🧺 Orta (%25, nötr, kötü %6), 🌟 Birinci Kalite (%40, müşteri aralığı ×0,85, bahşiş ×1,15, iyi yorum %30).
 - Her satıştan malzeme payı düşülür (para balonu net gösterir). Gün sonu karnesinde malzeme gideri ve 👍/👎 yorum sayısı; net kâr malzemeyi düşer.
 - Müşteri yorumu balonu: iyi +1⭐, kötü -2⭐. Sabrının çeyreğinden azı kalmışken servis edilen müşteri %40 olasılıkla "Çok bekledim!" der (kaliteden bağımsız).
+
+### 10e'de yapılanlar (sürüm 2.8.0, sw v29)
+- Şöhret ayrıcalıkları (FAME_PERKS, Eşyalarım'da liste): 1. basamak 📣 "Hayranlarını çağır" (mutfakta günde bir kez düğme, 25 sn müşteri 2 kat sık), 2. 📺 reklam geliri (gün sonu gün × ₺25), 3. 🫖 çay markası (gün sonu müşteri başı +₺5), 4. ✈️ şube müdür geliri +%25. Karnede "Reklam ve çay markası" satırı.
+- Röportaj: baskın cevap tarzı o güne ödül verir (S.ivBuff): samimi → müşteriler %20 sabırlı, iddialı → sponsor parası (yayın ünlülüğü × ₺40), esprili → müşteriler %25 sık gelir. Üç cevap aynı tarzsa +%50 ünlülük ("Tutarlı duruş"), iddialıda para ×1,5. Kapak notunda ödül yazar.
+- Kadın karakter: sahip editöründe Cinsiyet (owner.g = 'e' / 'k'). Kadında bıyık gizlenir ve çizilmez, kısa saç uzuna döner; kirpik ve ruj çizilir.
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı
