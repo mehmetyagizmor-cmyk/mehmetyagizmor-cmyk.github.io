@@ -428,6 +428,14 @@ const PRODUCTS = [
   {id:'menemen', name:'Menemen',      emoji:'🍳', price:70, time:4.5, cost:6500, shop:2},
   {id:'baklava', name:'Baklava',      emoji:'🍯', price:80, time:2.5, cost:9000},
   {id:'sutlac',  name:'Sütlaç',       emoji:'🍮', price:95, time:3.0, cost:14000, shop:3},
+  // Alet ürünleri: önce Mağaza'dan aleti almak gerekir; aletinde ocaktan ayrı, aynı anda pişer
+  {id:'kasarli', name:'Kaşarlı Tost',  emoji:'🧀', price:50,  time:3.0, cost:1200,  tool:'tostmak'},
+  {id:'bazlama', name:'Bazlama Tost',  emoji:'🫔', price:60,  time:3.5, cost:2000,  tool:'tostmak'},
+  {id:'lahmacun',name:'Lahmacun',      emoji:'🍕', price:70,  time:4.0, cost:3500,  tool:'firin'},
+  {id:'borek',   name:'Su Böreği',     emoji:'🥧', price:85,  time:3.5, cost:5000,  tool:'firin'},
+  {id:'sucuk',   name:'Sucuk Ekmek',   emoji:'🌭', price:80,  time:3.5, cost:7000,  tool:'izgara'},
+  {id:'kofte',   name:'Köfte Ekmek',   emoji:'🍔', price:100, time:4.5, cost:9000,  tool:'izgara'},
+  {id:'sis',     name:'Tavuk Şiş',     emoji:'🍢', price:120, time:5.0, cost:12000, tool:'izgara'},
   // Şehir ürünleri: o şehirde şube açılınca bütün şubelerin menüsüne girer
   {id:'balik',   name:'Balık Ekmek',  emoji:'🐟', price:60,  time:3.5, city:'istanbul'},
   {id:'kurusu',  name:'Beypazarı Kurusu', emoji:'🍪', price:35, time:2.0, city:'ankara'},
@@ -556,6 +564,9 @@ const UPGRADES = [
   {id:'semaver', grp:'esya', emoji:'🫖', name:'Hızlı Semaver', desc:'Hazırlama %15 daha hızlı',           base:240, mult:1.7, max:6},
   {id:'dekor',   grp:'esya', emoji:'🪴', name:'Dekorasyon',    desc:'Bitki, tablo, halı, lamba… Müşteriler daha sabırlı, bahşiş artar', base:300, mult:1.9, max:5},
   {id:'tabela',  grp:'esya', emoji:'💡', name:'Neon Tabela',   desc:'Tabelan parlar, daha sık müşteri gelir', base:400, mult:2.0, max:5},
+  {id:'tostmak', grp:'alet', emoji:'🧇', name:'Tost Makinesi', desc:'Kaşarlı ve Bazlama Tost açılır. Ocaktan ayrı pişirir; sonraki seviyeler %25 hız', base:2500,  mult:2.5, max:3},
+  {id:'firin',   grp:'alet', emoji:'🧱', name:'Taş Fırın',     desc:'Lahmacun ve Su Böreği açılır. Ocaktan ayrı pişirir; sonraki seviyeler %25 hız', base:6000,  mult:2.5, max:3},
+  {id:'izgara',  grp:'alet', emoji:'🔥', name:'Mangal Izgara', desc:'Sucuk Ekmek, Köfte Ekmek ve Tavuk Şiş açılır. Ocaktan ayrı pişirir; sonraki seviyeler %25 hız', base:12000, mult:2.5, max:3},
   {id:'cirak',   grp:'ekip', emoji:'🧒', name:'Çırak',         desc:'Eksik siparişleri kendisi hazırlar', base:1000, mult:2.2, max:4},
   {id:'cirakhiz', grp:'ekip', emoji:'👨‍🍳', name:'Aşçı Eğitimi', desc:'Çıraklar %20 daha hızlı hazırlar', base:900, mult:2, max:4, need:'cirak'},
   {id:'garson',  grp:'ekip', emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:1600, mult:2.2, max:3},
@@ -576,6 +587,9 @@ const UP_FX = {
   garsonhiz: l => `%${l * 20} hızlı garson`,
   temizlikci: l => `${l} temizlikçi`,
   mudur:     l => `günde ${l} yatıştırma`,
+  tostmak: l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
+  firin:   l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
+  izgara:  l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
 };
 
 const DAY_EVENTS = [
@@ -836,7 +850,7 @@ const trayCap = () => 3 + lv('tepsi');
 const DE = () => R.dayEvent || {};
 const effect = id => R.effects.some(e => e.id === id);
 const speed = () => (1 + 0.15 * lv('semaver')) * (effect('elektrik') ? 0.5 : 1);
-const prepTime = id => P[id].time / speed();
+const prepTime = id => P[id].time / speed() / (P[id].tool ? 1 + 0.25 * (lv(P[id].tool) - 1) : 1);
 // Tarif seviyesi: her seviye +%25 fiyat; maliyet katlanarak artar (uzun vadeli para hedefi)
 const recLv = id => (S.rec || {})[id] || 0;
 // Etkinlik ürünleri tarif almaz; fiyatı ana dükkânın seviyesiyle büyür (geç oyunda da değerli kalsın)
@@ -846,8 +860,8 @@ const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] |
   * (((EV() || {}).priceMult || {})[id] || 1));
 // Mutfaktaki ürünler: menü + (varsa) etkinlik ürünü en sonda
 const kitchenMenu = () => [...PRODUCTS.filter(p => S.unlocked.includes(p.id)), ...(evProduct() ? [evProduct()] : [])];
-const shopLocked = p => p.city ? !hasCity(p.city) : (p.shop || 0) > lv('dukkan');
-const lockText = p => p.city ? `${CITY[p.city].name} şubesiyle` : `${SHOP_LEVELS[p.shop].name} olunca`;
+const shopLocked = p => p.city ? !hasCity(p.city) : p.tool ? !lv(p.tool) : (p.shop || 0) > lv('dukkan');
+const lockText = p => p.city ? `${CITY[p.city].name} şubesiyle` : p.tool ? `${UPGRADES.find(u => u.id === p.tool).name} alınca` : `${SHOP_LEVELS[p.shop].name} olunca`;
 
 // ---------- Şubeler ----------
 const branch = () => S.branches[S.cur];
@@ -1436,9 +1450,12 @@ function tick(dt){
   R.effects = R.effects.filter(e => e.left > 0);
 
   // Oyuncunun ocağı
-  if (R.queue.length){
-    const x = R.queue[0]; x.prog += dt;
-    if (x.prog >= prepTime(x.p)){ trayAdd(x.p); R.queue.shift(); }
+  const busy = new Set();
+  for (const x of [...R.queue]){
+    const st = P[x.p].tool || 'ocak';
+    if (busy.has(st)) continue;
+    busy.add(st); x.prog += dt;
+    if (x.prog >= prepTime(x.p)){ trayAdd(x.p); R.queue.splice(R.queue.indexOf(x), 1); }
   }
 
   // Çıraklar
@@ -2335,7 +2352,7 @@ function renderUI(){
   document.body.classList.toggle('blackout', status === 'running' && effect('elektrik'));
 
   const chip = (p, prog, who) => `<span class="chip">${P[p].emoji}<span class="who">${who}</span><span class="prog" style="width:${Math.min(1, prog) * 100}%"></span></span>`;
-  let q = R.queue.map((x, i) => chip(x.p, i === 0 ? x.prog / prepTime(x.p) : 0, ''));
+  let q = R.queue.map(x => chip(x.p, x.prog / prepTime(x.p), P[x.p].tool ? UPGRADES.find(u => u.id === P[x.p].tool).emoji : ''));
   R.helpers.forEach(x => { if (x) q.push(chip(x.p, x.prog / prepTime(x.p), '🧒')); });
   setHTML('#queue', q.join('') || '<small class="hint" style="margin:8px">Ocak boş</small>');
 
@@ -2361,7 +2378,7 @@ function renderUI(){
         <button data-legacy ${ok && status !== 'running' ? '' : 'disabled'}>${ok ? 'Devret' : '🔒 Gün ' + LEGACY_DAY}</button></div>`;
     }
   }
-  [['esya', 'Eşyalar'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
+  [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
     s += `<h3>${title}</h3>`;
     UPGRADES.filter(u => u.grp === grp).forEach(u => {
       const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
@@ -2449,13 +2466,13 @@ function renderUI(){
   });
   v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => card(i === 3 ? '🏆' : '🏪', L.name,
     i < lv('dukkan') ? 'Geride kaldı' : i === lv('dukkan') ? 'Şu anki dükkânın' : `Gün ${L.day}+ · ₺${fmt(L.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
-  [['esya', 'Eşyalar'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
+  [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
     v += `<h3>${title}</h3><div class="inv">` + UPGRADES.filter(u => u.grp === grp).map(u => {
       const l = lv(u.id);
       return card(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', dots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
     }).join('') + '</div>';
   });
-  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : SHOP_LEVELS[p.shop].name) : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
+  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : p.tool ? UPGRADES.find(u => u.id === p.tool).name : SHOP_LEVELS[p.shop].name) : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
   setHTML('#inventory', v);
 
   // Şubeler
@@ -2634,7 +2651,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.5.0';
+const APP_VERSION = '2.6.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
