@@ -600,6 +600,7 @@ const UPGRADES = [
   {id:'garson',  grp:'ekip', emoji:'🤵', name:'Garson',        desc:'Tepsidekileri masalara taşır',       base:1600, mult:2.2, max:3},
   {id:'garsonhiz', grp:'ekip', emoji:'👟', name:'Garson Eğitimi', desc:'Garsonlar %20 daha hızlı yürür', base:1200, mult:2, max:4, need:'garson'},
   {id:'temizlikci', grp:'ekip', emoji:'🧹', name:'Temizlikçi', desc:'Masa önlerindeki kirleri kendisi temizler', base:700, mult:2.4, max:3},
+  {id:'guvenlik', grp:'ekip', emoji:'💂', name:'Güvenlik Görevlisi', desc:'Kundakçıyı kendisi yakalar, gece hırsızlarını önler', base:3000, mult:2.5, max:3},
   {id:'mudur',   grp:'ekip', emoji:'👔', name:'Müdür',         desc:'Kızmak üzere olan müşteriyi yatıştırır, kirayı %25 indirir', base:5000, mult:2.6, max:3},
 ];
 // Eşyalarım ekranında her geliştirmenin o anki etkisi
@@ -615,6 +616,7 @@ const UP_FX = {
   garsonhiz: l => `%${l * 20} hızlı garson`,
   temizlikci: l => `${l} temizlikçi`,
   mudur:     l => `günde ${l} yatıştırma`,
+  guvenlik:  l => `gece %${Math.min(100, 35 * l)} koruma`,
   tostmak: l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
   firin:   l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
   izgara:  l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
@@ -634,7 +636,16 @@ const LIVE_EVENTS = [
   {id:'influencer', emoji:'📸', name:'Influencer',         desc:'Mutlu ayrılırsa +10⭐, kızarsa -10⭐!', seats:1},
   {id:'turist',     emoji:'🚌', name:'Turist Kafilesi',    desc:'Boş masalar bir anda doldu!', seats:2},
   {id:'elektrik',   emoji:'🔌', name:'Elektrik Kesintisi', desc:'Ocak 10 saniye yarı hızda çalışır.', dur:10},
+  {id:'kundak',     emoji:'🕵️', name:'Şüpheli Biri!',     desc:'Kapıda bir kundakçı var! Çabuk üstüne dokunup kov, yoksa yangın çıkar.'},
   {id:'happy',      emoji:'⏰', name:'Mutlu Saat',          desc:'20 saniye boyunca bahşişler 3 katı!', dur:20},
+];
+const FIRE = {id:'yangin', emoji:'🔥', name:'Yangın!', desc:'Kundakçı kaçtı, tezgâh tutuştu! Ocak ve aletler 12 saniye çalışmaz.'};
+const ARSON_LOOK = {skin:'#eab68f', hair:'#24160f', style:0, shirt:'#22222a', beard:false, hat:'bere'};
+const ARSON_T = 7;   // oyuncunun kundakçıyı kovmak için süresi (sn)
+// Gece olayları: gün bittikten sonra seyrek; hırsızı güvenlik önleyebilir
+const NIGHT = [
+  {id:'hirsiz', emoji:'🦹', name:'Gece dükkâna hırsız girdi', guard:true, loss:() => Math.round(S.money * 0.1)},
+  {id:'boru',   emoji:'💧', name:'Su borusu patladı, tamir gerekti', loss:() => 30 * S.day},
 ];
 // Yemek eleştirmeni rastgele gelmez: bir gün önceden haber verilir (gün sonu karnesinde)
 const CRITIC = {id:'elestirmen', emoji:'🧐', name:'Yemek Eleştirmeni', desc:'En pahalı ürünleri ister. Hız, tarif yıldızları ve salonun huzuru puanı belirler!'};
@@ -1223,6 +1234,11 @@ function spawnCustomer(special, delayPx = 0){
   return c;
 }
 
+function catchArson(msg){
+  const a = R.arson; R.arson = null;
+  S.rep = Math.min(100, S.rep + 3);
+  floatText(a.x - 30, a.y - 100, msg + ' +3⭐', '#8fe08f'); SFX.combo();
+}
 function leave(c, mood){
   c.leaving = {mood};
   if (c.seat != null && R.stains.length < MAX_STAINS && Math.random() < 0.55){
@@ -1342,13 +1358,15 @@ function startDayEvent(){
 function triggerLiveEvent(){
   const free = freeSeats().length;
   const options = LIVE_EVENTS.filter(e => (!e.seats || free >= e.seats) && !effect(e.id)
-    && (e.id !== 'elektrik' || Math.random() < 0.35));   // kesinti seyrek olsun
+    && (e.id !== 'elektrik' || Math.random() < 0.35)   // kesinti seyrek olsun
+    && (e.id !== 'kundak' || (S.day >= 6 && !R.arson && Math.random() < 0.3)));
   if (!options.length) return;
   // Dubai: VIP müşteriler çok sık gelir
   const vip = CM().vip && Math.random() < 0.5 && options.find(e => e.id === 'vip');
   const ev = vip || pick(options);
   if (ev.dur) R.effects.push({id:ev.id, left:ev.dur, ev});
   if (ev.id === 'vip' || ev.id === 'influencer') spawnCustomer(ev.id);
+  if (ev.id === 'kundak') R.arson = {t:ARSON_T, x:rightWall() - 45, y:aisleY()};
   if (ev.id === 'turist') for (let i = 0; i < free; i++) spawnCustomer('turist', i * 40);
   announce(ev);
 }
@@ -1494,6 +1512,17 @@ function tick(dt){
     const st = R.stains.shift(); floatText(st.x, st.y - 20, '🧹✨', '#fff');
     R.cleanIn = 9 / lv('temizlikci');
   }
+  if (R.arson){
+    R.arson.t -= dt;
+    const gl = lv('guvenlik');
+    if (gl && ARSON_T - R.arson.t >= 3.5 - 0.8 * gl) catchArson('💂 Güvenlik yakaladı!');
+    else if (R.arson.t <= 0){
+      const loss = Math.min(S.money, 40 * S.day), a = R.arson;
+      S.money -= loss; S.rep = Math.max(0, S.rep - 5); R.arson = null;
+      R.effects.push({id:'yangin', left:12, ev:FIRE}); announce(FIRE); SFX.error();
+      floatText(a.x - 40, a.y - 100, `🔥 -₺${fmt(loss)} -5⭐`, '#ff6b5e');
+    }
+  }
   if (R.combo && (R.comboT -= dt) <= 0){
     if (R.combo >= 3) floatText(140, 440, `⏱️ Kombo bitti (${R.combo})`, '#c9b39a');
     R.combo = 0;
@@ -1502,7 +1531,7 @@ function tick(dt){
   R.effects = R.effects.filter(e => e.left > 0);
 
   // Oyuncunun ocağı
-  const busy = new Set();
+  const busy = new Set(effect('yangin') ? ['ocak', ...UPGRADES.filter(u => u.grp === 'alet').map(u => u.id)] : []);   // yangında pişmez
   for (const x of [...R.queue]){
     const st = P[x.p].tool || 'ocak';
     if (busy.has(st)) continue;
@@ -1600,6 +1629,12 @@ function endDay(){
   const fameInc = (fameLv() >= 2 ? 25 * S.day : 0) + (fameLv() >= 3 ? 5 * R.stats.served : 0);   // reklam + çay markası
   S.money += fameInc; S.total += fameInc;
   const risk = riskDay(R.interview);
+  let night = null;
+  if (S.day >= 5 && Math.random() < 0.06){
+    const n = pick(NIGHT), blocked = n.guard && Math.random() < 0.35 * lv('guvenlik');
+    const loss = blocked ? 0 : Math.min(S.money, n.loss());
+    S.money -= loss; night = {n, blocked, loss};
+  }
   // Günün karnesi: 3 yıldız = kimse kızmadı
   const ratio = st.served / Math.max(1, st.served + st.lost);
   const stars = st.lost === 0 && st.served >= 5 ? 3 : ratio >= 0.8 ? 2 : 1;
@@ -1629,6 +1664,7 @@ function endDay(){
     ${perfect ? '<p class="banner">✨ Kusursuz gün: kimse kızmadı!</p>' : ''}
     ${R.dayEvent ? `<p class="hint">Günün olayı: ${R.dayEvent.emoji} ${R.dayEvent.name}</p>` : ''}
     <p class="hint">📅 Yarın ${WD(S.day + 1).name}${WD(S.day + 1).tip ? ': hafta sonu, dükkân dolar, bahşiş bol!' : WD(S.day + 1).spawn > 1 ? ': haftanın ilk günü, sakin geçer.' : ''}</p>
+    ${night ? `<p class="banner${night.blocked ? '' : ' bad'}">🌙 ${night.n.emoji} ${night.blocked ? `${night.n.name} ama güvenlik yakaladı!` : `${night.n.name}: -₺${fmt(night.loss)}`}</p>` : ''}
     ${R.focus ? '<p class="hint">🧹 Odak günü: satışlar %20 fazlaydı</p>' : ''}
     <table>
       <tr><td>Servis edilen müşteri</td><td>${st.served}</td></tr>
@@ -2287,6 +2323,13 @@ function drawScene(){
       if (c.leaving) emoji(g, c.leaving.mood === 'happy' ? '😋' : '💢', c.x + 16, c.y - 82, 16);
     }});
   });
+  if (R.arson){ const a = R.arson; items.push({y:a.y, draw:() => {
+    const p = 1 + Math.sin(now() * 10) * 0.12;
+    g.strokeStyle = '#ff4d3a'; g.lineWidth = 3; g.beginPath(); g.ellipse(a.x, a.y - 2, 30 * p, 10 * p, 0, 0, 7); g.stroke();
+    drawPerson(g, {x:a.x, y:a.y, look:ARSON_LOOK, mood:'angry'});
+    emoji(g, '🔥', a.x - 20, a.y - 36, 18);
+    g.fillStyle = '#ff4d3a'; g.font = '900 20px system-ui'; g.textAlign = 'center'; g.fillText(`❗ ${Math.ceil(a.t)}`, a.x, a.y - 92);
+  }}); }
   R.garsons.forEach(gs => items.push({y:gs.y, draw:() =>
     drawPerson(g, {x:gs.x, y:gs.y, look:GARSON_LOOKS[gs.i], walk:gs.state === 'idle' ? null : gs.walk, flip:gs.flip, mood:'happy',
                    carry:gs.carry ? P[gs.carry].emoji : null})}));
@@ -2295,6 +2338,7 @@ function drawScene(){
   if (D >= 5) items.push({y:530, draw:() => drawPlant(36, 530, true)});
   items.sort((a, b) => a.y - b.y).forEach(it => it.draw());
 
+  if (effect('yangin')) for (let i = 0; i < 4; i++) emoji(g, '🔥', 60 + i * 90 + Math.sin(now() * 7 + i) * 4, 300 - Math.abs(Math.sin(now() * 5 + i)) * 10, 30);
   R.customers.filter(seated).forEach(drawBubble);
   drawParticles();
   if (status === 'running' && R.combo >= 2) drawCombo();
@@ -2724,7 +2768,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '2.10.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3182,6 +3226,7 @@ scene.addEventListener('pointerdown', e => {
   if (modalOpen() || status !== 'running') return;
   const r = scene.getBoundingClientRect();
   const x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * viewH();
+  if (R.arson && Math.abs(x - R.arson.x) < 50 && y > R.arson.y - 110 && y < R.arson.y + 20){ catchArson('🏃 Kundakçıyı kovdun!'); return; }
   const st = R.stains.find(st => Math.abs(x - st.x) < 32 && Math.abs(y - st.y) < 22);
   if (st){ R.stains = R.stains.filter(o => o !== st); floatText(st.x, st.y - 20, '✨', '#fff'); SFX.trash(); return; }
   // Telefonda parmak küçük kalmasın: geniş alan, en yakın müşteri

@@ -27,6 +27,7 @@ Son güncelleme: 17 Ekim 2026
 | 9a | Mobilde içerik kendi içinde kayar (itch.io scrolling="no" çerçevesi) (sürüm 2.2.2) |
 | 9b-1 | Dikey telefon yerleşimi: 3 sütun masa, aşağı doğru büyüyen dükkân (sürüm 2.3.0) |
 | 9b-2 | Dikey: sahne ekranın en fazla yarısı, oyun sırasında sıkışık mutfak, halı ve avizeler (sürüm 2.3.1) |
+| 10g | Kundakçı (dokunup kov), yangın, güvenlik görevlisi, seyrek gece olayları (sürüm 2.10.0) |
 | 10f | Şube konsepti, 🏪 dükkân paneli, uğranmayan şubede batma riski (sürüm 2.9.0) |
 | 10e | Şöhret ayrıcalıkları, röportaj cevabına göre ödül, kadın karakter (sürüm 2.8.0) |
 | 10d | Sevkiyat: malzeme kalitesi (ucuz / orta / birinci), malzeme gideri, müşteri yorumları (sürüm 2.7.0) |
@@ -309,7 +310,7 @@ Kullanıcı oyunu Google Play'de yayınlamaya karar verdi. Sıra: 8a yayın haz�
 - Yeni başarım: Usta Mirası (₺1.000, devirden hemen sonra verilir: yeni başlangıca küçük destek).
 - ⚠️ Puan formülü uzun oyunla dengelenmeli: ikinci turun ne kadar hızlı geçtiği gerçek oyuncularla izlenmeli.
 
-## 🧩 Faz 10: Oyunu uzatma (25 Ekim 2026)
+## ✅ Faz 10 tamamlandı: Oyunu uzatma (25 Ekim 2026)
 
 Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullanıcının 26 maddelik listesi 7 alt faza bölündü. Her alt faz ayrı tur ve ayrı commit.
 
@@ -367,6 +368,12 @@ Arkadaş geri bildirimi: "Oyun güzel, içinde kaldık ama erken bitti." Kullan�
 - Müşteri siparişleri ve günlük "sat" görevi de sellable()'dan seçilir; aleti olmayan şubede alet ürünü menüde çıkmaz.
 - Üst çubukta dükkân kapalıyken (duraklat düğmesinin yerinde) bulunduğun şehrin emojisiyle düğme: 🏪 Dükkânlarım paneli. Her dükkânda konsept, seviye, itibar, günlük gelir, durum, "X gündür uğramadın" ve "Git".
 - İhmal: batma riski artık yurt dışına çıkmadan da (en az bir şube varken) başlar. Sorun olasılığı yurt dışı öncesi yarı; her uğramadan geçen 7 günde bir kat daha artar (b.seen).
+
+### 10g'de yapılanlar (sürüm 2.10.0, sw v31)
+- Canlı olay 🕵️ "Şüpheli Biri!" (6. günden sonra, olay seçiminde %30 ağırlıkla, seyrek): kapıda kundakçı belirir, kırmızı halka ve 7 sn geri sayım. Üstüne dokununca kovulur (+3⭐). Süre dolarsa yangın: gün × ₺40 kayıp, -5⭐, ocak ve aletler 12 sn pişirmez (tezgâhta alevler).
+- 💂 Güvenlik Görevlisi (Çalışanlar, ₺3.000, en fazla 3): kundakçıyı 2,7 / 1,9 / 1,1 sn içinde kendisi yakalar; gece hırsızını %35 / %70 / %100 önler.
+- Gece olayları (5. günden sonra, gün başına %6): 🦹 hırsız paranın %10'unu alır (güvenlik önleyebilir), 💧 su borusu gün × ₺30. Gün sonu karnesinde 🌙 satırı.
+- ⚠️ Faz 10'un bütün dengesi (maliyet ×2, malzeme payı, kir, kötü olaylar) birlikte gerçek oyunda denenmeli; oyun fazla zorlaştıysa ilk ayarlanacaklar: malzeme payı, maliyet çarpanı, leke sıklığı.
 
 ## 📝 Bekleyen diğer işler
 - [x] `privacy.html` iletişim e-postası yazıldı
