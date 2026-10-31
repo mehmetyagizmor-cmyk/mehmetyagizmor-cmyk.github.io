@@ -1936,7 +1936,34 @@ function drawPerson(ctx, o){
 }
 
 // ---------- Oda ----------
-function drawRoom(frac){
+// Odanın sabit kısmı (zemin, duvar, raf, tabela) ara tuvalde tutulur, her karede yalnızca kopyalanır:
+// yalnızca dükkân, dekor, yerleşim ya da pencere rengi değişince yeniden çizilir
+const roomC = document.createElement('canvas'), roomG = roomC.getContext('2d');
+let roomCacheKey = '';
+function skyAt(frac){
+  return frac < 0.6 ? '#8fd0f5' : frac < 0.85 ? mix('#8fd0f5', '#f5a15a', (frac - 0.6) / 0.25) : mix('#f5a15a', '#33406a', Math.min(1, (frac - 0.85) / 0.15));
+}
+function drawRoomCached(frac){
+  const sky = skyAt(Math.round(frac * 50) / 50), t = lv('tabela');   // gökyüzü 50 adımda değişir, fark edilmez
+  const key = [sky, lv('dukkan'), lv('dekor'), t, rightWall(), aisleY(), portrait, scene.width, scene.height, owner().shopName, S.cur, COL_ITEMS.filter(it => owned(it.id)).length].join('|');
+  if (key !== roomCacheKey){
+    roomCacheKey = key;
+    roomC.width = scene.width; roomC.height = scene.height;
+    const k = scene.width / W;
+    roomG.setTransform(k, 0, 0, k, 0, 0);
+    drawRoom(roomG, sky);
+  }
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(roomC, 0, 0); g.restore();
+  // Her karede değişenler: saatin kolları ve tabelanın titremesi, ampulleri
+  const cx = rightWall() - 70, cy = 72, mins = 8 * 60 + frac * 12 * 60;
+  g.strokeStyle = '#2a1a12'; g.lineCap = 'round';
+  const ha = (mins / 60 % 12) / 12 * Math.PI * 2 - Math.PI / 2, ma = (mins % 60) / 60 * Math.PI * 2 - Math.PI / 2;
+  g.lineWidth = 3; line(g, cx, cy, cx + Math.cos(ha) * 12, cy + Math.sin(ha) * 12);
+  g.lineWidth = 2; line(g, cx, cy, cx + Math.cos(ma) * 19, cy + Math.sin(ma) * 19);
+  if (t >= 2 && Math.sin(now() * 7) > 0.97) drawSign(g, 0.4);
+  if (t >= 3) drawSignBulbs();
+}
+function drawRoom(g, sky){
   const L = lv('dukkan'), RW = rightWall(), D = lv('dekor');
 
   // Dış alan (henüz kiralanmamış kısım)
@@ -2009,7 +2036,6 @@ function drawRoom(frac){
     g.strokeStyle = '#c9a14a'; g.lineWidth = 3; line(g, 0, 14, RW, 14); line(g, 0, 135, RW, 135); }
 
   // Pencereler (gün ilerledikçe gökyüzü kararır)
-  const sky = frac < 0.6 ? '#8fd0f5' : frac < 0.85 ? mix('#8fd0f5', '#f5a15a', (frac - 0.6) / 0.25) : mix('#f5a15a', '#33406a', Math.min(1, (frac - 0.85) / 0.15));
   const x0 = 300, x1 = RW - 190, ww = 100, n = Math.min([1, 2, 3, 3][L], Math.floor((x1 - x0) / (ww + 10)));
   const gap = (x1 - x0 - n * ww) / (n + 1);
   for (let i = 0; i < n; i++){
@@ -2036,11 +2062,6 @@ function drawRoom(frac){
   const cx = RW - 70, cy = 72;
   g.fillStyle = '#5a3a22'; ell(g, cx, cy, 30, 30); g.fill();
   g.fillStyle = '#fbf6ee'; ell(g, cx, cy, 25, 25); g.fill();
-  const mins = 8 * 60 + frac * 12 * 60;
-  g.strokeStyle = '#2a1a12'; g.lineCap = 'round';
-  const ha = (mins / 60 % 12) / 12 * Math.PI * 2 - Math.PI / 2, ma = (mins % 60) / 60 * Math.PI * 2 - Math.PI / 2;
-  g.lineWidth = 3; line(g, cx, cy, cx + Math.cos(ha) * 12, cy + Math.sin(ha) * 12);
-  g.lineWidth = 2; line(g, cx, cy, cx + Math.cos(ma) * 19, cy + Math.sin(ma) * 19);
   // Nazar boncuğu
   if (D >= 5){ [['#1f4fa3', 11], ['#fff', 7], ['#5fb3f0', 4.5], ['#111', 2.2]].forEach(([c, r]) => { g.fillStyle = c; ell(g, RW - 26, 150, r, r); g.fill(); }); }
 
@@ -2063,7 +2084,7 @@ function drawRoom(frac){
   }
 
   // Tabela
-  drawSign();
+  drawSign(g, 1);
 
   // Sarkıt lambalar / avize
   if (D >= 4){
@@ -2085,7 +2106,7 @@ function drawRoom(frac){
   g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(RW + 2, doorTop, 8, H - doorTop);
 }
 
-function drawSign(){
+function drawSign(g, flicker){
   const t = lv('tabela'), name = owner().shopName;
   const x = 24, y = 20, w = 252, h = 62;
   g.fillStyle = '#3a2416'; rr(g, x, y, w, h, 8); g.fill();
@@ -2096,20 +2117,20 @@ function drawSign(){
   g.textAlign = 'center'; g.textBaseline = 'middle';
   if (t > 0){
     const col = ['#ffd36b', '#ff6bd6', '#6be3ff', '#7bff8a', '#ff8a5c'][t - 1];
-    const flicker = t >= 2 && Math.sin(now() * 7) > 0.97 ? 0.4 : 1;
     g.shadowColor = col; g.shadowBlur = (8 + t * 5) * flicker; g.fillStyle = col;
   } else g.fillStyle = '#f6ead8';
   const sub = S.cur ? city().name.toLocaleUpperCase('tr-TR') : '';
   g.fillText(name, x + w / 2, y + h / 2 + (sub ? -7 : 1));
   g.shadowBlur = 0;
   if (sub){ g.font = 'bold 12px Georgia, serif'; g.fillStyle = '#c9a14a'; g.fillText('— ' + sub + ' —', x + w / 2, y + h - 14); }
-  if (t >= 3){
-    for (let i = 0; i < 14; i++){
-      const on = (Math.floor(now() * 4) + i) % 2;
-      g.fillStyle = on ? '#fff3b0' : '#a0884a';
-      ell(g, x + 8 + i * (w - 16) / 13, y - 4, 2.5, 2.5); g.fill();
-      ell(g, x + 8 + i * (w - 16) / 13, y + h + 4, 2.5, 2.5); g.fill();
-    }
+}
+function drawSignBulbs(){
+  const x = 24, y = 20, w = 252, h = 62;
+  for (let i = 0; i < 14; i++){
+    const on = (Math.floor(now() * 4) + i) % 2;
+    g.fillStyle = on ? '#fff3b0' : '#a0884a';
+    ell(g, x + 8 + i * (w - 16) / 13, y - 4, 2.5, 2.5); g.fill();
+    ell(g, x + 8 + i * (w - 16) / 13, y + h + 4, 2.5, 2.5); g.fill();
   }
 }
 
@@ -2374,7 +2395,7 @@ function drawCombo(){
 // ---------- Sahneyi çiz ----------
 function drawScene(){
   const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
-  drawRoom(frac);
+  drawRoomCached(frac);
   if (EV()) drawDeco(EV().deco);
   R.stains.forEach(st => {   // yerdeki kirler (masaların altında kalsın diye önce)
     g.fillStyle = 'rgba(70,38,12,.78)';
@@ -2436,20 +2457,24 @@ function note3d(err){
   err3d = (String(err && err.message || err) + ' @ ' + at.replace(/^.*\//, '').replace(/\)$/, '')).slice(0, 220);
   return err3d.slice(0, 140);
 }
+let loading3d = false;   // yükleme sürerken düğmeye tekrar basılırsa ikinci kez kurulmasın
 function set3D(on){
   want3d = on;
   try { localStorage.setItem('cayocagi-sahne', on ? '3d' : '2d'); } catch(e) {}
   $('#scene3d').hidden = !on || !sahne3d;
   if (!on || sahne3d){ if (sahne3d) sahne3d.resize(); return; }
+  if (loading3d) return;
+  loading3d = true;
   import('./scene3d.js').then(m => {
     sahne3d = m.init($('#scene3d'));
     $('#scene3d').hidden = !want3d; sahne3d.resize();
   }).catch(err => {
-    console.error(err); want3d = false; $('#scene3d').hidden = true;
-    try { localStorage.setItem('cayocagi-sahne', '2d'); } catch(e) {}
+    console.error(err); drop3D();
     announce({emoji:'⚠️', name:'3D sahne açılamadı, 2D kullanılıyor', desc:note3d(err)});
-  });
+  }).finally(() => { loading3d = false; });
 }
+// Hata yüzünden 2D'ye dönüş bu oturumluk: oyuncunun tercihi silinmez, sonraki açılışta 3D yine denenir
+function drop3D(){ want3d = false; $('#scene3d').hidden = true; }
 function drawScene3D(){
   const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
   sahne3d.render(frac);
@@ -2489,11 +2514,12 @@ function setHTML(sel, html){ const el = $(sel); if (el._html !== html){ el.inner
 // Sekmeler: telefonda biri görünür; bilgisayarda mutfak hep solda, sağda diğerleri
 const desktopMQ = matchMedia('(min-width:1000px)');
 let tab = 'mutfak';
-function setTab(t){ tab = t; applyTab(); }
+function setTab(t){ tab = t; applyTab(); renderUI(); }
+const sidePanel = () => desktopMQ.matches && tab === 'mutfak' ? 'magaza' : tab;
 // Dikey telefonda sayfa yerine main kayar: ikisini de başa sar
 const toTop = () => { window.scrollTo(0, 0); $('main').scrollTop = 0; };
 function applyTab(){
-  const desk = desktopMQ.matches, side = desk && tab === 'mutfak' ? 'magaza' : tab;
+  const desk = desktopMQ.matches, side = sidePanel();
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'p-' + side || (desk && p.id === 'p-mutfak')));
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === side));
 }
@@ -2603,7 +2629,16 @@ function renderUI(){
   for (let i = R.tray.length; i < trayCap(); i++) t += '<span class="slot"></span>';
   setHTML('#tray', t);
 
-  // Mağaza: dükkân büyütme + eşyalar + çalışanlar
+  // Yalnızca görünen panel üretilir: geri kalanı saniyede 10 kez boşuna hesaplanmasın
+  const side = sidePanel();
+  if (side === 'magaza') renderShop();
+  else if (side === 'menu') renderMenu(menu);
+  else if (side === 'esya') renderInventory();
+  else if (side === 'sube') setHTML('#branchList', branchesHTML());
+}
+
+// Mağaza: dükkân büyütme + eşyalar + çalışanlar
+function renderShop(){
   let sev = '<h3>🚚 Sevkiyat</h3><p class="hint">Malzeme kalitesini seç. Her satışın bir payı malzemeye gider. Dükkân kapalıyken değiştirilir.</p>';
   Object.entries(QUALITY).forEach(([id, q]) => {
     const on = (S.quality || 'orta') === id;
@@ -2651,8 +2686,10 @@ function renderUI(){
       : '<p class="hint">🎉 Antikacının sana satacağı bir şey kalmadı!</p>';
   }
   setHTML('#shop', s);
+}
 
-  // Menü: tarif geliştirme + açılabilecek ürünler
+// Menü: tarif geliştirme + açılabilecek ürünler
+function renderMenu(menu){
   let m = '<h3>Tarifler</h3><p class="hint">Tarifi geliştirdikçe ürün daha lezzetli olur: her yıldız +%25 satış fiyatı.</p>';
   menu.filter(p => !p.ev).forEach(p => {
     const l = recLv(p.id), isMax = l >= MAX_RECIPE, c = recipeCost(p.id);
@@ -2671,8 +2708,10 @@ function renderUI(){
     });
   } else m += '<p class="hint" style="margin-top:10px">🎉 Tüm ürünler menüde!</p>';
   setHTML('#menuList', m);
+}
 
-  // Eşyalarım: sahip olunan her şey
+// Eşyalarım: sahip olunan her şey
+function renderInventory(){
   const card = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
   const dots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
   let v = `<div class="kv">
@@ -2726,9 +2765,6 @@ function renderUI(){
     fameLv() >= p.lv ? p.desc : `🔒 ${FAME_LEVELS[p.lv].emoji} ${FAME_LEVELS[p.lv].name}`, '', fameLv() < p.lv)).join('') + '</div>';
   v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : p.tool ? UPGRADES.find(u => u.id === p.tool).name : SHOP_LEVELS[p.shop].name) : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
   setHTML('#inventory', v);
-
-  // Şubeler
-  setHTML('#branchList', branchesHTML());
 }
 
 // Stilize dünya haritası: kaba kıta şekilleri [boylam, enlem]
@@ -2903,7 +2939,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.5';
+const APP_VERSION = '2.11.6';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3553,7 +3589,7 @@ $('#tabs').addEventListener('click', e => {
 });
 
 // ---------- Ana döngü ----------
-let last = performance.now(), steamIn = 0, frameErr = '';
+let last = performance.now(), lastDraw = 0, steamIn = 0, frameErr = '';
 // Tek bir karedeki hata oyunu dondurmasın: döngü sürer, oyuncu sebebi bir kez görür
 function frame(ts){
   try { step(ts); }
@@ -3579,10 +3615,14 @@ function step(ts){
     if (steamIn <= 0 && inProgress() && R.steamTop){ puff(245, R.steamTop); steamIn = 0.12; }
   }
   updateParticles(dt);
+  // Oyun akmıyorsa ve efekt yoksa sahne saniyede 15 kez çizilir: menüde, karnede, duraklamada pil harcamasın
+  const t = now(), still = (status !== 'running' || modalOpen()) && !particles.length && t - levelUpAt > 1 && !Object.values(tableBorn).some(b => t - b < 0.7);
+  if (still && ts - lastDraw < 66) return;
+  lastDraw = ts;
   if (use3d()){
     // 3D'de bir hata çizim döngüsünü durdurmasın: 2D'ye dön ve sebebini göster
     try { drawScene3D(); }
-    catch (err){ console.error(err); set3D(false); announce({emoji:'⚠️', name:'3D sahne hatası, 2D\'ye dönüldü', desc:note3d(err)}); drawScene(); }
+    catch (err){ console.error(err); drop3D(); announce({emoji:'⚠️', name:'3D sahne hatası, 2D\'ye dönüldü', desc:note3d(err)}); drawScene(); }
   } else drawScene();
   drawPreview();
   drawAvatar();
@@ -3590,7 +3630,9 @@ function step(ts){
 fitCanvas(scene, g, W, H);
 requestAnimationFrame(frame);
 if (want3d) set3D(true);
-setInterval(renderUI, 100);
+// Arayüz: oyun akarken saniyede 10, durgunken 2,5 kez yenilenir (her tıklama zaten hemen yeniler)
+let uiTick = 0;
+setInterval(() => { if (!document.hidden && ((status === 'running' && !modalOpen()) || ++uiTick % 4 === 0)) renderUI(); }, 100);
 renderUI();
 
 if (!S.owner) openOwnerEditor(true);

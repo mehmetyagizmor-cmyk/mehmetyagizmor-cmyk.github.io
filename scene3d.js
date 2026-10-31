@@ -18,14 +18,26 @@ const GEO = {
   plane: new THREE.PlaneGeometry(1, 1),
 };
 const MATS = new Map();
+const SHARED = new Set(Object.values(GEO));   // oda yenilenince silinmeyecek geometri ve materyaller
 function mat(color, basic){
   const k = color + (basic ? 'b' : '');
   let m = MATS.get(k);
   if (!m){
     m = basic ? new THREE.MeshBasicMaterial({color}) : new THREE.MeshLambertMaterial({color, flatShading:true});
-    MATS.set(k, m);
+    MATS.set(k, m); SHARED.add(m);
   }
   return m;
+}
+// Sahneden çıkan grubun bellek kaynaklarını bırakır: telefon döndükçe ya da dekor alındıkça dokular birikmesin
+function dispose(group){
+  group.traverse(o => {
+    if (o.geometry && !SHARED.has(o.geometry)) o.geometry.dispose();
+    [].concat(o.material || []).forEach(m => {
+      if (SHARED.has(m)) return;
+      if (m.map) m.map.dispose();
+      m.dispose();
+    });
+  });
 }
 // Alt yüzü y'de duran kutu / silindir (merkez x, z)
 function box(parent, w, h, d, color, x, y, z){
@@ -76,8 +88,8 @@ const FLOOR_TILE = [120, 80, 72, 140];   // bir karonun 2D piksel karşılığı
 
 // ---------- Kurulum ----------
 let renderer, scene, cam, room, roomKey = '', camKey = '';
-let lost = false;
-let skyMats = [], clockH, clockM, sign, signKey = '', hemi, sun;
+let lost = false, lostAt = 0;
+let skyMats = [], clockH, clockM, sign, signKey = '', signTex = {}, hemi, sun;
 let sway = [], bobs = [], glows = [], bulbs = [], snow = null, deco, decoKey = '';
 const tables = [];
 const ray = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -87,7 +99,9 @@ export function init(canvas){
   renderer.setClearColor('#1a110b');
   // Sessizce siyah çizmek yerine hata versin: index.html yakalayıp 2D'ye döner ve sebebini gösterir
   renderer.debug.onShaderError = (gl, program) => { throw new Error('shader: ' + (gl.getProgramInfoLog(program) || 'derlenemedi').slice(0, 100)); };
-  canvas.addEventListener('webglcontextlost', () => { lost = true; });
+  // Telefon kilitlenince bağlam kısa süre düşebilir: geri gelmesi beklenir, gelince oda yeniden kurulur
+  canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; lostAt = performance.now(); });
+  canvas.addEventListener('webglcontextrestored', () => { lost = false; roomKey = camKey = signKey = decoKey = ''; });
   scene = new THREE.Scene();
   hemi = new THREE.HemisphereLight('#fff4e0', '#5a4030', 1.9); scene.add(hemi);
   sun = new THREE.DirectionalLight('#ffffff', 1.4); sun.position.set(-300, 600, 900); scene.add(sun);
@@ -131,7 +145,7 @@ function fitCamera(){
 
 // ---------- Oda ----------
 function buildRoom(){
-  if (room){ scene.remove(room); }
+  if (room){ scene.remove(room); dispose(room); }
   room = new THREE.Group(); scene.add(room);
   skyMats = []; tables.length = 0; signKey = '';
   const L = lv('dukkan'), RW = rightWall(), front = H + 3000;   // zemin ve yan duvarlar kameranın arkasına kadar uzanır: kenarlarda boşluk kalmaz
@@ -245,12 +259,11 @@ function buildCounter(L){
 
 function drawSignTex(){
   const t = lv('tabela'), name = owner().shopName, blink = t >= 3 ? Math.floor(now() * 4) % 2 : 0;
-  const key = [t, name, S.cur, blink].join('|');
-  if (key === signKey) return;
-  signKey = key;
+  // Yanıp sönmenin iki hâli bir kez çizilir, sonra yalnızca doku değiştirilir
+  const key = [t, name, S.cur].join('|');
+  if (key !== signKey){ signKey = key; Object.values(signTex).forEach(x => x.dispose()); signTex = {}; }
   const m = sign.material[4];
-  if (m.map) m.map.dispose();
-  m.map = canvasTex(504, 124, (c, w, h) => {
+  const tex = signTex[blink] || (signTex[blink] = canvasTex(504, 124, (c, w, h) => {
     c.fillStyle = '#3a2416'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#c9a14a'; c.lineWidth = 4; c.strokeRect(8, 8, w - 16, h - 16);
     let size = S.cur ? 44 : 52;
@@ -268,8 +281,10 @@ function drawSignTex(){
       c.beginPath(); c.arc(16 + i * (w - 32) / 13, 4, 4, 0, 7); c.fill();
       c.beginPath(); c.arc(16 + i * (w - 32) / 13, h - 4, 4, 0, 7); c.fill();
     }
-  });
-  m.needsUpdate = true;
+  }));
+  if (m.map === tex) return;
+  if (!m.map) m.needsUpdate = true;   // yeni materyal: gölgelendirici dokulu derlensin
+  m.map = tex;
 }
 
 // ---------- Her kare ----------
@@ -279,6 +294,7 @@ let pr = MAX_PR, ema = 1 / 60, slowT = 0, fastT = 0, lastF = 0, fpsEl = null;
 function adapt(t){
   const dt = t - lastF; lastF = t;
   if (dt <= 0 || dt > 0.5) return;               // sekme arka plandaydı
+  if (status !== 'running' || modalOpen()) return;   // durgunken sahne bilerek yavaş çizilir, ölçüme girmesin
   ema += (dt - ema) * 0.05;
   if (ema > 1 / 45){ slowT += dt; fastT = 0; } else if (ema < 1 / 57){ fastT += dt; slowT = 0; } else slowT = fastT = 0;
   const set = v => { pr = v; slowT = fastT = 0; resize(); };
@@ -292,7 +308,10 @@ function adapt(t){
 }
 
 export function render(frac){
-  if (lost) throw new Error("ekran kartı bağlantısı koptu (WebGL context lost)");
+  if (lost){
+    if (performance.now() - lostAt > 5000) throw new Error('ekran kartı bağlantısı koptu (WebGL context lost)');
+    return;
+  }
   const rk = [lv('dukkan'), rightWall(), portrait, numTables(), lv('semaver'), owner().name, W, H, lv('dekor'), COL_ITEMS.filter(it => owned(it.id)).length].join('|');
   if (rk !== roomKey){ roomKey = rk; buildRoom(); camKey = ''; }
   const ck = [W, viewH(), rightWall(), renderer.domElement.clientWidth, renderer.domElement.clientHeight].join('|');
@@ -450,7 +469,13 @@ export function hit(clientX, clientY){
   if (R.arson) add('arson', R.arson.x, 55, R.arson.y, 80, 130, 60);
   R.customers.forEach(c => { if (c.state === 'seated' && !c.leaving){ const s = SLOTS[c.seat]; add('c' + c.id, s.x, 80, s.y - 12, 120, 190, 90); } });
   const hits = ray.intersectObjects(boxes, false);
-  if (hits.length){ const id = hits[0].object.userData.id; return id === 'arson' ? {arson:true} : {cust:+id.slice(1)}; }
+  if (hits.length){
+    // Kutular derinlikte üst üste biner: en öndeki değil, ekranda dokunuşa en yakın kişi seçilir (baştan biraz aşağısı)
+    const tx = (clientX - r.left) / r.width * W, ty = (clientY - r.top) / r.height * viewH();
+    const away = h => { const p = anchor(h.object.userData.id); return p ? Math.hypot(p[0] - tx, p[1] + 35 - ty) : Infinity; };
+    const id = hits.reduce((a, b) => away(b) < away(a) ? b : a).object.userData.id;
+    return id === 'arson' ? {arson:true} : {cust:+id.slice(1)};
+  }
   return {ground:pick(clientX, clientY)};
 }
 
@@ -495,7 +520,7 @@ function emojiMat(ch){
     m = new THREE.MeshBasicMaterial({transparent:true, alphaTest:0.1, side:THREE.DoubleSide, map:canvasTex(128, 128, (c, w) => {
       c.font = `100px ${EMOJI}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(ch, w / 2, w / 2 + 6);
     })});
-    EMOJI_TEX.set(ch, m);
+    EMOJI_TEX.set(ch, m); SHARED.add(m);
   }
   return m;
 }
@@ -508,6 +533,7 @@ function glow(parent, x, y, z, size){
     const gr = c.createRadialGradient(w / 2, w / 2, 1, w / 2, w / 2, w / 2);
     gr.addColorStop(0, 'rgba(255,214,130,.9)'); gr.addColorStop(1, 'rgba(255,214,130,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, w);
   })});
+  SHARED.add(GLOW_MAT);
   const s = new THREE.Sprite(GLOW_MAT); s.scale.set(size, size, 1); s.position.set(x, y, z); parent.add(s); glows.push(s); return s;
 }
 
@@ -575,7 +601,7 @@ function buildDecor(L){
 
 // ---------- Etkinlik süslemeleri (bayramlar) ----------
 function buildEventDeco(){
-  if (deco) scene.remove(deco);
+  if (deco){ scene.remove(deco); dispose(deco); }
   deco = new THREE.Group(); scene.add(deco);
   bobs = []; bulbs = []; snow = null;
   const type = (EV() || {}).deco;

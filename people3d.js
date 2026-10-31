@@ -55,8 +55,20 @@ function merge(list){
   out.computeBoundingSphere();
   return out;
 }
-const CACHE = new Map();
-const cached = (key, make) => { let g = CACHE.get(key); if (g === undefined){ g = make(); CACHE.set(key, g); } return g; };
+// En son kullanılan 400 model saklanır: uzun oyunda görünüşler bellekte birikmesin.
+// Silinen model hâlâ ekrandaysa Three.js onu kendiliğinden yeniden yükler
+const CACHE = new Map(), CACHE_MAX = 400;
+const cached = (key, make) => {
+  let g = CACHE.get(key);
+  if (g === undefined) g = make(); else CACHE.delete(key);
+  CACHE.set(key, g);
+  if (CACHE.size > CACHE_MAX){
+    const [k, old] = CACHE.entries().next().value;
+    CACHE.delete(k);
+    if (old) old.dispose();
+  }
+  return g;
+};
 
 const shade = (hex, to, t) => '#' + _c.set(hex).lerp(new THREE.Color(to), t).getHexString();
 
