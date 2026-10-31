@@ -883,18 +883,43 @@ function link(d){
   d.lv = d.branches[d.cur].lv;
   return d;
 }
+const SAVE_KEY = 'cayocagi', BAK_KEY = 'cayocagi.bak';
+function parseSave(raw){
+  try {
+    const d = JSON.parse(raw);
+    return d && typeof d === 'object' && (d.money != null || d.day != null) ? d : null;
+  } catch(e) { return null; }
+}
+let restored = false;   // bozuk kayıt yedekten geri geldi
 function load(){
   try {
-    const d = JSON.parse(localStorage.getItem('cayocagi'));
-    if (d && d.money != null){
+    const raw = localStorage.getItem(SAVE_KEY), bak = parseSave(localStorage.getItem(BAK_KEY));
+    let d = parseSave(raw);
+    // Son sağlam kayıt yedeklenir; bozuk kayıt silinmez, incelenebilsin diye ayrı anahtarda kalır
+    if (d && Number.isFinite(d.money)) localStorage.setItem(BAK_KEY, raw);
+    else if (raw) localStorage.setItem('cayocagi.bozuk', raw);
+    if (!d && bak){ d = bak; restored = true; }
+    if (d){
+      // Bozulmuş sayılar (JSON'da null olur) yedekten, yoksa başlangıç değerinden gelir
+      const f = fresh(), base = bak || f;
+      for (const k in f) if (typeof f[k] === 'number' && !Number.isFinite(d[k])) d[k] = Number.isFinite(base[k]) ? base[k] : f[k];
       // 2.10 öncesi kayıt: yenilikleri bir kez göster, eski miras günü kalsın, şubelerin ihmal sayacı bugünden başlasın
       if (!d.ver){ d.ver = '2.10'; d.news = true; d.oldLegacy = true; (d.branches || []).forEach(b => b.seen = d.day); }
-      return link(Object.assign(fresh(), d));
+      return link(Object.assign(f, d));
     }
   } catch(e) {}
   return link(fresh());
 }
-function save(){ S.branches[S.cur].rep = S.rep; S.lastSeen = Date.now(); try { localStorage.setItem('cayocagi', JSON.stringify(S)); } catch(e) {} }
+let stale = false, saveFailed = false;   // stale: başka pencere daha yeni kayıt yazdı, bu pencere yazmaz
+function save(){
+  if (stale) return;
+  S.branches[S.cur].rep = S.rep; S.lastSeen = Date.now();
+  // Süren gün: müşteriler ve tepsi kaydedilmez ama saat ve kazanç kalır, açılışta gün buradan sürer
+  S.dayRun = status === 'running' ? {day:S.day, t:R.t, stats:R.stats, sold:R.sold, regsToday:R.regsToday,
+    interview:R.interview, focus:R.focus, review:R.review, ev:R.dayEvent && R.dayEvent.name} : null;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); saveFailed = false; }
+  catch(e) { if (!saveFailed){ saveFailed = true; toast('⚠️ Kayıt yapılamadı: depolama dolu ya da kapalı'); } }
+}
 
 let S = load();
 // Oyundan uzak kalınan süre (ms): ilk kayıttan önce okunmalı, save() lastSeen'i yeniler
@@ -2862,7 +2887,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.3';
+const APP_VERSION = '2.11.4';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2949,34 +2974,43 @@ const OFF = {min:10, cap:8, share:0.5};               // dakika, saat, saatlik p
 const shopDaily = () => Math.max(30, Math.round(S.bestDay * (0.15 + 0.05 * (lv('cirak') + lv('garson')))));
 const branchDaily = () => S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
 const hm = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} sa ${m % 60} dk` : `${m} dk`; };
-let offline = null;
+// Kasa kayıtta durur: toplanmadan çıkılsa da kaybolmaz, sonraki yokluk üstüne eklenir (tavan aynı)
 function checkOffline(ms){
-  if (!S.owner || S.day < 2 || !(ms >= OFF.min * 60000)) return false;
-  const h = Math.min(OFF.cap, ms / 3600000);
-  const ob = 1 + colBonus('off');   // Uğur Getirenler seti kasayı büyütür
-  const shop = Math.round(shopDaily() * OFF.share * h * ob), br = Math.round(branchDaily() * OFF.share * h * ob);
-  offline = {h, shop, br, full:ms / 3600000 >= OFF.cap};
+  if (stale || !S.owner) return false;
+  if (S.day >= 2 && ms >= OFF.min * 60000){
+    const total = ms + (S.pendingOff ? S.pendingOff.ms : 0), h = Math.min(OFF.cap, total / 3600000);
+    const ob = 1 + colBonus('off');   // Uğur Getirenler seti kasayı büyütür
+    const shop = Math.round(shopDaily() * OFF.share * h * ob), br = Math.round(branchDaily() * OFF.share * h * ob);
+    S.pendingOff = {ms:total, h, shop, br, full:total / 3600000 >= OFF.cap};
+    save();
+  }
+  if (!S.pendingOff) return false;
+  // Karne, kapak gibi açık bir pencerenin üstüne binmez; kapanınca ana döngü gösterir
+  if (!modalOpen() || status === 'running' || $('#claimOffline')) showOffline();
+  return true;
+}
+function showOffline(){
+  const {ms, h, shop, br, full} = S.pendingOff;
   const others = S.branches.length - 1;
   showModal(`
     <h2>👋 Tekrar hoş geldin, ${esc(owner().name)}!</h2>
     <p>Sen yokken <b>${hm(ms / 3600000)}</b> geçti. Dükkân boş durmadı!</p>
     <div style="height:8px;border-radius:4px;background:rgba(0,0,0,.35);overflow:hidden;margin:10px 0 4px">
       <div style="height:100%;width:${Math.round(h / OFF.cap * 100)}%;background:linear-gradient(90deg,#e8a33a,#ffc94a)"></div></div>
-    <p class="hint">💰 Kasa: ${hm(h)} / ${OFF.cap} saat${offline.full ? ' · <b>doldu!</b>' : ''}</p>
+    <p class="hint">💰 Kasa: ${hm(h)} / ${OFF.cap} saat${full ? ' · <b>doldu!</b>' : ''}</p>
     <table>
       <tr><td>🏪 ${esc(owner().shopName)}${S.cur ? ` (${city().name})` : ''} · ${lv('cirak') + lv('garson') ? 'çırakların idare etti' : 'kapıdaki semaver sattı'}</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(shop)}</td></tr>
       ${others ? `<tr><td>🏙️ Şube müdürleri (${others} şube)</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(br)}</td></tr>` : ''}
     </table>
     <div class="reward">+₺${fmt(shop + br)}</div>
-    ${offline.full ? '<p class="hint">💡 Kasa 8 saatte dolar, fazlası birikmez. Sık uğra!</p>'
+    ${full ? '<p class="hint">💡 Kasa 8 saatte dolar, fazlası birikmez. Sık uğra!</p>'
       : !(lv('cirak') + lv('garson')) ? '<p class="hint">💡 Çırak ve garson tuttukça yokken daha çok kazanırsın.</p>' : ''}
     <button class="big" id="claimOffline">Kasayı topla</button>`);
-  return true;
 }
 function claimOffline(){
-  if (offline){
-    const amt = offline.shop + offline.br;
-    S.money += amt; S.total += amt; offline = null; save();
+  if (S.pendingOff){
+    const amt = S.pendingOff.shop + S.pendingOff.br;
+    S.money += amt; S.total += amt; S.pendingOff = null; save();
     SFX.pay(); bump('#money', 'bump'); coins(W / 2, H / 2, 8);
     toast(`💰 +₺${fmt(amt)} sen yokken kazanıldı!`);
   }
@@ -3145,6 +3179,18 @@ $('#modal').addEventListener('click', e => {
 
 // ---------- Röportajlar ----------
 // late: röportaj sabahı aldı, dükkân 10:00'da açılır · focus: röportaj reddedildi, satışlar +%20
+// Uygulama gün ortasında kapandıysa gün baştan başlamaz: saat ve kazanç sürer, duraklatılmış açılır
+function resumeDay(){
+  const d = S.dayRun;
+  if (!d || d.day !== S.day || !(d.t < DAY_LEN)) return false;
+  Object.assign(R, {t:d.t, stats:d.stats, sold:d.sold || {}, regsToday:d.regsToday || [], interview:d.interview, focus:d.focus,
+    review:d.review, evShown:true, dayEvent:DAY_EVENTS.find(e => e.name === d.ev) || null});
+  R.regs = R.regs.filter(id => !R.regsToday.includes(id));
+  status = 'running';
+  if (!desktopMQ.matches && tab !== 'mutfak') setTab('mutfak');
+  renderUI(); showPause();
+  return true;
+}
 function openShop(opt = {}){
   newDay(); status = 'running'; SFX.open(); startDayEvent();
   if (opt.late){ R.t = DAY_LEN / 6; R.interview = true; }
@@ -3463,11 +3509,24 @@ document.addEventListener('visibilitychange', () => {
   const away = hiddenAt ? Date.now() - hiddenAt : 0;
   hiddenAt = 0;
   // Uzun süre arka planda kaldıysa kasayı göster (günlük ödül ondan sonra gelir)
-  if (offline == null && checkOffline(away)) return;
+  if (checkOffline(away)) return;
   // Uygulama gece yarısını geçip açık kaldıysa, dönüşte günlük ödülü göster
   if (S.owner && status === 'closed' && !modalOpen() && dailyPending()) showDaily();
 });
 window.addEventListener('pagehide', save);
+// Oyun başka sekmede de açıksa son açılan kazanır: bu pencere durur, eski kayıtla üstüne yazmaz
+// (storage olayı değil: yenilenirken kapanan sayfanın son kaydı yeni sayfayı yanlışlıkla kilitlerdi)
+try {
+  const tabs = new BroadcastChannel('cayocagi');
+  tabs.onmessage = () => {
+    if (stale) return;
+    stale = true; status = 'closed';
+    showModal(`<h2>🍵 Oyun başka pencerede açık</h2>
+      <p>İlerlemen karışmasın diye bu pencere durduruldu.</p>
+      <button class="big" onclick="location.reload()">Yeniden yükle</button>`);
+  };
+  tabs.postMessage('acildi');
+} catch(e) {}
 $('#editOwner').addEventListener('click', () => { if (!modalOpen()) openOwnerEditor(false); });
 $('#tabs').addEventListener('click', e => {
   const b = e.target.closest('.tab');
@@ -3496,6 +3555,7 @@ function step(ts){
     sceneView = view; const box = scene.parentElement;
     box.style.aspectRatio = `${W} / ${vh}`; box.style.setProperty('--ar', W / vh); fitCanvas(scene, g, W, vh);
   }
+  if (S.pendingOff && !stale && !modalOpen()) showOffline();
   if (status === 'running' && !modalOpen()){
     tick(dt);
     steamIn -= dt;
@@ -3516,7 +3576,9 @@ if (want3d) set3D(true);
 setInterval(renderUI, 100);
 renderUI();
 
-if (!S.owner) openOwnerEditor(true); else if (!checkOffline(awayMs) && dailyPending()) showDaily();
+if (!S.owner) openOwnerEditor(true);
+else { const resumed = resumeDay(); if (!checkOffline(awayMs) && !resumed && dailyPending()) showDaily(); }
+if (restored) toast('💾 Kayıt bozulmuştu, son yedekten geri yüklendi');
 </script>
 </body>
 </html>
