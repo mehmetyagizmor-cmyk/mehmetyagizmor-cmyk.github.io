@@ -530,6 +530,8 @@ const FAME_LEVELS = [
   {name:'Ünlü girişimci',      need:600,  emoji:'🌟'},
   {name:"Türkiye'nin çaycısı", need:2000, emoji:'🏆'},
   {name:'Dünyaca ünlü',        need:4000, emoji:'🌍'},
+  {name:'Çay efsanesi',        need:8000, emoji:'🏅'},
+  {name:'Yaşayan efsane',      need:15000, emoji:'👑'},
 ];
 // Şöhret ayrıcalıkları: ünlülük basamaklarıyla açılır
 const FAME_PERKS = [
@@ -537,6 +539,8 @@ const FAME_PERKS = [
   {lv:2, emoji:'📺', name:'Reklam anlaşması',   desc:'Her gün sonunda gün × ₺25 reklam geliri'},
   {lv:3, emoji:'🫖', name:'Kendi çay markan',   desc:'Servis ettiğin her müşteri için gün sonunda +₺5 paket çay satışı'},
   {lv:4, emoji:'✈️', name:'Dünya markası',      desc:'Şubelerin müdür geliri %25 artar'},
+  {lv:5, emoji:'📚', name:'Ustalık kitabın',    desc:'Kitabın satılır: "sen yokken" kasası %25 büyür'},
+  {lv:6, emoji:'🏛️', name:'Çay Müzesi',         desc:'Her gün sonunda şube başına +₺500 bilet geliri'},
 ];
 // Röportajda baskın cevap tarzı o güne ödül verir
 const IV_REWARD = {
@@ -1073,7 +1077,8 @@ function riskDay(interviewDay){
       b.health = Math.min(100, bHealth(b) + RISK.heal);
       // Röportaj günü şubeler daha çok ihmal edilir
       // Uğramadıkça sorun ihtimali artar; yurt dışına açılmadan yarısı kadar
-      if (Math.random() < RISK.chance * (interviewDay ? 2 : 1) * (S.riskOn ? 1 : 0.5) * (1 + Math.max(0, S.day - (b.seen ?? b.day ?? S.day)) / 7)){
+      // Çarpan en fazla 3: 10 şubeyi aynı anda gezmek imkânsız, sorunlar geliri eritmesin
+      if (Math.random() < RISK.chance * (interviewDay ? 2 : 1) * (S.riskOn ? 1 : 0.5) * Math.min(3, 1 + Math.max(0, S.day - (b.seen ?? b.day ?? S.day)) / 7)){
         const t = pick(Object.keys(ISSUES));
         b.issue = {t, day:S.day};
         out.news.push(`⚠️ ${nm}: ${ISSUES[t].emoji} ${ISSUES[t].name}`);
@@ -1090,7 +1095,7 @@ function fixBranch(i){
   if (S.money < cost){ toast('Yeterli paran yok'); SFX.error(); return; }
   S.money -= cost;
   if (crisis) S.rescues = (S.rescues || 0) + 1;
-  b.issue = null; b.crisis = false; b.health = Math.max(bHealth(b), 60);
+  b.issue = null; b.crisis = false; b.health = Math.max(bHealth(b), 60); b.seen = S.day;   // parayla ilgilenmek de ilgilenmektir
   toast(`${crisis ? '🛟' : '🔧'} ${CITY[b.city].name} şubesi ${crisis ? 'krizden kurtarıldı' : 'rahatladı'}!`);
   SFX.buy(); save();
 }
@@ -1100,13 +1105,15 @@ function fameLv(){
   FAME_LEVELS.forEach((F, i) => { if ((S.fame || 0) >= F.need) l = i; });
   return l;
 }
+// Müşteri ve bahşiş çarpanları 4. basamakta durur; sonrakiler yeni ayrıcalık verir, denge bozulmaz
+const fameTier = () => Math.min(4, fameLv());
 function addFame(n){
   const before = fameLv();
   S.fame = (S.fame || 0) + (n > 0 ? n * (1 + colBonus('fame')) : n);
   const after = fameLv();
   if (after > before){
-    const F = FAME_LEVELS[after];
-    announce({emoji:F.emoji, name:F.name, desc:'Artık daha çok kişi seni tanıyor: daha çok müşteri, daha çok bahşiş!', ach:true}, '🌟 Ünlülük');
+    const F = FAME_LEVELS[after], pk = FAME_PERKS.find(p => p.lv === after);
+    announce({emoji:F.emoji, name:F.name, desc:pk ? `Yeni ayrıcalık: ${pk.emoji} ${pk.name}` : 'Artık daha çok kişi seni tanıyor!', ach:true}, '🌟 Ünlülük');
     confetti();
   }
 }
@@ -1225,7 +1232,7 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
-  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameLv())
+  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameTier())
     * (WD().spawn || 1) * Q().spawn * (ivBuff('esprili') ? 0.75 : 1) * (effect('fans') ? 0.5 : 1) * (1 + 0.04 * (R.stains || []).length)
     * (S.day <= 2 ? 0.7 : 1)    // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
     * ((EV() || {}).spawn || 1)
@@ -1331,12 +1338,12 @@ function pay(c){
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameLv())
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier())
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
     * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip;
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
-  const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameLv();
+  const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameTier();
   if (autograph) tip += Math.round(base * 0.3);
   const mat = Math.round(base * Q().cost);   // malzeme gideri
   S.money += base + tip - mat; S.total += base + tip - mat; R.stats.mat += mat;
@@ -1683,7 +1690,7 @@ function endDay(){
   const st = R.stats, net = st.earned + st.tips - st.mat - rent - (st.loss || 0);
   const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
   S.money += passive; S.total += passive;
-  const fameInc = (fameLv() >= 2 ? 25 * S.day : 0) + (fameLv() >= 3 ? 5 * R.stats.served : 0);   // reklam + çay markası
+  const fameInc = (fameLv() >= 2 ? 25 * S.day : 0) + (fameLv() >= 3 ? 5 * R.stats.served : 0) + (fameLv() >= 6 ? 500 * S.branches.length : 0);   // reklam + çay markası + müze
   S.money += fameInc; S.total += fameInc;
   const risk = riskDay(R.interview);
   let night = null;
@@ -1738,7 +1745,7 @@ function endDay(){
       <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
       ${st.loss ? `<tr><td>🔥 Yangın zararı</td><td style="color:var(--bad)">-₺${fmt(st.loss)}</td></tr>` : ''}
       <tr><td><b>Net kâr</b></td><td style="color:${net < 0 ? 'var(--bad)' : 'var(--good)'}">${net < 0 ? '-' : ''}₺${fmt(Math.abs(net))}</td></tr>
-      ${fameInc ? `<tr><td>🌟 Reklam ve çay markası</td><td style="color:var(--good)">+₺${fmt(fameInc)}</td></tr>` : ''}
+      ${fameInc ? `<tr><td>🌟 Reklam${fameLv() >= 6 ? ', marka ve müze' : ' ve çay markası'}</td><td style="color:var(--good)">+₺${fmt(fameInc)}</td></tr>` : ''}
       ${passive ? `<tr><td>🏙️ Diğer şubeler (müdürler)</td><td style="color:var(--good)">+₺${fmt(passive)}</td></tr>` : ''}
     </table>
     ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
@@ -2939,7 +2946,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.6';
+const APP_VERSION = '2.12.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3031,7 +3038,7 @@ function checkOffline(ms){
   if (stale || !S.owner) return false;
   if (S.day >= 2 && ms >= OFF.min * 60000){
     const total = ms + (S.pendingOff ? S.pendingOff.ms : 0), h = Math.min(OFF.cap, total / 3600000);
-    const ob = 1 + colBonus('off');   // Uğur Getirenler seti kasayı büyütür
+    const ob = (1 + colBonus('off')) * (fameLv() >= 5 ? 1.25 : 1);   // Uğur Getirenler seti ve ustalık kitabı kasayı büyütür
     const shop = Math.round(shopDaily() * OFF.share * h * ob), br = Math.round(branchDaily() * OFF.share * h * ob);
     S.pendingOff = {ms:total, h, shop, br, full:total / 3600000 >= OFF.cap};
     save();
