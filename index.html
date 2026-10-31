@@ -733,8 +733,14 @@ function colAdd(id){
   }
 }
 
-// Test için adres çubuğuna ?tarih=2026-10-29 yazılabilir
-const today = () => { const q = new URLSearchParams(location.search).get('tarih'); return q ? new Date(q + 'T12:00') : new Date(); };
+// Yerel testte adres çubuğuna ?tarih=2026-10-29 yazılabilir (yayında çalışmaz, etkinlik ödülleri tekrar alınmasın)
+// Açık gün boyunca tarih donar: gece yarısı biten etkinliğin ürünü salondaki müşteriye yine yapılabilsin
+let dayDate = null;
+const today = () => {
+  if (status === 'running' && dayDate) return dayDate;
+  const q = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && new URLSearchParams(location.search).get('tarih');
+  return q ? new Date(q + 'T12:00') : new Date();
+};
 const DAY_MS = 86400000;
 function eventOn(d){
   for (const ev of EVENTS) for (const y of [d.getFullYear() - 1, d.getFullYear()]){
@@ -830,10 +836,11 @@ function review(score){
   S.reviews = S.reviews || {n:0, best:0};
   S.reviews.n++; S.reviews.best = Math.max(S.reviews.best, score); S.reviews.last = {score, day:S.day};
   R.review = score;
-  addFame(score * score);
+  const fm = score > 2 ? score * score : 0;   // kötü eleştiri ünlü yapmaz
+  addFame(fm);
   S.rep = Math.max(0, Math.min(100, S.rep + (score - 3) * 4));
   const rp = (score - 3) * 4;
-  announce({emoji:'📰', name:`Lezzet Rehberi: ${starStr(score)}`, desc:`"${REVIEW_QUOTES[score]}" · 🌟 +${score * score}${rp ? ` · ${rp > 0 ? '+' : ''}${rp}⭐` : ''}`, ach:score >= 4});
+  announce({emoji:'📰', name:`Lezzet Rehberi: ${starStr(score)}`, desc:`"${REVIEW_QUOTES[score]}"${fm ? ` · 🌟 +${fm}` : ''}${rp ? ` · ${rp > 0 ? '+' : ''}${rp}⭐` : ''}`, ach:score >= 4});
 }
 const DEFAULT_OWNER = {g:'e', name:'Usta', shopName:'Çay Ocağı', skin:SKINS[1], hair:HAIRS[0], style:0, shirt:SHIRTS[0], beard:true};
 const CIRAK_LOOKS = [
@@ -1110,6 +1117,8 @@ function switchBranch(i){
   S.branches[S.cur].rep = S.rep;
   S.cur = i; S.lv = S.branches[i].lv; S.rep = S.branches[i].rep;
   newDay(); particles = []; levelUpAt = now();
+  // Bu dükkânda satılamayan ürünün görevi yenilenir
+  if (S.quests && S.quests.day === S.day) S.quests.list.filter(q => q.t === 'sell' && !q.done && !sellable().includes(q.p)).forEach(q => Object.assign(q, QUESTS.sell.make(S.day)));
   save();
 }
 const upCost = u => Math.round(u.base * Math.pow(u.mult, lv(u.id)));
@@ -1151,6 +1160,9 @@ function pathOut(seat){
 function relayout(){
   setLayout();
   if (!R) return;
+  // Kirler ve kundakçı dar yerleşimde ekran dışında kalmasın: dokunulamayan kundakçı yangın çıkarırdı
+  R.stains.forEach(st => { st.x = Math.min(st.x, rightWall() - 30); st.y = Math.min(st.y, viewH() - 18); });
+  if (R.arson) Object.assign(R.arson, {x:rightWall() - 45, y:aisleY()});
   R.customers = R.customers.filter(c => c.state !== 'out');
   R.customers.forEach(c => {
     const s = SLOTS[c.seat];
@@ -1179,7 +1191,7 @@ function newDay(){
   R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
        dayEvent:null, effects:[], eventIn:rand(20, 35),
        garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
-       combo:0, sold:{}, stains:[], cleanIn:0, calmed:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0, mat:0, good:0, bad:0}, regsToday:[]};
+       combo:0, sold:{}, stains:[], cleanIn:0, calmed:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0, mat:0, good:0, bad:0, loss:0}, regsToday:[]};
   // Bugün uğrayacak müdavimler (yalnızca ana dükkân): her biri %70 ihtimalle, en fazla 3 kişi
   R.regs = S.cur ? [] : REGULARS.filter(r => S.day >= r.day && Math.random() < 0.7).sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.id);
   // Henüz tanışılmamış en erken müdavim (ör. 1. gün Ali Amca) bugün mutlaka gelir
@@ -1475,7 +1487,8 @@ function checkAch(){
 // ---------- Günlük görevler ----------
 // Her gün 3 farklı türde görev; zorluk ve ödül gün sayısıyla büyür
 const QUESTS = {
-  sell:   {make:d => { const p = pick(sellable()); return {p, n:Math.min(12, 3 + Math.floor(d / 4))}; },
+  // Menü büyüdükçe siparişler ürünlere dağılır: hedef menü uzunluğuna göre küçülür
+  sell:   {make:d => { const p = pick(sellable()), n = Math.min(12, 3 + Math.floor(d / 4)); return {p, n:Math.max(3, Math.round(n * Math.min(1, 6 / sellable().length)))}; },
            label:q => `${P[q.p].emoji} ${q.n} ${P[q.p].name} sat`, short:q => `${P[q.p].emoji} ${P[q.p].name}`, prog:q => R.sold[q.p] || 0},
   serve:  {make:d => ({n:Math.min(35, 6 + d)}),                   label:q => `👥 ${q.n} müşteriye servis yap`, short:() => '👥 Servis', prog:() => R.stats.served},
   combo:  {make:d => ({n:Math.min(15, 3 + Math.floor(d / 3))}),   label:q => `🔥 ${q.n} kombo yap`,            short:() => '🔥 Kombo',  prog:() => R.stats.bestCombo},
@@ -1521,7 +1534,8 @@ function questsHTML(){
 
 // ---------- Günlük ödül ----------
 const dateStr = d => d.toDateString();
-const dailyPending = () => S.lastDate !== dateStr(new Date());
+// Sunucu yok, saat oyuncunun elinde: saat geri alındıysa ya da son ödülden beri hiç gün oynanmadıysa ödül çıkmaz
+const dailyPending = () => S.lastDate !== dateStr(new Date()) && Date.now() >= (S.dailyAt || 0) && S.day > (S.dailyDay || 0);
 function nextStreak(){
   const y = new Date(); y.setDate(y.getDate() - 1);
   return S.lastDate === dateStr(y) ? S.streak + 1 : 1;
@@ -1561,7 +1575,7 @@ function tick(dt){
     if (gl && ARSON_T - R.arson.t >= 3.5 - 0.8 * gl) catchArson('💂 Güvenlik yakaladı!');
     else if (R.arson.t <= 0){
       const loss = Math.min(S.money, 40 * S.day), a = R.arson;
-      S.money -= loss; S.rep = Math.max(0, S.rep - 5); R.arson = null;
+      S.money -= loss; R.stats.loss += loss; S.rep = Math.max(0, S.rep - 5); R.arson = null;
       R.effects.push({id:'yangin', left:12, ev:FIRE}); announce(FIRE); SFX.error();
       floatText(a.x - 40, a.y - 100, `🔥 -₺${fmt(loss)} -5⭐`, '#ff6b5e');
     }
@@ -1582,8 +1596,8 @@ function tick(dt){
     if (x.prog >= prepTime(x.p)){ trayAdd(x.p); R.queue.splice(R.queue.indexOf(x), 1); }
   }
 
-  // Çıraklar
-  for (let i = 0; i < lv('cirak'); i++){
+  // Çıraklar (yangında onlar da çalışamaz)
+  for (let i = 0; i < lv('cirak') && !effect('yangin'); i++){
     const h = R.helpers[i];
     if (!h){
       if (!hasRoom()) continue;
@@ -1664,9 +1678,9 @@ function tick(dt){
 function endDay(){
   status = 'closed';
   SFX.dayEnd();
-  const rent = Math.round(15 * S.day * (lv('mudur') ? 0.75 : 1));
-  S.money = Math.max(0, S.money - rent);
-  const st = R.stats, net = st.earned + st.tips - st.mat - rent;
+  const rent = Math.min(S.money, Math.round(15 * S.day * (lv('mudur') ? 0.75 : 1)));   // kasada ne varsa o kesilir
+  S.money -= rent;
+  const st = R.stats, net = st.earned + st.tips - st.mat - rent - (st.loss || 0);
   const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
   S.money += passive; S.total += passive;
   const fameInc = (fameLv() >= 2 ? 25 * S.day : 0) + (fameLv() >= 3 ? 5 * R.stats.served : 0);   // reklam + çay markası
@@ -1697,7 +1711,8 @@ function endDay(){
   const goal = goals.filter(x => x.c > S.money).sort((a, b) => a.c - b.c)[0];
   const buyNow = goals.filter(x => x.c <= S.money).sort((a, b) => a.c - b.c)[0];
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
-  S.critic = S.day + 1 >= 5 && Math.random() < 0.3 ? S.day + 1 : null;
+  // Haber verilip masa boş olmadığı için gelemeyen eleştirmen yarın gelir
+  S.critic = R.criticAt != null || (S.day + 1 >= 5 && Math.random() < 0.3) ? S.day + 1 : null;
   const askRate = stars === 3 && rateReady();
   if (askRate){ S.rateAsks = (S.rateAsks || 0) + 1; S.rateNext = S.day + 7; }
   showModal(`
@@ -1721,6 +1736,7 @@ function endDay(){
       <tr><td>${Q().emoji} Malzeme (${Q().name})</td><td style="color:var(--bad)">-₺${fmt(st.mat)}</td></tr>
       ${st.good + st.bad ? `<tr><td>💬 Müşteri yorumları</td><td>👍 ${st.good} · 👎 ${st.bad}</td></tr>` : ''}
       <tr><td>Kira ve masraflar</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
+      ${st.loss ? `<tr><td>🔥 Yangın zararı</td><td style="color:var(--bad)">-₺${fmt(st.loss)}</td></tr>` : ''}
       <tr><td><b>Net kâr</b></td><td style="color:${net < 0 ? 'var(--bad)' : 'var(--good)'}">${net < 0 ? '-' : ''}₺${fmt(Math.abs(net))}</td></tr>
       ${fameInc ? `<tr><td>🌟 Reklam ve çay markası</td><td style="color:var(--good)">+₺${fmt(fameInc)}</td></tr>` : ''}
       ${passive ? `<tr><td>🏙️ Diğer şubeler (müdürler)</td><td style="color:var(--good)">+₺${fmt(passive)}</td></tr>` : ''}
@@ -2887,7 +2903,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.4';
+const APP_VERSION = '2.11.5';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -2961,7 +2977,7 @@ function showDaily(){
 function claimDaily(){
   if (!dailyPending()) return hideModal();
   const amt = dailyAmount(nextStreak());
-  S.streak = nextStreak(); S.lastDate = dateStr(new Date());
+  S.streak = nextStreak(); S.lastDate = dateStr(new Date()); S.dailyAt = Date.now(); S.dailyDay = S.day;
   S.money += amt; save();
   hideModal(); SFX.pay(); bump('#money', 'bump');
   toast(`🪙 +₺${fmt(amt)} günlük ödül!`);
@@ -3192,6 +3208,7 @@ function resumeDay(){
   return true;
 }
 function openShop(opt = {}){
+  dayDate = today();
   newDay(); status = 'running'; SFX.open(); startDayEvent();
   if (opt.late){ R.t = DAY_LEN / 6; R.interview = true; }
   if (opt.focus) R.focus = true;
