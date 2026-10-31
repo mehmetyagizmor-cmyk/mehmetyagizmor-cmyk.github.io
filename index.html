@@ -840,6 +840,7 @@ const CIRAK_LOOKS = [
   {skin:SKINS[0], hair:HAIRS[2], style:4, shirt:'#3a7bd5', beard:false},
   {skin:SKINS[2], hair:HAIRS[0], style:3, shirt:'#2ecc71', beard:false},
   {skin:SKINS[1], hair:HAIRS[3], style:0, shirt:'#f39c12', beard:false},
+  {skin:SKINS[3], hair:HAIRS[1], style:1, shirt:'#9b59b6', beard:false},
 ];
 const GARSON_LOOKS = [
   {skin:SKINS[1], hair:HAIRS[1], style:0, shirt:'#f4f4f4', beard:true,  vest:true},
@@ -1111,7 +1112,7 @@ const aisleY = () => portrait ? SLOTS[shopLevel().tables - 1].y + 50 : 525;
 const viewH = () => portrait ? Math.min(H, aisleY() + 25) : H;
 let sceneView = '';
 const garsonHome = i => portrait ? {x:330, y:290 + i * 30} : {x:288, y:380 + i * 45};
-const CIRAK_X = [72, 184, 34];
+const CIRAK_X = [72, 184, 34, 222];
 
 function pathIn(seat){
   const s = SLOTS[seat], a = aisleY();
@@ -2371,7 +2372,7 @@ function drawScene(){
   items.sort((a, b) => a.y - b.y).forEach(it => it.draw());
 
   if (effect('yangin')) for (let i = 0; i < 4; i++) emoji(g, '🔥', 60 + i * 90 + Math.sin(now() * 7 + i) * 4, 300 - Math.abs(Math.sin(now() * 5 + i)) * 10, 30);
-  R.customers.filter(seated).forEach(drawBubble);
+  R.customers.filter(seated).forEach(c => drawBubble(c));
   drawParticles();
   if (status === 'running' && R.combo >= 2) drawCombo();
 
@@ -2861,7 +2862,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.11.2';
+const APP_VERSION = '2.11.3';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3476,8 +3477,18 @@ $('#tabs').addEventListener('click', e => {
 });
 
 // ---------- Ana döngü ----------
-let last = performance.now(), steamIn = 0;
+let last = performance.now(), steamIn = 0, frameErr = '';
+// Tek bir karedeki hata oyunu dondurmasın: döngü sürer, oyuncu sebebi bir kez görür
 function frame(ts){
+  try { step(ts); }
+  catch (err){
+    console.error(err);
+    const msg = String(err && err.message || err);
+    if (msg !== frameErr){ frameErr = msg; announce({emoji:'⚠️', name:'Bir hata oluştu', desc:msg.slice(0, 140)}); }
+  }
+  requestAnimationFrame(frame);
+}
+function step(ts){
   const dt = Math.min(0.1, (ts - last) / 1000); last = ts;
   // Dükkân büyüyünce / şube değişince / ekran dönünce sahnenin oranı değişir
   const vh = viewH(), view = W + '/' + vh;
@@ -3498,7 +3509,6 @@ function frame(ts){
   } else drawScene();
   drawPreview();
   drawAvatar();
-  requestAnimationFrame(frame);
 }
 fitCanvas(scene, g, W, H);
 requestAnimationFrame(frame);
