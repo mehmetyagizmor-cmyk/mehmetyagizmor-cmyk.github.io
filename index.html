@@ -1539,7 +1539,7 @@ function contractSold(order){
   if (!c || c.st !== 'active') return;
   order.forEach(o => { if (c.need[o.p]) c.got[o.p] = (c.got[o.p] || 0) + 1; });
   if (Object.keys(c.need).some(id => (c.got[id] || 0) < c.need[id])) return;
-  S.money += c.reward; S.total += c.reward; S.contracts = (S.contracts || 0) + 1;
+  S.money += c.reward; S.total += c.reward; S.contracts = (S.contracts || 0) + 1; period().ct++;
   S.contract = null;
   addFame(10);
   announce({emoji:c.emoji, name:`${c.name} siparişi tamam!`, desc:`+₺${fmt(c.reward)} · 🌟 +10`, ach:true}, '📦 Toplu sipariş');
@@ -1618,7 +1618,7 @@ function leagueDay(earned){
   let prize = '';
   if (rank === 1){
     const m = Math.round(L.base * 2 / 10) * 10;
-    S.money += m; S.total += m; addFame(15); S.lgWins = (S.lgWins || 0) + 1;
+    S.money += m; S.total += m; addFame(15); S.lgWins = (S.lgWins || 0) + 1; period().lg++;
     prize = `🥇 Haftanın birincisi sensin! +₺${fmt(m)} · 🌟 +15 · 🏆 ${S.lgWins}. kupa`;
   } else if (rank === 2){
     const m = Math.round(L.base * 0.7 / 10) * 10;
@@ -1638,6 +1638,55 @@ function leagueHTML(){
   const rank = st.findIndex(x => x.id === 'me') + 1, left = 7 - (S.day - 1) % 7;
   const row = st.map((x, i) => `${i + 1}. ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name} ₺${fmt(x.score)}`).join(' · ');
   return `<b>🏆 Mahalle ligi · ${rank}. sıradasın</b> · ${left > 1 ? `pazara ${left - 1} gün` : 'son gün!'}<small>${row}</small>`;
+}
+
+// ---------- Esnaf Ödülleri ----------
+// Her 28 günde (4 hafta) bir tören: lig satışı ödüllendirir, tören hizmet kalitesini. Şartı tutan her kategori ödül ve kupa verir
+const AWARD_EVERY = 28;
+const pctTxt = x => '%' + (x * 100).toLocaleString('tr-TR', {maximumFractionDigits:1});
+const AWARDS = [
+  {id:'hiz',      emoji:'⚡', name:'En Hızlı Servis',  need:'Kızıp giden müşteri %3\'ten az',
+   ok:y => y.served >= 50 && y.lost / (y.served + y.lost) < 0.03, val:y => pctTxt(y.lost / Math.max(1, y.served + y.lost))},
+  {id:'temiz',    emoji:'🧼', name:'En Temiz Dükkân',  need:'100 müşteride 1\'den az "kirli" şikâyeti',
+   ok:y => y.served >= 50 && y.dirty / y.served < 0.01, val:y => (y.dirty / Math.max(1, y.served) * 100).toLocaleString('tr-TR', {maximumFractionDigits:2}) + ' / 100'},
+  {id:'dost',     emoji:'😊', name:'Müşteri Dostu',    need:'İyi yorumlar kötülerin 3 katı (en az 10)',
+   ok:y => y.good >= 10 && y.good >= 3 * (y.bad + y.slow), val:y => `👍 ${y.good} · 👎 ${y.bad + y.slow}`},
+  {id:'kusursuz', emoji:'✨', name:'Kusursuz Esnaf',   need:'En az 3 kusursuz gün', ok:y => y.perfect >= 3, val:y => `${y.perfect}/3`},
+  {id:'lig',      emoji:'🏆', name:'Ligin Yıldızı',    need:'En az 2 lig birinciliği', ok:y => y.lg >= 2, val:y => `${y.lg}/2`},
+  {id:'soz',      emoji:'📦', name:'Sözünün Eri',      need:'En az 2 toplu sipariş', ok:y => y.ct >= 2, val:y => `${y.ct}/2`},
+];
+function period(){
+  return S.yr = S.yr || {from:S.day, served:0, lost:0, good:0, bad:0, slow:0, dirty:0, perfect:0, earn:0, lg:0, ct:0};
+}
+const nextCeremony = () => Math.ceil((S.day + 1) / AWARD_EVERY) * AWARD_EVERY;
+// Gün sonu: dönemin sayılarını toplar, tören günüyse ödülleri dağıtır. Karne satırını döndürür
+function awardDay(st, perfect){
+  if (S.day < 2) return '';
+  const y = period();
+  y.served += st.served; y.lost += st.lost; y.good += st.good; y.bad += R.voice.bad; y.slow += R.voice.slow;
+  y.dirty += R.voice.dirty; y.perfect += perfect ? 1 : 0; y.earn += st.earned + st.tips;
+  const left = nextCeremony() - S.day;
+  if (S.day % AWARD_EVERY){
+    return left <= 3 ? `<p class="hint">🎖️ Esnaf Ödülleri töreni ${left} gün sonra · Eşyalarım'dan şartlara bak</p>` : '';
+  }
+  if (S.day - y.from < 14) return '';   // eski kayıtta dönem yarıda başladıysa bu tören atlanır, sayılar sürer
+  const days = S.day - y.from + 1, won = AWARDS.filter(a => a.ok(y));
+  const m = Math.round(y.earn / days * 0.5 / 10) * 10;
+  S.awards = S.awards || {};
+  won.forEach(a => S.awards[a.id] = (S.awards[a.id] || 0) + 1);
+  if (won.length){ S.money += m * won.length; S.total += m * won.length; addFame(10 * won.length + (won.length >= 5 ? 25 : 0)); }
+  S.yr = null;
+  return `<div class="banner">🎖️ Esnaf Ödülleri töreni · ${won.length ? `${won.length} ödül kazandın! +₺${fmt(m * won.length)} · 🌟 +${10 * won.length + (won.length >= 5 ? 25 : 0)}` : 'bu dönem ödül çıkmadı'}
+    <div class="news" style="text-align:left">${AWARDS.map(a => `<div>${a.ok(y) ? '✅' : '▫️'} ${a.emoji} ${a.name} <small style="color:var(--muted)">· ${a.ok(y) ? a.val(y) : a.need + ' (' + a.val(y) + ')'}</small></div>`).join('')}</div></div>`;
+}
+function awardsHTML(){
+  if (S.day < 2) return '';
+  const y = period(), left = nextCeremony() - S.day + 1;
+  return `<h3>🎖️ Esnaf Ödülleri</h3><p class="hint">Her 4 haftada bir tören: şartı tutan her ödül para, ünlülük ve kupa getirir. Sonraki tören ${left > 1 ? `${left} gün sonra` : 'bugün, gün sonunda'}.</p>`
+    + AWARDS.map(a => {
+      const ok = a.ok(y), n = (S.awards || {})[a.id] || 0;
+      return `<div class="ach${ok ? ' done' : ''}"><div class="em">${a.emoji}</div><div class="info"><b>${a.name}${n ? ` · 🏆×${n}` : ''}</b><small>${a.need} · şu an ${a.val(y)}</small></div><span class="rw">${ok ? '✓' : ''}</span></div>`;
+    }).join('');
 }
 
 // ---------- Müşteri sesi ----------
@@ -1886,7 +1935,7 @@ function endDay(){
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
   // Haber verilip masa boş olmadığı için gelemeyen eleştirmen yarın gelir
   S.critic = R.criticAt != null || (S.day + 1 >= 5 && Math.random() < 0.3) ? S.day + 1 : null;
-  const ctLine = contractDay(), lgLine = leagueDay(st.earned + st.tips);
+  const ctLine = contractDay(), lgLine = leagueDay(st.earned + st.tips), awLine = awardDay(st, perfect);
   const askRate = stars === 3 && rateReady();
   if (askRate){ S.rateAsks = (S.rateAsks || 0) + 1; S.rateNext = S.day + 7; }
   showModal(`
@@ -1919,6 +1968,7 @@ function endDay(){
     ${risk.news.length ? `<div class="news">${risk.news.map(n => `<div>${n}</div>`).join('')}</div>` : ''}
     ${voiceHTML()}
     ${lgLine}
+    ${awLine}
     ${ctLine}
     ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
     ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
@@ -2921,6 +2971,7 @@ function renderInventory(){
     v += `<p class="hint" style="margin:8px 0 4px"><b>${st.emoji} ${st.name}</b> · parça başı +%${Math.round(st.per * 100)}, set +%${Math.round(st.full * 100)} ${st.what}${setDone(st) ? ' ✅' : ''}</p><div class="inv">`
       + st.items.map(it => card(owned(it.id) ? it.emoji : '❔', it.name, owned(it.id) ? 'Koleksiyonunda' : st.event ? 'Etkinlik ödülü' : `₺${fmt(it.cost)}`, '', !owned(it.id))).join('') + '</div>';
   });
+  v += awardsHTML();
   const done = ACH.filter(a => S.ach[a.id]).length;
   v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
   // Tamamlanmamışlar önce, en çok ilerleyen en üstte
@@ -3118,7 +3169,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.15.0';
+const APP_VERSION = '2.16.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
