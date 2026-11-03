@@ -373,6 +373,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
       <h2>🔥 Mutfak</h2>
       <div class="coach" id="coach" hidden></div>
       <div class="evbar" id="evBar"></div>
+      <div class="evbar" id="ctBar"></div>
       <div class="quests" id="quests"></div>
       <p class="hint newbie">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
@@ -1267,10 +1268,10 @@ function spawnCustomer(special, delayPx = 0){
   let count = 1 + Math.floor(Math.random() * maxItems);
   if (special === 'vip') count = Math.min(4, Math.max(3, sellable().length));
   const fav = (DE().fav || []).filter(p => sellable().includes(p));
-  const evp = evProduct();
+  const evp = evProduct(), cw = contractWant();
   let order = [];
   for (let i = 0; i < count; i++){
-    const p = evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(sellable());
+    const p = cw && Math.random() < 0.25 ? pick(cw) : evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(sellable());
     order.push({p, done:false});
   }
   // Eleştirmen menünün en pahalı 5 ürününden 3-4 parça ister
@@ -1352,6 +1353,7 @@ function pay(c){
   const ep = evProg();
   if (ep && !ep.done && ++ep.n >= EV().goal) evReward(ep);
   c.order.forEach(o => R.sold[o.p] = (R.sold[o.p] || 0) + 1);
+  contractSold(c.order);
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
   const s = SLOTS[c.seat];
   // Müşteri yorumu: malzeme kalitesine ve servis hızına göre
@@ -1503,6 +1505,76 @@ const QUESTS = {
   nolose: {make:d => ({n:Math.min(20, 5 + Math.floor(d / 2))}),   label:q => `😊 Kimseyi kızdırmadan ${q.n} servis`, short:() => '😊 Kızdırma',
            prog:() => R.stats.lost ? -1 : R.stats.served}, // -1 = başarısız
 };
+// ---------- Toplu sipariş ----------
+// Ara sıra gelen çok günlü teklif: kabul edilirse süre içinde bu ürünlerden belli sayıda satılır.
+// Süre boyunca müşteriler o ürünleri daha sık ister; tutarsa büyük ödül, tutmazsa itibar düşer
+const CLIENTS = [
+  {emoji:'💍', name:'Düğün salonu'}, {emoji:'🏫', name:'Okul gezisi'}, {emoji:'🏭', name:'Fabrika çay molası'},
+  {emoji:'⚽', name:'Mahalle futbol takımı'}, {emoji:'🏛️', name:'Belediye toplantısı'}, {emoji:'🎓', name:'Mezuniyet töreni'},
+];
+const CT_FAIL_REP = 5;
+// Hedef, oyuncunun bugünkü satışına göre: sipariş süresince bu ürünlerden beklenen satışın %65'i (kayan talep dahil).
+// Bot simülasyonunda %80 hedefin yarısı yetişmedi; %65 kusursuz oynayana rahat, müşteri kaçırana zor gelir
+function makeContract(day, itemsToday = 0){
+  const menu = sellable(), days = Math.random() < 0.5 ? 2 : 3;
+  const ids = [...menu].sort(() => Math.random() - 0.5).slice(0, Math.min(2, menu.length));
+  const perDay = Math.max(3, Math.round(0.65 * itemsToday * (0.25 / ids.length + 0.75 / menu.length)));
+  const need = Object.fromEntries(ids.map(id => [id, perDay * days]));
+  const worth = ids.reduce((s, id) => s + basePrice(id) * need[id], 0);
+  return {...pick(CLIENTS), day, days, need, got:{}, st:'offer', reward:Math.round(worth * 1.5 / 10) * 10};
+}
+// Süren siparişte henüz tamamlanmamış ürünler (müşteri seçimi bunlara kayar)
+function contractWant(){
+  const c = S.contract;
+  if (!c || c.st !== 'active' || status !== 'running') return null;
+  const ids = Object.keys(c.need).filter(id => (c.got[id] || 0) < c.need[id] && sellable().includes(id));
+  return ids.length ? ids : null;
+}
+function contractSold(order){
+  const c = S.contract;
+  if (!c || c.st !== 'active') return;
+  order.forEach(o => { if (c.need[o.p]) c.got[o.p] = (c.got[o.p] || 0) + 1; });
+  if (Object.keys(c.need).some(id => (c.got[id] || 0) < c.need[id])) return;
+  S.money += c.reward; S.total += c.reward; S.contracts = (S.contracts || 0) + 1;
+  S.contract = null;
+  addFame(10);
+  announce({emoji:c.emoji, name:`${c.name} siparişi tamam!`, desc:`+₺${fmt(c.reward)} · 🌟 +10`, ach:true}, '📦 Toplu sipariş');
+  confetti(); SFX.pay(); save();
+}
+// Gün sonu: süresi biten sipariş başarısız olur, bekleyen teklif düşer, yarına yeni teklif gelebilir. Karne satırını döndürür
+function contractDay(){
+  const c = S.contract;
+  if (c && c.st === 'active'){
+    if (S.day < c.until) return `<p class="hint">📦 ${c.emoji} ${c.name} siparişi: ${c.until - S.day} gün daha var</p>`;
+    S.rep = Math.max(0, S.rep - CT_FAIL_REP); S.contract = null;
+    return `<p class="banner bad">📦 ${c.emoji} ${c.name} siparişi yetişmedi: -${CT_FAIL_REP}⭐</p>`;
+  }
+  S.contract = null;
+  if (S.day + 1 < 4 || Math.random() > 0.25) return '';
+  S.contract = makeContract(S.day + 1, Object.values(R.sold).reduce((a, b) => a + b, 0));
+  return `<p class="banner">📦 Yarın ${S.contract.emoji} ${S.contract.name} toplu sipariş teklifi getirecek!</p>`;
+}
+function answerContract(yes){
+  const c = S.contract;
+  if (!c || c.st !== 'offer' || c.day !== S.day || status === 'running') return;
+  if (yes){ c.st = 'active'; c.until = S.day + c.days - 1; toast(`📦 ${c.name} siparişini aldın: ${c.days} günün var!`); SFX.buy(); }
+  else S.contract = null;
+  save();
+}
+function contractHTML(){
+  const c = S.contract;
+  if (!c) return '';
+  const ids = Object.keys(c.need);
+  const list = ids.map(id => `${P[id].emoji} ${c.st === 'active' ? Math.min(c.got[id] || 0, c.need[id]) + '/' : ''}${c.need[id]} ${P[id].name}`).join(' · ');
+  if (c.st === 'offer'){
+    if (c.day !== S.day || status === 'running') return '';
+    return `<b>📦 Teklif: ${c.emoji} ${c.name}</b><small>${c.days} günde ${list} sat → +₺${fmt(c.reward)} · yetişmezse -${CT_FAIL_REP}⭐ · dükkânı açmadan karar ver</small>
+      <div class="btns"><button class="btn2" data-ct="yes">✅ Kabul et</button><button class="btn2" data-ct="no">Reddet</button></div>`;
+  }
+  const tot = ids.reduce((s, id) => s + c.need[id], 0), got = ids.reduce((s, id) => s + Math.min(c.got[id] || 0, c.need[id]), 0);
+  return `<b>📦 ${c.emoji} ${c.name}</b> · ${c.until > S.day ? `${c.until - S.day + 1} gün kaldı` : 'son gün!'}<small>${list} · ödül ₺${fmt(c.reward)}</small><i style="width:${got / tot * 100}%"></i>`;
+}
+
 function ensureQuests(){
   if (S.day < 2 || (S.quests && S.quests.day === S.day)) return;
   const types = Object.keys(QUESTS).sort(() => Math.random() - 0.5).slice(0, 3);
@@ -1720,6 +1792,7 @@ function endDay(){
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
   // Haber verilip masa boş olmadığı için gelemeyen eleştirmen yarın gelir
   S.critic = R.criticAt != null || (S.day + 1 >= 5 && Math.random() < 0.3) ? S.day + 1 : null;
+  const ctLine = contractDay();
   const askRate = stars === 3 && rateReady();
   if (askRate){ S.rateAsks = (S.rateAsks || 0) + 1; S.rateNext = S.day + 7; }
   showModal(`
@@ -1750,6 +1823,7 @@ function endDay(){
     </table>
     ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
     ${risk.news.length ? `<div class="news">${risk.news.map(n => `<div>${n}</div>`).join('')}</div>` : ''}
+    ${ctLine}
     ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
     ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
     ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
@@ -2558,6 +2632,7 @@ let prodKey = '';
 function renderUI(){
   ensureQuests(); checkQuests(); checkAch();
   setHTML('#quests', questsHTML());
+  setHTML('#ctBar', contractHTML());
   // Etkinlik şeridi: süren etkinlik ve görevi, yoksa 14 gün içindeki etkinliğin haberi
   const cal = calendar();
   let eb = '';
@@ -2946,7 +3021,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.12.0';
+const APP_VERSION = '2.13.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3252,6 +3327,7 @@ function resumeDay(){
 }
 function openShop(opt = {}){
   dayDate = today();
+  if (S.contract && S.contract.st === 'offer') S.contract = null;   // karar verilmeden açılan dükkân teklifi kaçırır
   newDay(); status = 'running'; SFX.open(); startDayEvent();
   if (opt.late){ R.t = DAY_LEN / 6; R.interview = true; }
   if (opt.focus) R.focus = true;
@@ -3484,7 +3560,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -3505,6 +3581,7 @@ document.addEventListener('click', e => {
   else if (d.cover !== undefined && S.lastCover) showCover(false);
   else if (d.legacy !== undefined){ if (canLegacy() && status !== 'running') showLegacy(); }
   else if (d.fix) fixBranch(+d.fix);
+  else if (d.ct) answerContract(d.ct === 'yes');
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
     const el = $(`#br-${d.pin === 'tr' ? 'ana' : d.pin}`);
