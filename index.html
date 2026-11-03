@@ -927,7 +927,7 @@ function save(){
   if (stale) return;
   S.branches[S.cur].rep = S.rep; S.lastSeen = Date.now();
   // Süren gün: müşteriler ve tepsi kaydedilmez ama saat ve kazanç kalır, açılışta gün buradan sürer
-  S.dayRun = status === 'running' ? {day:S.day, t:R.t, stats:R.stats, sold:R.sold, regsToday:R.regsToday,
+  S.dayRun = status === 'running' ? {day:S.day, t:R.t, stats:R.stats, sold:R.sold, regsToday:R.regsToday, voice:R.voice,
     interview:R.interview, focus:R.focus, review:R.review, ev:R.dayEvent && R.dayEvent.name} : null;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); saveFailed = false; }
   catch(e) { if (!saveFailed){ saveFailed = true; toast('⚠️ Kayıt yapılamadı: depolama dolu ya da kapalı'); } }
@@ -1199,7 +1199,8 @@ function newDay(){
   R = {t:0, customers:[], queue:[], tray:[], trayT:[], helpers:[], spawnIn:1, nextId:1,
        dayEvent:null, effects:[], eventIn:rand(20, 35),
        garsons:Array.from({length:lv('garson')}, (_, i) => newGarson(i)),
-       combo:0, sold:{}, stains:[], cleanIn:0, calmed:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0, mat:0, good:0, bad:0, loss:0}, regsToday:[]};
+       combo:0, sold:{}, stains:[], cleanIn:0, calmed:0, stats:{served:0, lost:0, earned:0, tips:0, bestCombo:0, mat:0, good:0, bad:0, loss:0}, regsToday:[],
+       voice:{lost:0, slow:0, bad:0, dirty:0, full:0}};   // günün şikâyetleri (karnede "müşteri sesi")
   // Bugün uğrayacak müdavimler (yalnızca ana dükkân): her biri %70 ihtimalle, en fazla 3 kişi
   R.regs = S.cur ? [] : REGULARS.filter(r => S.day >= r.day && Math.random() < 0.7).sort(() => Math.random() - 0.5).slice(0, 3).map(r => r.id);
   // Henüz tanışılmamış en erken müdavim (ör. 1. gün Ali Amca) bugün mutlaka gelir
@@ -1335,6 +1336,7 @@ function pay(c){
   if (dirt() >= 4 && Math.random() < 0.3){
     S.rep = Math.max(0, S.rep - 1);
     floatText(SLOTS[c.seat].x, SLOTS[c.seat].y - 185, '🤢 Burası kirli! -1⭐', '#c9e06a', 0.3);
+    R.voice.dirty++;
   }
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
@@ -1361,6 +1363,7 @@ function pay(c){
   if (rv){
     const good = rv === 'good';
     R.stats[good ? 'good' : 'bad']++;
+    if (!good) R.voice[rv]++;
     S.rep = Math.max(0, Math.min(100, S.rep + (good ? 1 : -2)));
     floatText(s.x, s.y - 215, `${pick(REVIEWS[rv])} ${good ? '+1' : '-2'}⭐`, good ? '#8fe08f' : '#ff8a7a', 0.45);
   }
@@ -1575,6 +1578,32 @@ function contractHTML(){
   return `<b>📦 ${c.emoji} ${c.name}</b> · ${c.until > S.day ? `${c.until - S.day + 1} gün kaldı` : 'son gün!'}<small>${list} · ödül ₺${fmt(c.reward)}</small><i style="width:${got / tot * 100}%"></i>`;
 }
 
+// ---------- Müşteri sesi ----------
+// Günün en sık şikâyeti ve onu en ucuza çözecek şey: oyuncu neyi alacağını tahmin etmez, okur
+const VOICE = {
+  lost: {emoji:'💢', say:'Bekleyemeyip kızıp gittiler', w:2, ups:['cirak', 'garson', 'semaver', 'tepsi']},
+  slow: {emoji:'🐢', say:'"Çok bekledim!"', w:1, ups:['semaver', 'garson', 'cirak']},
+  bad:  {emoji:'🤢', say:'"Malzeme kötü!"', w:1, qual:true},
+  dirty:{emoji:'🪰', say:'"Burası kirli!"', w:1, ups:['temizlikci']},
+  full: {emoji:'🚪', say:'Yer bulamayıp kapıdan döndüler', w:1, ups:['masa'], grow:true},
+};
+function voiceAdvice(k){
+  const v = VOICE[k];
+  if (v.qual) return S.quality === 'iyi' ? '' : 'Sevkiyatta daha kaliteli malzeme seç';
+  const u = v.ups.map(id => UPGRADES.find(u => u.id === id))
+    .filter(u => u && lv(u.id) < maxLv(u) && !(u.need && !lv(u.need))).sort((a, b) => upCost(a) - upCost(b))[0];
+  if (u) return `${u.emoji} ${u.name} al (₺${fmt(upCost(u))})`;
+  const next = SHOP_LEVELS[lv('dukkan') + 1];
+  return v.grow && next ? `🏪 Dükkânı ${next.name} yap` : '';
+}
+function voiceHTML(){
+  if (S.day < 2) return '';
+  const top = Object.keys(VOICE).filter(k => R.voice[k] > 0).sort((a, b) => R.voice[b] * VOICE[b].w - R.voice[a] * VOICE[a].w)[0];
+  if (!top) return R.stats.good ? `<p class="hint">🗣️ Müşteri sesi: şikâyet yok, 👍 ${R.stats.good} iyi yorum!</p>` : '';
+  const v = VOICE[top], tip = voiceAdvice(top);
+  return `<p class="hint">🗣️ Müşteri sesi: ${v.emoji} ${v.say} <b>×${R.voice[top]}</b>${tip ? ` → 💡 ${tip}` : ''}</p>`;
+}
+
 function ensureQuests(){
   if (S.day < 2 || (S.quests && S.quests.day === S.day)) return;
   const types = Object.keys(QUESTS).sort(() => Math.random() - 0.5).slice(0, 3);
@@ -1634,7 +1663,10 @@ function tick(dt){
   }
 
   R.spawnIn -= dt;
-  if (R.spawnIn <= 0){ spawnCustomer(); R.spawnIn = spawnInterval() * rand(0.6, 1.4); }
+  if (R.spawnIn <= 0){
+    if (!spawnCustomer()) R.voice.full++;   // masa yok: müşteri kapıdan döndü
+    R.spawnIn = spawnInterval() * rand(0.6, 1.4);
+  }
   if (R.criticAt != null && R.t >= R.criticAt && freeSeats().length){
     R.criticAt = null; R.review = 0; S.critic = null;
     spawnCustomer('elestirmen'); announce(CRITIC);
@@ -1743,7 +1775,7 @@ function tick(dt){
         if (R.combo >= 3) floatText(s.x, s.y - 130, `Kombo bitti (${R.combo})`, '#c9b39a', 0.2);
         R.combo = 0;
         S.rep = Math.max(0, S.rep - penalty);
-        R.stats.lost++;
+        R.stats.lost++; R.voice.lost++;
         bump('#rep', 'shake');
         SFX.angry();
         if (c.reg) regAngry(c);
@@ -1823,6 +1855,7 @@ function endDay(){
     </table>
     ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
     ${risk.news.length ? `<div class="news">${risk.news.map(n => `<div>${n}</div>`).join('')}</div>` : ''}
+    ${voiceHTML()}
     ${ctLine}
     ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
     ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
@@ -3021,7 +3054,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.13.0';
+const APP_VERSION = '2.14.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3317,7 +3350,7 @@ $('#modal').addEventListener('click', e => {
 function resumeDay(){
   const d = S.dayRun;
   if (!d || d.day !== S.day || !(d.t < DAY_LEN)) return false;
-  Object.assign(R, {t:d.t, stats:d.stats, sold:d.sold || {}, regsToday:d.regsToday || [], interview:d.interview, focus:d.focus,
+  Object.assign(R, {t:d.t, stats:d.stats, sold:d.sold || {}, regsToday:d.regsToday || [], voice:d.voice || R.voice, interview:d.interview, focus:d.focus,
     review:d.review, evShown:true, dayEvent:DAY_EVENTS.find(e => e.name === d.ev) || null});
   R.regs = R.regs.filter(id => !R.regsToday.includes(id));
   status = 'running';
