@@ -374,6 +374,7 @@ body.blackout main{filter:brightness(.55) saturate(.7)}
       <div class="coach" id="coach" hidden></div>
       <div class="evbar" id="evBar"></div>
       <div class="evbar" id="ctBar"></div>
+      <div class="evbar" id="lgBar"></div>
       <div class="quests" id="quests"></div>
       <p class="hint newbie">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
@@ -1578,6 +1579,67 @@ function contractHTML(){
   return `<b>📦 ${c.emoji} ${c.name}</b> · ${c.until > S.day ? `${c.until - S.day + 1} gün kaldı` : 'son gün!'}<small>${list} · ödül ₺${fmt(c.reward)}</small><i style="width:${got / tot * 100}%"></i>`;
 }
 
+// ---------- Mahalle ligi ----------
+// Her hafta (pazartesi–pazar) dört rakip çay ocağıyla satış yarışı. Ceza yok: kaybeden yalnızca ödülü kaçırır.
+// Rakiplerin günlük satışı oyuncunun geçen haftaki ortalamasından türer: her seviyede çekişmeli kalır
+const RIVALS = [
+  {id:'rifat', emoji:'🧔', name:"Rıfat Usta'nın Yeri", k:1.1},
+  {id:'kose',  emoji:'☕', name:'Köşe Kahvesi',        k:0.95},
+  {id:'simit', emoji:'🥯', name:'Simitçi Dayı',        k:0.8},
+  {id:'nesil', emoji:'🧋', name:'Yeni Nesil Kafe',     k:0.65},
+];
+const LEAGUE_FROM = 8;   // ikinci haftanın pazartesisi
+// Lig yalnızca pazartesi başlar (hafta ortasında başlayan oyuncu haksız geride kalmasın)
+function league(){
+  if (!S.league && S.day >= LEAGUE_FROM && S.day % 7 === 1){
+    const base = S.lgBase || Math.max(100, Math.round(S.bestDay * 0.7));
+    S.lgK = S.lgK || Object.fromEntries(RIVALS.map(r => [r.id, r.k]));
+    S.league = {week:Math.floor((S.day - 1) / 7) + 1, base, me:0, sc:Object.fromEntries(RIVALS.map(r => [r.id, 0]))};
+  }
+  return S.league || null;
+}
+// Bugün dahil sıralama; oyuncunun açık günü de anlık sayılır
+function standings(){
+  const L = league();
+  if (!L) return null;
+  const live = status === 'running' ? R.stats.earned + R.stats.tips : 0;
+  return [{id:'me', emoji:'🍵', name:'Sen', score:L.me + live}, ...RIVALS.map(r => ({...r, score:L.sc[r.id]}))].sort((a, b) => b.score - a.score);
+}
+// Gün sonu: puanları ekler, pazar günü ödülleri dağıtıp ligi kapatır. Karne satırını döndürür
+function leagueDay(earned){
+  const L = league();
+  if (!L) return '';
+  L.me += earned;
+  // Rakipler yarı yarıya geçen haftanın ortalamasına ve senin bugününe bakar: erken oyunda gelir hızla büyürken geride kalmasınlar
+  RIVALS.forEach(r => L.sc[r.id] += Math.round((L.base + earned) / 2 * S.lgK[r.id] * rand(0.85, 1.15)));
+  const st = standings(), rank = st.findIndex(x => x.id === 'me') + 1, left = 7 - (S.day - 1) % 7 - 1;
+  if (left > 0) return `<p class="hint">🏆 Mahalle ligi: <b>${rank}. sıradasın</b> · lider ${st[0].emoji} ${st[0].id === 'me' ? 'sensin' : st[0].name} · pazara ${left} gün</p>`;
+  // Hafta bitti
+  let prize = '';
+  if (rank === 1){
+    const m = Math.round(L.base * 2 / 10) * 10;
+    S.money += m; S.total += m; addFame(15); S.lgWins = (S.lgWins || 0) + 1;
+    prize = `🥇 Haftanın birincisi sensin! +₺${fmt(m)} · 🌟 +15 · 🏆 ${S.lgWins}. kupa`;
+  } else if (rank === 2){
+    const m = Math.round(L.base * 0.7 / 10) * 10;
+    S.money += m; S.total += m; addFame(5);
+    prize = `🥈 Haftayı ikinci bitirdin: +₺${fmt(m)} · 🌟 +5`;
+  } else prize = `${rank}. oldun. Haftanın lideri ${st[0].emoji} ${st[0].name} oldu, gelecek hafta yakala!`;
+  // Kazandıkça rakipler biraz güçlenir, kaybettikçe biraz zayıflar
+  RIVALS.forEach(r => S.lgK[r.id] = Math.max(0.5, Math.min(1.6, S.lgK[r.id] * (rank === 1 ? 1.04 : rank > 2 ? 0.97 : 1))));
+  S.lgBase = Math.max(100, Math.round(L.me / 7));
+  S.league = null;
+  return `<div class="banner">🏆 Mahalle ligi ${L.week}. hafta bitti · ${prize}
+    <div class="news" style="text-align:left">${st.map((x, i) => `<div>${i + 1}. ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name} · ₺${fmt(x.score)}</div>`).join('')}</div></div>`;
+}
+function leagueHTML(){
+  const st = standings();
+  if (!st) return S.day >= LEAGUE_FROM - 3 && S.day < LEAGUE_FROM ? `🏆 <b>Mahalle ligi</b> ${LEAGUE_FROM}. günde başlıyor<small>Her hafta dört rakip çay ocağıyla satış yarışı: birinciye para, ünlülük ve kupa.</small>` : '';
+  const rank = st.findIndex(x => x.id === 'me') + 1, left = 7 - (S.day - 1) % 7;
+  const row = st.map((x, i) => `${i + 1}. ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name} ₺${fmt(x.score)}`).join(' · ');
+  return `<b>🏆 Mahalle ligi · ${rank}. sıradasın</b> · ${left > 1 ? `pazara ${left - 1} gün` : 'son gün!'}<small>${row}</small>`;
+}
+
 // ---------- Müşteri sesi ----------
 // Günün en sık şikâyeti ve onu en ucuza çözecek şey: oyuncu neyi alacağını tahmin etmez, okur
 const VOICE = {
@@ -1824,7 +1886,7 @@ function endDay(){
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
   // Haber verilip masa boş olmadığı için gelemeyen eleştirmen yarın gelir
   S.critic = R.criticAt != null || (S.day + 1 >= 5 && Math.random() < 0.3) ? S.day + 1 : null;
-  const ctLine = contractDay();
+  const ctLine = contractDay(), lgLine = leagueDay(st.earned + st.tips);
   const askRate = stars === 3 && rateReady();
   if (askRate){ S.rateAsks = (S.rateAsks || 0) + 1; S.rateNext = S.day + 7; }
   showModal(`
@@ -1856,6 +1918,7 @@ function endDay(){
     ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
     ${risk.news.length ? `<div class="news">${risk.news.map(n => `<div>${n}</div>`).join('')}</div>` : ''}
     ${voiceHTML()}
+    ${lgLine}
     ${ctLine}
     ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
     ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
@@ -2666,6 +2729,7 @@ function renderUI(){
   ensureQuests(); checkQuests(); checkAch();
   setHTML('#quests', questsHTML());
   setHTML('#ctBar', contractHTML());
+  setHTML('#lgBar', leagueHTML());
   // Etkinlik şeridi: süren etkinlik ve görevi, yoksa 14 gün içindeki etkinliğin haberi
   const cal = calendar();
   let eb = '';
@@ -3054,7 +3118,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.14.0';
+const APP_VERSION = '2.15.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
