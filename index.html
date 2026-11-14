@@ -380,7 +380,51 @@ h3{color:var(--muted)}
 .icon-btn:hover{background:#fff}
 .icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
 @media(max-width:620px){.res{padding:0 8px 0 22px;margin-left:12px}.res b{font-size:13px}.res .ri{width:28px;height:28px;font-size:15px;left:-12px}
-  .res.clock{display:none}.hud{gap:6px}}
+  .hud{gap:4px;justify-content:space-between}.res .rbar{width:32px}}
+
+/* ---------- UI-2: sahnede yüzen düğmeler ve lig rozeti ---------- */
+.fabs{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:8px;z-index:3}
+.fab{position:relative;width:42px;height:42px;padding:0;display:grid;place-items:center;font-size:20px;cursor:pointer;
+  background:var(--cream);border:3px solid var(--ink);border-radius:12px;box-shadow:0 4px 0 var(--ink)}
+.fab[hidden]{display:none}
+.fab:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.fab .dot{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--bad);border:2.5px solid var(--ink)}
+.fab .dot[hidden]{display:none}
+.lgbadge{position:absolute;left:8px;bottom:8px;z-index:3;display:flex;align-items:center;gap:4px;padding:3px 10px 3px 4px;cursor:pointer;
+  background:linear-gradient(#ffd36b,#f2a65a);border:3px solid var(--ink);border-radius:12px;box-shadow:0 4px 0 var(--ink);color:var(--ink)}
+.lgbadge[hidden]{display:none}
+.lgbadge .lgc{font-size:20px}
+.lgbadge b{font-size:16px}
+.lgbadge small{font-size:10px;font-weight:700;letter-spacing:.05em}
+.lgbadge.lead{background:linear-gradient(#fff3a0,#ffc94a)}
+.lgbadge:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+/* Kapalı dükkân katmanı düğmelerin altında kalmasın diye düğmeler üstte, katman ortada */
+.overlay{z-index:2}
+#events{z-index:3;left:auto;right:58px}
+@media(max-width:999px){.fab{width:38px;height:38px;font-size:18px}.fabs{gap:6px;top:6px;right:6px}#events{right:50px}}
+
+/* ---------- UI-2: alt menü, ortada büyük Dükkân düğmesi ---------- */
+@media(max-width:999px) and (orientation:portrait){
+  :root{--nav:64px}
+  #tabs{align-items:flex-end;overflow:visible}
+  .tab{font-size:24px;height:var(--nav);border-radius:0}
+  .tab span{font-size:11px;margin-top:2px}
+  .tab.on{background:#ffe2c2}
+  .tab.on::before{display:none}
+  /* Ortadaki düğme menünün üstüne taşar */
+  .tab.hub{flex:1.2;overflow:visible;justify-content:flex-end;padding-bottom:6px;background:none}
+  .tab.hub .hubc{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);width:66px;height:66px;display:grid;place-items:center;
+    font-size:34px;background:radial-gradient(circle at 50% 35%,#ff9b5e,var(--accent));border:4px solid var(--ink);border-radius:50%;box-shadow:0 5px 0 var(--ink)}
+  .tab.hub span{position:relative;z-index:1;font-size:12px;color:#fff;text-shadow:0 1.5px 0 var(--ink),1.5px 0 0 var(--ink),-1.5px 0 0 var(--ink),0 -1.5px 0 var(--ink)}
+  .tab.hub.on .hubc{background:radial-gradient(circle at 50% 35%,#ffc28f,#ff7a3d);box-shadow:0 5px 0 var(--ink),0 0 0 4px #ffd36b88}
+  .tab.hub:active .hubc{transform:translate(-50%,3px);box-shadow:0 2px 0 var(--ink)}
+  /* Sahne düğme ve menü için biraz yer bıraksın */
+  main{padding-bottom:calc(var(--nav) + var(--sb) + 20px)}
+}
+/* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
+@media not all and (max-width:999px) and (orientation:portrait){
+  .tab.hub .hubc{font-size:inherit;font-weight:400}
+}
 
 /* Paneller ve pencereler: beyaz kart, kalın kontur, alt gölge */
 .panel{background:var(--panel);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink)}
@@ -453,9 +497,6 @@ h3{color:var(--muted)}
   <div class="res money"><span class="ri">💰</span><b id="money"></b><small id="moneyRate"></small></div>
   <div class="res rep"><span class="ri">⭐</span><b id="rep"></b><span class="rbar"><i id="repBar"></i></span></div>
   <div class="res clock"><span class="ri">📅</span><b id="day"></b></div>
-  <button class="icon-btn" id="shopsBtn" aria-label="Dükkânlarım" hidden>🏪</button>
-  <button class="icon-btn" id="pauseBtn" aria-label="Duraklat" hidden>⏸️</button>
-  <button class="icon-btn" id="settingsBtn" aria-label="Ayarlar">⚙️</button>
   <div class="daybar"><div id="clockfill"></div></div>
 </header>
 
@@ -466,6 +507,14 @@ h3{color:var(--muted)}
         <canvas id="scene3d" hidden></canvas>
         <canvas id="scene"></canvas>
         <div id="events"></div>
+        <!-- Sahnenin köşelerinde yüzen düğmeler -->
+        <div class="fabs">
+          <button class="fab" id="settingsBtn" aria-label="Ayarlar">⚙️</button>
+          <button class="fab" id="pauseBtn" aria-label="Duraklat" hidden>⏸️</button>
+          <button class="fab" id="dailyBtn" aria-label="Günlük ödül">🎁<i class="dot" hidden></i></button>
+          <button class="fab" id="shopsBtn" aria-label="Dükkânlarım" hidden>🏪</button>
+        </div>
+        <button class="lgbadge" id="lgBadge" hidden></button>
         <div class="overlay" id="closedOverlay">
           <div style="font-size:38px">🔒</div>
           <div id="levelName"></div>
@@ -491,9 +540,9 @@ h3{color:var(--muted)}
   </div>
   <div class="right">
     <nav id="tabs">
-      <button class="tab" data-tab="mutfak">🔥<span>Mutfak</span></button>
       <button class="tab" data-tab="magaza">🛒<span>Mağaza</span><i class="badge"></i></button>
       <button class="tab" data-tab="menu">📋<span>Menü</span><i class="badge"></i></button>
+      <button class="tab hub" data-tab="mutfak"><b class="hubc">🫖</b><span>Dükkân</span></button>
       <button class="tab" data-tab="sube" hidden>🏙️<span>Şubeler</span><i class="badge"></i></button>
       <button class="tab" data-tab="esya">🎒<span>Eşyalarım</span></button>
     </nav>
@@ -2903,7 +2952,8 @@ function renderUI(){
   $('#repBar').style.width = Math.round(S.rep) + '%';
   const frac = Math.min(1, R.t / DAY_LEN);
   const mins = 8 * 60 + Math.floor(frac * 12 * 60);
-  $('#day').textContent = `Gün ${S.day} · ${WD().short} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#day').textContent = `Gün ${S.day} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#day').title = WD().name;
   $('#clockfill').style.width = frac * 100 + '%';
   $('#shopsBtn').hidden = status === 'running' || S.branches.length < 2;
   $('#shopsBtn').textContent = city().emoji;
@@ -2926,6 +2976,15 @@ function renderUI(){
   if (subeTab.hidden && tab === 'sube') setTab('mutfak');
 
   $('#pauseBtn').hidden = status !== 'running';
+  // Yüzen düğmeler: günlük ödül noktası, lig rozeti
+  $('#dailyBtn .dot').hidden = !(S.owner && dailyPending());
+  const lgs = standings(), lb = $('#lgBadge');
+  lb.hidden = !lgs;
+  if (lgs){
+    const rk = lgs.findIndex(x => x.id === 'me') + 1;
+    setHTML('#lgBadge', `<span class="lgc">🏆</span><b>${rk}.</b><small>LİG</small>`);
+    lb.classList.toggle('lead', rk === 1);
+  }
   document.body.classList.toggle('running', status === 'running');
   document.body.classList.toggle('veteran', S.day > 3); // açıklamalar yer kaplamasın
 
@@ -3275,7 +3334,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.18.0';
+const APP_VERSION = '2.19.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4002,6 +4061,21 @@ document.addEventListener('keydown', e => {
 
 $('#pauseBtn').addEventListener('click', pauseGame);
 $('#settingsBtn').addEventListener('click', () => { if (!modalOpen()) showSettings(); });
+$('#dailyBtn').addEventListener('click', () => {
+  if (modalOpen()) return;
+  if (dailyPending() && status !== 'running') showDaily();
+  else toast(dailyPending() ? '🎁 Günlük ödülünü dükkânı kapatınca alabilirsin' : `🎁 Bugünün ödülünü aldın (${S.streak} günlük seri). Yarın yine gel!`);
+});
+$('#lgBadge').addEventListener('click', () => {
+  const st = standings();
+  if (!st || modalOpen()) return;
+  const left = 7 - (S.day - 1) % 7;
+  showModal(`<h2>🏆 Mahalle ligi · ${S.league.week}. hafta</h2>
+    <p class="hint">Bu hafta satış ve bahşiş toplamı. Pazar günü birinciye para, ünlülük ve kupa. ${left > 1 ? `Pazara ${left - 1} gün var.` : 'Bugün son gün!'}</p>
+    <table>${st.map((x, i) => `<tr><td>${['🥇', '🥈', '🥉'][i] || (i + 1) + '.'} ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name}</td><td>₺${fmt(x.score)}</td></tr>`).join('')}</table>
+    <p class="hint">🏆 Toplam kupa: ${S.lgWins || 0}</p>
+    <button class="big" id="modalOk">Tamam</button>`);
+});
 // Telefon kilitlenince / başka uygulamaya geçince: duraklat ve kaydet
 document.addEventListener('visibilitychange', () => {
   if (document.hidden){ pauseGame(); save(); hiddenAt = Date.now(); return; }
