@@ -492,6 +492,37 @@ h3{color:var(--muted)}
 @media(max-width:620px){.res .ri .ic{width:19px;height:19px}}
 @media(min-width:1000px){.tab .ic{width:22px;height:22px}}
 
+/* ---------- E-1: Dükkânlarım ekip ağacı ---------- */
+.treewrap{overflow-x:auto;margin:0 -6px 14px;padding:8px 6px 12px;-webkit-overflow-scrolling:touch}
+.tree{display:inline-block;min-width:100%}
+.tree ul{display:flex;justify-content:center;margin:0;padding:18px 0 0;position:relative}
+.tree>ul{padding-top:0}
+.tree li{list-style:none;position:relative;padding:18px 3px 0;display:flex;flex-direction:column;align-items:center}
+.tree>ul>li{padding-top:0}
+.tree li::before,.tree li::after{content:'';position:absolute;top:0;right:50%;width:50%;height:18px;border-top:3px solid var(--ink)}
+.tree li::after{right:auto;left:50%;border-left:3px solid var(--ink)}
+.tree li:first-child::before,.tree li:last-child::after{border:0 none}
+.tree li:last-child::before{border-right:3px solid var(--ink);border-radius:0 10px 0 0}
+.tree li:first-child::after{border-radius:10px 0 0 0}
+.tree li:only-child::before{display:none}
+.tree li:only-child::after{border-top:0;border-radius:0}
+.tree ul ul::before{content:'';position:absolute;top:0;left:50%;height:18px;border-left:3px solid var(--ink);margin-left:-1.5px}
+.tree>ul>li::before,.tree>ul>li::after{display:none}
+.toprow{position:relative}
+.tn{position:relative;display:flex;flex-direction:column;align-items:center;width:72px;cursor:pointer;text-align:center}
+.tn .sport{width:52px;height:52px;border-radius:50%;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);background:#fff8ec}
+.tn:active .sport{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.tn.usta .sport{width:68px;height:68px;background:#ffe9b0}
+.tn.head .sport{background:#ffd9c7}
+.tn.cirak .sport{background:#d6f2e2}
+.tn.garson .sport{background:#d5e8fa}
+.tn.sag{position:absolute;left:100%;top:8px;margin-left:6px}
+.tn.sag .sport{background:#e6d3f1;border-style:dashed}
+.tn .tlv{position:absolute;top:-6px;left:6px;z-index:1;min-width:20px;padding:0 5px;font-size:11px;font-weight:700;color:#fff;background:var(--tea);border:2px solid var(--ink);border-radius:999px}
+.tn b{font-size:12px;line-height:1.1;margin-top:4px;white-space:nowrap;max-width:78px;overflow:hidden;text-overflow:ellipsis}
+.tn small{font-size:10px;color:var(--muted);line-height:1.15}
+.tn i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--good);line-height:1.2}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -638,7 +669,7 @@ h3{color:var(--muted)}
       <button class="tab" data-tab="esya"><svg class="ic"><use href="#i-bag"/></svg><span>Eşyalarım</span></button>
     </nav>
     <section class="panel" id="p-sube">
-      <h2>🏙️ Şubeler</h2>
+      <h2>🏪 Dükkânlarım</h2>
       <div id="branchList"></div>
     </section>
     <section class="panel" id="p-magaza">
@@ -2148,6 +2179,7 @@ function endDay(){
   const rent = Math.min(S.money, Math.round(15 * S.day * (lv('mudur') ? 0.75 : 1)));   // kasada ne varsa o kesilir
   S.money -= rent;
   const st = R.stats, net = st.earned + st.tips - st.mat - rent - (st.loss || 0);
+  branch().lastEarn = st.earned + st.tips;   // ekip ağacında dükkânın günlük geliri
   const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
   S.money += passive; S.total += passive;
   const fameInc = (fameLv() >= 2 ? 25 * S.day : 0) + (fameLv() >= 3 ? 5 * R.stats.served : 0) + (fameLv() >= 6 ? 500 * S.branches.length : 0);   // reklam + çay markası + müze
@@ -3071,7 +3103,7 @@ function renderUI(){
   document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade() || canAntique()));
   document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
   const subeTab = document.querySelector('.tab[data-tab=sube]');
-  subeTab.hidden = mainLv() < 1 && S.branches.length < 2;
+  subeTab.hidden = false;   // Dükkânlarım ağacı baştan açık (şube açmak yine dükkân seviyesi ister)
   subeTab.classList.toggle('has', affordBranch() || troubled());
   if (subeTab.hidden && tab === 'sube') setTab('mutfak');
 
@@ -3128,7 +3160,7 @@ function renderUI(){
   if (side === 'magaza') renderShop();
   else if (side === 'menu') renderMenu(menu);
   else if (side === 'esya') renderInventory();
-  else if (side === 'sube') setHTML('#branchList', branchesHTML());
+  else if (side === 'sube'){ setHTML('#branchList', staffTreeHTML() + '<h3>🏙️ Şubeler</h3>' + branchesHTML()); drawStaffPortraits(); }
 }
 
 // Mağaza: dükkân büyütme + eşyalar + çalışanlar
@@ -3356,6 +3388,97 @@ function worldMapSVG(){
   return `<svg class="wmap" viewBox="0 0 360 136" role="img" aria-label="Şube haritası"><g class="land">${land}</g>${arcs}${pins}</svg>`;
 }
 
+// ---------- Ekip: isimli ustabaşı, çırak ve garsonlar ----------
+// Mağaza'daki çırak/garson seviyeleri kişilere dönüşür: her dükkânda o sayı kadar isimli kişi.
+// Eski hız geliştirmeleri kişilerin başlangıç seviyesine aktarılır. Gelir şimdilik dükkânın gerçek gelirinden paylaştırılır
+const NAMES = {e:['Emre', 'Can', 'Murat', 'Hasan', 'Kerem', 'Burak', 'Mehmet', 'Ali', 'Yusuf', 'Ozan', 'Tolga', 'Serkan', 'Oğuz', 'Cem'],
+  k:['Elif', 'Ayşe', 'Selin', 'Deniz', 'Zeynep', 'Merve', 'Esra', 'Büşra', 'Gizem', 'Ceren', 'Nur', 'Derya', 'Sevgi', 'İpek']};
+const ROLE = {head:'Ustabaşı', cirak:'Çırak', garson:'Garson'};
+function newPerson(role, city, lv){
+  const g = Math.random() < 0.5 ? 'e' : 'k', used = new Set(S.staff.map(p => p.name));
+  const pool = NAMES[g].filter(n => !used.has(n));
+  return {id:Math.random().toString(36).slice(2, 8), role, city, lv, name:pick(pool.length ? pool : NAMES[g]),
+    look:{...randomLook(), g, ...(g === 'k' ? {beard:false} : {})}};
+}
+function ensureStaff(){
+  S.staff = S.staff || [];
+  let changed = false;
+  S.branches.forEach(b => {
+    for (const role of ['head', 'cirak', 'garson']){
+      const want = role === 'head' ? 1 : (b.lv[role] || 0);
+      const have = S.staff.filter(p => p.city === b.city && p.role === role);
+      const start = role === 'head' ? 1 + (b.lv.dukkan || 0) + (b.lv.mudur || 0) : 1 + (b.lv[role + 'hiz'] || 0);
+      for (let i = have.length; i < want; i++){ S.staff.push(newPerson(role, b.city, start)); changed = true; }
+      if (have.length > want){ const drop = new Set(have.slice(want)); S.staff = S.staff.filter(p => !drop.has(p)); changed = true; }
+    }
+  });
+  const cities = new Set(S.branches.map(b => b.city));   // batan şubenin ekibi gider
+  if (S.staff.some(p => !cities.has(p.city))){ S.staff = S.staff.filter(p => cities.has(p.city)); changed = true; }
+  if (changed) save();
+}
+// Dükkânın günlük geliri: oynanan dükkânda son günün satışı, diğerlerinde müdür geliri
+const shopIncome = b => b === branch() ? (b.lastEarn || 0) : managedIncome(b);
+// Paylaştırma: ustabaşı yarısını, çırak ve garsonlar kalan yarısını seviyeleri oranında alır
+function staffIncome(p){
+  const b = S.branches.find(x => x.city === p.city);
+  if (!b) return 0;
+  const tot = shopIncome(b), crew = S.staff.filter(x => x.city === p.city && x.role !== 'head');
+  if (p.role === 'head') return Math.round(tot * (crew.length ? 0.5 : 1));
+  return Math.round(tot * 0.5 * p.lv / Math.max(1, crew.reduce((a, x) => a + x.lv, 0)));
+}
+// Usta seviyesi: ekibin en kıdemlisinin bir üstü, ünlülükle daha da artar
+const ustaLv = () => Math.max(1, ...S.staff.filter(p => p.role === 'head').map(p => p.lv)) + 1 + fameLv();
+const bestFriend = () => REGULARS.filter(r => (S.regs[r.id] || {}).met).sort((a, b) => regLv(b.id) - regLv(a.id))[0];
+const tnode = (sid, cls, lv, name, sub, inc) => `<div class="tn ${cls}" data-sid="${sid}">${lv ? `<span class="tlv">${lv}</span>` : ''}<canvas class="sport" data-sid="${sid}"></canvas>
+  <b>${esc(name)}</b><small>${sub}</small>${inc != null ? `<i>₺${fmt(inc)}/gün</i>` : ''}</div>`;
+function staffTreeHTML(){
+  ensureStaff();
+  const total = S.branches.reduce((a, b) => a + shopIncome(b), 0), fr = bestFriend();
+  const crew = b => S.staff.filter(p => p.city === b.city && p.role !== 'head').sort((x, y) => (x.role > y.role) - (x.role < y.role) || y.lv - x.lv);
+  const heads = S.branches.map(b => {
+    const h = S.staff.find(p => p.city === b.city && p.role === 'head'), c = crew(b);
+    return `<li>${tnode(h.id, 'head', h.lv, h.name, b.city === 'ana' ? 'Ana dükkân' : CITY[b.city].name, staffIncome(h))}`
+      + (c.length ? '<ul>' + c.map(p => `<li>${tnode(p.id, p.role, p.lv, p.name, ROLE[p.role], staffIncome(p))}</li>`).join('') + '</ul>' : '') + '</li>';
+  }).join('');
+  return `<p class="hint">Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.</p>
+    <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, 'Usta · sen', total)}
+      ${tnode('sag', 'sag', 0, fr ? fr.name : 'Boş', 'Sağ kol · yakında', null)}</div><ul>${heads}</ul></li></ul></div></div>`;
+}
+// Ağaçtaki portreler: oyunun karakter çizimiyle, bir kez çizilir
+function drawStaffPortraits(){
+  document.querySelectorAll('canvas.sport:not([data-d])').forEach(c => {
+    const sid = c.dataset.sid, p = S.staff.find(x => x.id === sid), fr = bestFriend();
+    const look = sid === 'usta' ? owner() : sid === 'sag' ? fr && fr.look : p && p.look;
+    if (!c.clientWidth) return;
+    const ctx = c.getContext('2d');
+    fitCanvas(c, ctx, 64, 64);
+    if (look) drawPerson(ctx, {x:32, y:104, look, mood:'happy', scale:1.25, apron:sid === 'usta' || (p && p.role !== 'garson')});
+    else { ctx.font = '30px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('❔', 32, 34); }
+    c.dataset.d = 1;
+  });
+  const w = document.querySelector('.treewrap');
+  if (w && !w.dataset.c && w.scrollWidth > w.clientWidth){ w.scrollLeft = (w.scrollWidth - w.clientWidth) / 2; w.dataset.c = 1; }
+}
+function showStaff(sid){
+  if (modalOpen()) return;
+  const fr = bestFriend();
+  if (sid === 'usta' || sid === 'sag'){
+    showModal(sid === 'usta'
+      ? `<h2>👑 ${esc(owner().name)} · Usta</h2><p>Bütün dükkânların sahibi. Ekibinin günlük toplam geliri: <b>₺${fmt(S.branches.reduce((a, b) => a + shopIncome(b), 0))}</b>.</p><p class="hint">Seviyen en kıdemli ustabaşının bir üstüdür; ünlülük basamağın da ekler.</p><button class="big" id="modalOk">Tamam</button>`
+      : `<h2>🤝 Sağ kol</h2><p>${fr ? `En yakın dostun <b>${fr.name}</b> burada duruyor.` : 'Henüz bir müdavimle tanışmadın.'}</p><p class="hint">Yakında sağ kolunu seçebilecek ve ondan bonus alabileceksin.</p><button class="big" id="modalOk">Tamam</button>`);
+    return;
+  }
+  const p = S.staff.find(x => x.id === sid);
+  if (!p) return;
+  const b = S.branches.find(x => x.city === p.city), where = p.city === 'ana' ? 'Ana dükkân' : CITY[p.city].name;
+  const job = {head:'Dükkânın başında durur, müşteriyle ve kasayla ilgilenir.', cirak:'Eksik siparişleri kendisi hazırlar.', garson:'Hazır ürünleri masalara taşır.'}[p.role];
+  showModal(`<h2>${esc(p.name)} · ${ROLE[p.role]}</h2>
+    <table><tr><td>Dükkân</td><td>${where}</td></tr><tr><td>Seviye</td><td>${p.lv}</td></tr><tr><td>Günlük katkısı</td><td style="color:var(--good)">₺${fmt(staffIncome(p))}</td></tr></table>
+    <p class="hint">${job}${b === branch() && !b.lastEarn ? ' Katkısı dükkânı bir gün açınca hesaplanır.' : ''}</p>
+    <p class="hint">⏳ Kişi kişi geliştirme bir sonraki güncellemede geliyor.</p>
+    <button class="big" id="modalOk">Tamam</button>`);
+}
+
 function branchesHTML(){
   const n = trCount(), w = worldCount(), wo = worldOpen();
   let h = wo
@@ -3492,7 +3615,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.22.0';
+const APP_VERSION = '2.23.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4139,7 +4262,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -4162,6 +4285,7 @@ document.addEventListener('click', e => {
   else if (d.fix) fixBranch(+d.fix);
   else if (d.ct) answerContract(d.ct === 'yes');
   else if (d.inv){ invTab = d.inv; SFX.serve(); }
+  else if (d.sid) showStaff(d.sid);
   else if (d.aset){ albumSet = albumSet === d.aset ? null : d.aset; SFX.serve(); }
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
