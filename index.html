@@ -527,6 +527,10 @@ h3{color:var(--muted)}
 .tn.can::after{content:'⬆';position:absolute;top:-6px;right:6px;width:20px;height:20px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;background:var(--good);border:2px solid var(--ink);border-radius:50%}
 .big:disabled{background:#e8dcc9;color:#9a8270;text-shadow:none;box-shadow:0 2px 0 #3a221455;cursor:not-allowed;transform:none}
 
+/* E-3: Ekip açıkken (dükkân kapalı) telefonda sahne gizlenir, ağaç tam ekran; orta düğme rozeti */
+@media(max-width:999px){body.tab-ekip:not(.running) .scene-sec{display:none}}
+.tab.hub .badge{top:-30px;left:calc(50% + 20px);z-index:2}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -666,23 +670,25 @@ h3{color:var(--muted)}
   </div>
   <div class="right">
     <nav id="tabs">
+      <button class="tab" data-tab="mutfak"><svg class="ic"><use href="#i-tea"/></svg><span>Mutfak</span></button>
       <button class="tab" data-tab="magaza"><svg class="ic"><use href="#i-shop"/></svg><span>Mağaza</span><i class="badge"></i></button>
-      <button class="tab" data-tab="menu"><svg class="ic"><use href="#i-menu"/></svg><span>Menü</span><i class="badge"></i></button>
-      <button class="tab hub" data-tab="mutfak"><b class="hubc"><svg class="ic"><use href="#i-tea"/></svg></b><span>Dükkân</span></button>
+      <button class="tab hub" data-tab="ekip"><b class="hubc"><svg class="ic"><use href="#i-person"/></svg></b><span>Ekip</span><i class="badge"></i></button>
       <button class="tab" data-tab="sube" hidden><svg class="ic"><use href="#i-city"/></svg><span>Şubeler</span><i class="badge"></i></button>
       <button class="tab" data-tab="esya"><svg class="ic"><use href="#i-bag"/></svg><span>Eşyalarım</span></button>
     </nav>
+    <section class="panel" id="p-ekip">
+      <h2>👥 Ekip</h2>
+      <div id="ekipTree"></div>
+    </section>
     <section class="panel" id="p-sube">
-      <h2>🏪 Dükkânlarım</h2>
+      <h2>🏙️ Şubeler</h2>
       <div id="branchList"></div>
     </section>
     <section class="panel" id="p-magaza">
       <h2>🛒 Mağaza</h2>
+      <div id="shopSeg"></div>
       <div id="shop"></div>
-    </section>
-    <section class="panel" id="p-menu">
-      <h2>📋 Menü</h2>
-      <div id="menuList"></div>
+      <div id="menuList" hidden></div>
     </section>
     <section class="panel" id="p-esya">
       <h2>🎒 Eşyalarım</h2>
@@ -1622,7 +1628,7 @@ function pay(c){
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip()
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip() * sagTip()
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
     * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip;
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
@@ -3029,13 +3035,14 @@ function setHTML(sel, html){ const el = $(sel); if (el._html !== html){ el.inner
 
 // Sekmeler: telefonda biri görünür; bilgisayarda mutfak hep solda, sağda diğerleri
 const desktopMQ = matchMedia('(min-width:1000px)');
-let tab = 'mutfak';
+let tab = 'mutfak', shopTab = 'esya';   // shopTab: Mağaza içindeki Eşyalar / Menü
 function setTab(t){ tab = t; applyTab(); renderUI(); }
 const sidePanel = () => desktopMQ.matches && tab === 'mutfak' ? 'magaza' : tab;
 // Dikey telefonda sayfa yerine main kayar: ikisini de başa sar
 const toTop = () => { window.scrollTo(0, 0); $('main').scrollTop = 0; };
 function applyTab(){
   const desk = desktopMQ.matches, side = sidePanel();
+  document.body.classList.toggle('tab-ekip', side === 'ekip');
   document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'p-' + side || (desk && p.id === 'p-mutfak')));
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === side));
 }
@@ -3104,8 +3111,8 @@ function renderUI(){
   const fp = FN ? (S.fame - F.need) / (FN.need - F.need) : 1;
   setHTML('#pFame', `${F.emoji} ${F.name} · 🌟 ${fmt(S.fame)}${FN ? ' / ' + fmt(FN.need) : ''}<span class="fbar"><i style="width:${Math.round(fp * 100)}%"></i></span>`);
 
-  document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade() || canAntique()));
-  document.querySelector('.tab[data-tab=menu]').classList.toggle('has', canUnlock());
+  document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade() || canAntique() || canUnlock()));
+  document.querySelector('.tab[data-tab=ekip]').classList.toggle('has', (S.staff || []).some(p => upCls(p)));
   const subeTab = document.querySelector('.tab[data-tab=sube]');
   subeTab.hidden = false;   // Dükkânlarım ağacı baştan açık (şube açmak yine dükkân seviyesi ister)
   subeTab.classList.toggle('has', affordBranch() || troubled());
@@ -3161,10 +3168,14 @@ function renderUI(){
 
   // Yalnızca görünen panel üretilir: geri kalanı saniyede 10 kez boşuna hesaplanmasın
   const side = sidePanel();
-  if (side === 'magaza') renderShop();
-  else if (side === 'menu') renderMenu(menu);
+  if (side === 'magaza'){
+    setHTML('#shopSeg', `<div class="seg">${[['esya', 'shop', 'Eşyalar'], ['menu', 'menu', 'Menü']].map(([id, icn, t]) => `<button class="${shopTab === id ? 'on' : ''}" data-stab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
+    $('#shop').hidden = shopTab === 'menu'; $('#menuList').hidden = shopTab !== 'menu';
+    if (shopTab === 'menu') renderMenu(menu); else renderShop();
+  }
   else if (side === 'esya') renderInventory();
-  else if (side === 'sube'){ setHTML('#branchList', staffTreeHTML() + '<h3>🏙️ Şubeler</h3>' + branchesHTML()); drawStaffPortraits(); }
+  else if (side === 'ekip'){ setHTML('#ekipTree', staffTreeHTML()); drawStaffPortraits(); }
+  else if (side === 'sube') setHTML('#branchList', branchesHTML());
 }
 
 // Mağaza: dükkân büyütme + eşyalar + çalışanlar
@@ -3466,12 +3477,22 @@ function staffIncome(p){
 }
 // Usta seviyesi: ekibin en kıdemlisinin bir üstü, ünlülükle daha da artar
 const ustaLv = () => Math.max(1, ...S.staff.filter(p => p.role === 'head').map(p => p.lv)) + 1 + fameLv();
+// Sağ kol: oyuncunun seçtiği müdavim; her kalbi bahşişe %1 ekler
+const sagKol = () => REGULARS.find(r => r.id === S.sagkol && (S.regs[r.id] || {}).met);
+const sagTip = () => { const r = sagKol(); return 1 + 0.01 * (r ? regLv(r.id) : 0); };
+function sagHTML(){
+  const met = REGULARS.filter(r => (S.regs[r.id] || {}).met), cur = sagKol();
+  return '<h2>🤝 Sağ kol</h2><p class="hint">Tanıştığın bir müdavimi sağ kolun yap: her kalbi bahşişlere +%1 ekler.</p>'
+    + (met.length ? met.map(r => `<button class="ans" data-sag="${r.id}">${r.emoji} <b>${r.name}</b> · ${hearts(regLv(r.id))} · +%${regLv(r.id)} bahşiş${cur === r ? ' ✓' : ''}</button>`).join('')
+      : '<p>Henüz bir müdavimle tanışmadın. Ana dükkânı aç, mahalleli uğrasın.</p>')
+    + '<button class="big" id="modalOk">Kapat</button>';
+}
 const bestFriend = () => REGULARS.filter(r => (S.regs[r.id] || {}).met).sort((a, b) => regLv(b.id) - regLv(a.id))[0];
 const tnode = (sid, cls, lv, name, sub, inc) => `<div class="tn ${cls}" data-sid="${sid}">${lv ? `<span class="tlv">${lv}</span>` : ''}<canvas class="sport" data-sid="${sid}"></canvas>
   <b>${esc(name)}</b><small>${sub}</small>${inc != null ? `<i>₺${fmt(inc)}/gün</i>` : ''}</div>`;
 function staffTreeHTML(){
   ensureStaff();
-  const total = S.branches.reduce((a, b) => a + shopIncome(b), 0), fr = bestFriend();
+  const total = S.branches.reduce((a, b) => a + shopIncome(b), 0), fr = sagKol();
   const crew = b => S.staff.filter(p => p.city === b.city && p.role !== 'head').sort((x, y) => (x.role > y.role) - (x.role < y.role) || y.lv - x.lv);
   const heads = S.branches.map(b => {
     const h = S.staff.find(p => p.city === b.city && p.role === 'head'), c = crew(b);
@@ -3480,12 +3501,12 @@ function staffTreeHTML(){
   }).join('');
   return `<p class="hint">Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.</p>
     <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, 'Usta · sen', total)}
-      ${tnode('sag', 'sag', 0, fr ? fr.name : 'Boş', 'Sağ kol · yakında', null)}</div><ul>${heads}</ul></li></ul></div></div>`;
+      ${tnode('sag', 'sag', 0, fr ? fr.name : 'Seç', fr ? `Sağ kol · +%${regLv(fr.id)} bahşiş` : 'Sağ kol · boş', null)}</div><ul>${heads}</ul></li></ul></div></div>`;
 }
 // Ağaçtaki portreler: oyunun karakter çizimiyle, bir kez çizilir
 function drawStaffPortraits(){
   document.querySelectorAll('canvas.sport:not([data-d])').forEach(c => {
-    const sid = c.dataset.sid, p = S.staff.find(x => x.id === sid), fr = bestFriend();
+    const sid = c.dataset.sid, p = S.staff.find(x => x.id === sid), fr = sagKol();
     const look = sid === 'usta' ? owner() : sid === 'sag' ? fr && fr.look : p && p.look;
     if (!c.clientWidth) return;
     const ctx = c.getContext('2d');
@@ -3504,7 +3525,7 @@ function showStaff(sid){
   if (sid === 'usta' || sid === 'sag'){
     showModal(sid === 'usta'
       ? `<h2>👑 ${esc(owner().name)} · Usta</h2><p>Bütün dükkânların sahibi. Ekibinin günlük toplam geliri: <b>₺${fmt(S.branches.reduce((a, b) => a + shopIncome(b), 0))}</b>.</p><p class="hint">Seviyen en kıdemli ustabaşının bir üstüdür; ünlülük basamağın da ekler.</p><button class="big" id="modalOk">Tamam</button>`
-      : `<h2>🤝 Sağ kol</h2><p>${fr ? `En yakın dostun <b>${fr.name}</b> burada duruyor.` : 'Henüz bir müdavimle tanışmadın.'}</p><p class="hint">Yakında sağ kolunu seçebilecek ve ondan bonus alabileceksin.</p><button class="big" id="modalOk">Tamam</button>`);
+      : sagHTML());
     return;
   }
   const p = S.staff.find(x => x.id === sid);
@@ -3656,7 +3677,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.24.0';
+const APP_VERSION = '2.25.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3983,6 +4004,7 @@ $('#modal').addEventListener('click', e => {
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
   if (id === 'staffUp'){ upgradeStaff(staffSel); return; }
+  if (btn && btn.dataset.sag){ S.sagkol = btn.dataset.sag; save(); hideModal(); renderUI(); toast(`🤝 ${REGULARS.find(r => r.id === S.sagkol).name} artık sağ kolun!`); SFX.buy(); return; }
   if (id === 'codeOut'){ showCodeOut(); return; }
   if (id === 'codeIn'){ showCodeIn(); return; }
   if (id === 'codeCopy'){ copyCode(); return; }
@@ -4304,7 +4326,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -4328,6 +4350,7 @@ document.addEventListener('click', e => {
   else if (d.ct) answerContract(d.ct === 'yes');
   else if (d.inv){ invTab = d.inv; SFX.serve(); }
   else if (d.sid) showStaff(d.sid);
+  else if (d.stab){ shopTab = d.stab; SFX.serve(); }
   else if (d.aset){ albumSet = albumSet === d.aset ? null : d.aset; SFX.serve(); }
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
