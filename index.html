@@ -2886,7 +2886,11 @@ function drawScene(){
 // ---------- 3D sahne (isteğe bağlı, Ayarlar → Sahne) ----------
 // scene3d.js yalnızca 3D seçilince yüklenir; 2D canvas üstte saydam katman olarak kalır (balonlar, yazılar, efektler)
 let sahne3d = null, want3d = false;
-try { want3d = localStorage.getItem('cayocagi-sahne') === '3d'; } catch(e) {}
+// Varsayılan 3D (izometrik maket). Oyuncu 2D'yi seçtiyse ya da bu cihazda 3D daha önce hata verdiyse 2D açılır
+try {
+  const pref = localStorage.getItem('cayocagi-sahne');
+  want3d = pref === '3d' || (pref == null && !localStorage.getItem('cayocagi-3dhata'));
+} catch(e) {}
 if (/[?&]3d\b/.test(location.search)) want3d = true;   // test: adrese ?3d eklenince 3D açılır
 const use3d = () => want3d && sahne3d;
 // Son 3D hatası Ayarlar'da kalıcı görünür (kart birkaç saniyede kaybolur): mesaj + hatanın çıktığı dosya/satır
@@ -2897,9 +2901,10 @@ function note3d(err){
   return err3d.slice(0, 140);
 }
 let loading3d = false;   // yükleme sürerken düğmeye tekrar basılırsa ikinci kez kurulmasın
-function set3D(on){
+// remember: yalnızca oyuncu Ayarlar'dan seçince kaydedilir (açılıştaki varsayılan kaydedilmez, hata olursa 2D'ye dönebilsin)
+function set3D(on, remember = true){
   want3d = on;
-  try { localStorage.setItem('cayocagi-sahne', on ? '3d' : '2d'); } catch(e) {}
+  if (remember) try { localStorage.setItem('cayocagi-sahne', on ? '3d' : '2d'); } catch(e) {}
   $('#scene3d').hidden = !on || !sahne3d;
   if (!on || sahne3d){ if (sahne3d) sahne3d.resize(); return; }
   if (loading3d) return;
@@ -2913,7 +2918,10 @@ function set3D(on){
   }).finally(() => { loading3d = false; });
 }
 // Hata yüzünden 2D'ye dönüş bu oturumluk: oyuncunun tercihi silinmez, sonraki açılışta 3D yine denenir
-function drop3D(){ want3d = false; $('#scene3d').hidden = true; }
+function drop3D(){
+  want3d = false; $('#scene3d').hidden = true;
+  try { localStorage.setItem('cayocagi-3dhata', APP_VERSION); } catch(e) {}   // sonraki açılış 2D başlasın (Ayarlar'dan yine açılabilir)
+}
 function drawScene3D(){
   const frac = status === 'running' ? Math.min(1, R.t / DAY_LEN) : 1;
   sahne3d.render(frac);
@@ -3451,7 +3459,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.20.0';
+const APP_VERSION = '2.21.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3587,7 +3595,7 @@ function showSettings(){
     <div class="set-row"><span>🔊 Ses</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
     <div class="set-row"><span>🎵 Müzik</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
     ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
-    <div class="set-row"><span>🧊 Sahne (3D deneme)</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
+    <div class="set-row"><span>🧊 Sahne (3D yavaşsa 2D'yi seç)</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
     ${err3d ? `<p class="hint" style="margin:4px 0 8px;color:#ff9d8a">⚠️ Son 3D hatası: ${esc(err3d)}</p>` : ''}
     <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
     <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
@@ -4268,7 +4276,7 @@ function step(ts){
 }
 fitCanvas(scene, g, W, H);
 requestAnimationFrame(frame);
-if (want3d) set3D(true);
+if (want3d) set3D(true, false);
 // Arayüz: oyun akarken saniyede 10, durgunken 2,5 kez yenilenir (her tıklama zaten hemen yeniler)
 let uiTick = 0;
 setInterval(() => { if (!document.hidden && ((status === 'running' && !modalOpen()) || ++uiTick % 4 === 0)) renderUI(); }, 100);

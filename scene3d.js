@@ -6,7 +6,7 @@ import {Person} from './people3d.js';
 
 export const to3 = (x, y, h = 0) => new THREE.Vector3(x, h, y);
 const WALL_H = FLOOR;   // 2D'de duvar zeminin üstündeki 200 piksel
-const TALL = 1500;      // duvarların gerçek yüksekliği: kameranın üstünde boş karanlık kalmasın
+const TALL = WALL_H + 12;   // maket görünümü: duvarlar alçak, üstleri açık; etrafı krem zemin
 
 // ---------- Paylaşılan geometri ve materyaller ----------
 const GEO = {
@@ -96,7 +96,7 @@ const ray = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vecto
 
 export function init(canvas){
   renderer = new THREE.WebGLRenderer({canvas, antialias:(window.devicePixelRatio || 1) < 2, powerPreference:'high-performance'});
-  renderer.setClearColor('#1a110b');
+  renderer.setClearColor('#f6e3c4');
   // Sessizce siyah çizmek yerine hata versin: index.html yakalayıp 2D'ye döner ve sebebini gösterir
   renderer.debug.onShaderError = (gl, program) => { throw new Error('shader: ' + (gl.getProgramInfoLog(program) || 'derlenemedi').slice(0, 100)); };
   // Telefon kilitlenince bağlam kısa süre düşebilir: geri gelmesi beklenir, gelince oda yeniden kurulur
@@ -105,7 +105,7 @@ export function init(canvas){
   scene = new THREE.Scene();
   hemi = new THREE.HemisphereLight('#fff4e0', '#5a4030', 1.9); scene.add(hemi);
   sun = new THREE.DirectionalLight('#ffffff', 1.4); sun.position.set(-300, 600, 900); scene.add(sun);
-  cam = new THREE.PerspectiveCamera(46, 16 / 9, 10, 6000);   // geniş açı: derinlik daha belirgin
+  cam = new THREE.PerspectiveCamera(VIEW.fov, 16 / 9, 10, 8000);   // dar açı: izometriğe yakın, uzak köşe küçülmez
   resize();
   return {render, resize, pick, hit, toScreen, anchor, from2D};
 }
@@ -118,27 +118,28 @@ export function resize(){
   camKey = '';
 }
 
-// Kamera: sabit, önden ve hafif yukarıdan. Görünen alanın (W × viewH) tamamı sığana kadar geri çekilir,
-// bu yüzden dikey telefonda ve dükkân büyüdükçe kendiliğinden uzaklaşır.
-const TILT = 0.3;    // aşağı bakış açısı (radyan, ~17°): önden, hafif yukarıdan
+// Kamera: izometriğe yakın maket görünümü. Soldan-önden çaprazlama ve yukarıdan bakar (sol duvar bu yüzden yok).
+// Görünen alanın (W × viewH) tamamı sığana kadar geri çekilir: dikey telefonda ve dükkân büyüdükçe kendiliğinden uzaklaşır.
+const VIEW = {pitch:0.62, yaw:0.42, fov:30};   // radyan: ~36° aşağı, ~24° sağa dönük
 function fitCamera(){
   const vh = viewH(), c = renderer.domElement;
   cam.aspect = c.clientWidth / c.clientHeight || W / vh;
   const X = Math.min(W, rightWall() + 30);   // kiralanmamış alan kenarda kalır, dükkân büyüyünce kamera uzaklaşır
-  const pts = [[0, 0, FLOOR], [X, 0, FLOOR], [0, WALL_H, FLOOR], [X, WALL_H, FLOOR], [0, 0, vh], [X, 0, vh]].map(p => new THREE.Vector3(...p));
-  const dir = new THREE.Vector3(0, -Math.sin(TILT), -Math.cos(TILT));
-  const target = new THREE.Vector3(X / 2, WALL_H * 0.35, (FLOOR + vh) / 2);
+  const pts = [[0, 0, FLOOR], [X, 0, FLOOR], [0, WALL_H, FLOOR], [X, WALL_H, FLOOR], [0, 0, vh], [X, 0, vh], [X, WALL_H, vh]].map(p => new THREE.Vector3(...p));
+  const cp = Math.cos(VIEW.pitch);
+  const dir = new THREE.Vector3(Math.sin(VIEW.yaw) * cp, -Math.sin(VIEW.pitch), -Math.cos(VIEW.yaw) * cp);
+  const target = new THREE.Vector3(X / 2, WALL_H * 0.25, (FLOOR + vh) / 2);
   const place = d => { cam.position.copy(target).addScaledVector(dir, -d); cam.lookAt(target); cam.updateMatrixWorld(); cam.updateProjectionMatrix(); };
-  const fits = () => pts.every(p => { const q = p.clone().project(cam); return Math.abs(q.x) <= 1 && Math.abs(q.y) <= 1; });
-  const solve = () => { let lo = 100, hi = 8000; for (let i = 0; i < 30; i++){ const m = (lo + hi) / 2; place(m); fits() ? hi = m : lo = m; } place(hi); return hi; };
-  // İki tur: önce sığdır, sonra içeriği dikeyde ortala ve tekrar sığdır
-  for (let k = 0; k < 2; k++){
+  const fits = () => pts.every(p => { const q = p.clone().project(cam); return Math.abs(q.x) <= 0.97 && Math.abs(q.y) <= 0.97; });
+  const solve = () => { let lo = 100, hi = 12000; for (let i = 0; i < 30; i++){ const m = (lo + hi) / 2; place(m); fits() ? hi = m : lo = m; } place(hi); return hi; };
+  // Üç tur: sığdır, sonra içeriği yatayda ve dikeyde ortala, tekrar sığdır
+  for (let k = 0; k < 3; k++){
     const d = solve();
-    let lo = 1, hi = -1;
-    pts.forEach(p => { const y = p.clone().project(cam).y; lo = Math.min(lo, y); hi = Math.max(hi, y); });
-    const halfH = Math.tan(cam.fov * Math.PI / 360) * d;
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion);
-    target.addScaledVector(up, (lo + hi) / 2 * halfH);
+    let x0 = 1, x1 = -1, y0 = 1, y1 = -1;
+    pts.forEach(p => { const q = p.clone().project(cam); x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); });
+    const halfH = Math.tan(cam.fov * Math.PI / 360) * d, halfW = halfH * cam.aspect;
+    target.addScaledVector(new THREE.Vector3(1, 0, 0).applyQuaternion(cam.quaternion), (x0 + x1) / 2 * halfW);
+    target.addScaledVector(new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion), (y0 + y1) / 2 * halfH);
   }
   solve();
 }
@@ -148,7 +149,7 @@ function buildRoom(){
   if (room){ scene.remove(room); dispose(room); }
   room = new THREE.Group(); scene.add(room);
   skyMats = []; tables.length = 0; signKey = '';
-  const L = lv('dukkan'), RW = rightWall(), front = H + 3000;   // zemin ve yan duvarlar kameranın arkasına kadar uzanır: kenarlarda boşluk kalmaz
+  const L = lv('dukkan'), RW = rightWall(), front = viewH() + 30;   // maket: zemin görünen alanın önünde biter, kalın bir taban üstünde durur
 
   // Zemin
   const ft = floorTex(L).clone(); ft.needsUpdate = true;
@@ -158,7 +159,7 @@ function buildRoom(){
   room.add(floor);
   // Henüz kiralanmamış kısım
   if (RW < W){
-    box(room, W - RW + 200, 2, front - FLOOR + 200, '#2a1d16', (RW + W + 200) / 2, -2, (FLOOR + front) / 2);
+    box(room, W - RW, 2, front - FLOOR, '#e2cba6', (RW + W) / 2, -2, (FLOOR + front) / 2);
     const lock = new THREE.Mesh(GEO.plane, new THREE.MeshBasicMaterial({transparent:true, map:canvasTex(512, 160, (c, w) => {
       c.fillStyle = '#c9b39a'; c.textAlign = 'center'; c.textBaseline = 'middle';
       c.font = `bold 44px system-ui, ${EMOJI}`; c.fillText('🔒 Burası henüz senin değil', w / 2, 55);
@@ -178,7 +179,12 @@ function buildRoom(){
   if (L === 3){ box(room, RW, 3, 3, '#c9a14a', RW / 2, 186, FLOOR + 1); box(room, RW, 3, 3, '#c9a14a', RW / 2, 64, FLOOR + 1);
     for (let x = 20; x < RW; x += 160) box(room, 10, 121, 2, '#4f5a55', x + 5, 65, FLOOR + 1); }
   // Yan duvarlar ve kapı (kapı koridorun hizasında, sağ duvarda)
-  box(room, 10, TALL, front - FLOOR, wallCol, -5, 0, (FLOOR + front) / 2);
+  // Sol duvar kameraya bakan taraf: maket gibi açık kalır, yalnızca alçak bir kenar
+  box(room, 10, 16, front - FLOOR, wallCol, -5, 0, (FLOOR + front) / 2);
+  // Maket tabanı ve duvar üstü kalın kenarlar (çizgi film konturu gibi)
+  box(room, RW + 20, 22, front - FLOOR + 14, '#6b4428', RW / 2, -22, (FLOOR + front) / 2 + 2);
+  box(room, RW + 10, 8, 14, '#3a2214', RW / 2, TALL, FLOOR - 5);
+  box(room, 14, 8, front - FLOOR, '#3a2214', RW + 5, TALL, (FLOOR + front) / 2);
   const a = aisleY(), doorA = a - 45, doorB = a + 45;
   box(room, 10, TALL, doorA - FLOOR, wallCol, RW + 5, 0, (FLOOR + doorA) / 2);
   if (front > doorB) box(room, 10, TALL, front - doorB, wallCol, RW + 5, 0, (doorB + front) / 2);
