@@ -14,7 +14,14 @@
 <meta name="apple-mobile-web-app-title" content="Çay Ocağı">
 <title>Çay Ocağı Tycoon</title>
 <style>
-:root{--bg:#2b1d14;--panel:#3d2a1e;--panel2:#4a3426;--text:#f6ead8;--muted:#c9b39a;--accent:#e8a23a;--good:#6cc070;--bad:#e05a4f;--line:#5c4232;
+/* Fredoka (SIL OFL, fonts/OFL.txt): oyunla birlikte gelir, çevrimdışı çalışır, dışarıya istek gitmez */
+@font-face{font-family:Fredoka;font-style:normal;font-display:swap;font-weight:300 700;src:url(fonts/fredoka-latin.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Fredoka;font-style:normal;font-display:swap;font-weight:300 700;src:url(fonts/fredoka-latin-ext.woff2) format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+/* Tema: sıcak çay renkleri, kalın koyu kontur (--ink), basılabilir düğmeler */
+:root{--bg:#fbecd3;--panel:#fffaf1;--panel2:#f8e8cf;--text:#3a2214;--muted:#8b6a52;--accent:#e8672c;--good:#3aa64c;--bad:#d9423a;--line:#3a2214;
+  --ink:#3a2214;--band:#f2a65a;--tea:#b8322a;--cream:#fff6e6;
   --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);
   --hud:52px;--nav:60px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -341,14 +348,111 @@ body.veteran .newbie{display:none}
 #eventCard .em{font-size:40px}
 #eventCard small{display:block;color:var(--muted);margin-top:2px}
 body.blackout main{filter:brightness(.55) saturate(.7)}
+
+/* =====================================================================
+   TEMA KATMANI (UI-1): açık sıcak zemin, koyu kalın kontur, alt gölgeli "basılabilir" parçalar.
+   Yukarıdaki yerleşim kuralları aynen kalır; burada yalnızca görünüm ezilir.
+   ===================================================================== */
+body{font-family:Fredoka,"Segoe UI Rounded",system-ui,sans-serif;font-weight:500;background:var(--bg)}
+b,strong,h1,h2,h3,button{font-weight:700}
+h2{color:var(--tea)}
+h3{color:var(--muted)}
+
+/* Üst çubuk: turuncu bant, altında kalın koyu çizgi */
+.hud{background:var(--band);border-bottom:4px solid var(--ink);box-shadow:0 3px 0 #0002;gap:8px}
+.brand{color:#fff;text-shadow:0 2px 0 var(--ink),1px 0 0 var(--ink),-1px 0 0 var(--ink),0 -1px 0 var(--ink)}
+.daybar{bottom:-4px;height:4px;background:#0003}
+.daybar>div{background:#fff3c4}
+/* Kaynak kutuları: koyu hap, solda taşan ikon, altında küçük etiket */
+.res{position:relative;display:flex;flex-direction:column;justify-content:center;min-width:0;height:34px;padding:0 10px 0 26px;margin-left:14px;
+  background:var(--ink);color:#fff;border:2.5px solid var(--ink);border-radius:999px;box-shadow:inset 0 -3px 0 #0006;white-space:nowrap}
+.res b{font-size:14px;line-height:1;font-variant-numeric:tabular-nums}
+.res small{font-size:9.5px;color:#ffd36b;line-height:1.1}
+.res small:empty{display:none}
+.res .ri{position:absolute;left:-14px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;font-size:17px;
+  background:var(--cream);border:2.5px solid var(--ink);border-radius:50%;box-shadow:0 2px 0 var(--ink)}
+.res.money b{color:#ffe08a}
+.res .rbar{display:block;height:5px;margin-top:3px;background:#ffffff33;border-radius:3px;overflow:hidden;width:40px}
+.res .rbar i{display:block;height:100%;background:var(--good);border-radius:3px}
+.res .bump{animation:bumpA .4s}
+.res .shake{animation:shakeA .4s}
+.icon-btn{background:var(--cream);border:2.5px solid var(--ink);box-shadow:0 3px 0 var(--ink);width:36px;height:36px}
+.icon-btn:hover{background:#fff}
+.icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+@media(max-width:620px){.res{padding:0 8px 0 22px;margin-left:12px}.res b{font-size:13px}.res .ri{width:28px;height:28px;font-size:15px;left:-12px}
+  .res.clock{display:none}.hud{gap:6px}}
+
+/* Paneller ve pencereler: beyaz kart, kalın kontur, alt gölge */
+.panel{background:var(--panel);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink)}
+.scene{border:3px solid var(--ink);border-radius:16px;box-shadow:0 5px 0 var(--ink)}
+.scene-sec{background:var(--bg)}
+.modal{background:#3a2214b3}
+.modal .box{background:var(--panel);border:4px solid var(--ink);border-radius:22px;box-shadow:0 7px 0 var(--ink)}
+.modal td{border-bottom:2px dashed #3a221426}
+@media(min-width:1000px){.scene-sec{background:var(--panel);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink)}}
+
+/* Düğmeler: renkli, koyu kontur, alt gölge; basınca çöker */
+.big,.shop-item button,.btn2,.ans,.sw button.txt{border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);transition:transform .06s,box-shadow .06s}
+.big{background:var(--accent);color:#fff;text-shadow:0 2px 0 var(--ink);border-radius:16px}
+.big:active,.shop-item button:active,.btn2:active,.ans:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn2{background:var(--cream);color:var(--text);border-radius:12px}
+.btn2:hover{border-color:var(--ink);background:#fff}
+.btn2.danger{background:#ffe1dc;color:var(--bad)}
+.shop-item button{background:var(--good);color:#fff;text-shadow:0 1px 0 var(--ink);border-radius:12px}
+.shop-item button:disabled{background:#e8dcc9;color:#9a8270;text-shadow:none;box-shadow:0 2px 0 #3a221455;border-color:#3a221466;transform:none}
+.ans{background:var(--cream)}
+.ans:hover{border-color:var(--accent)}
+
+/* Kartlar ve kutular */
+.shop-item,.ach,.inv-card,.choice,.net,.kv div,.profile{background:var(--cream);border:2.5px solid var(--ink);border-radius:14px}
+.shop-item{box-shadow:0 3px 0 #3a221433}
+.shop-item.hl,.shop-item.warn{border-color:var(--accent);box-shadow:0 3px 0 var(--accent)}
+.shop-item.cur,.ach.done{border-color:var(--good);box-shadow:0 3px 0 var(--good)}
+.inv-card.off{opacity:.5}
+.prod{background:#fff;border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);border-radius:14px}
+.prod:hover{border-color:var(--ink);background:#fffdf7}
+.prod:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.prod.pulse{border-color:var(--good)}
+.slots{background:#3a221414;border:2px dashed #3a221440}
+.chip{background:#fff;border:2px solid var(--ink)}
+.tray .slot{border-color:#3a221455}
+.quest,.evbar{border:2.5px solid var(--ink);border-radius:12px;background:var(--cream)}
+.evbar{background:linear-gradient(90deg,#ffe2c2,#fff3dc)}
+.evbar.soon{background:var(--cream)}
+.quest.done{background:#e3f4dc;border-color:var(--good)}
+.coach{background:#fff1c9;border:2.5px dashed var(--accent)}
+.banner{background:#fff1c9;border:2.5px solid var(--ink);border-radius:12px}
+.banner.bad{background:#ffe1dc;border-color:var(--bad)}
+.news{background:#3a22140f}
+.field input{background:#fff;border:2.5px solid var(--ink);color:var(--text)}
+.rs i{color:#3a221430}
+#pFame{color:#7a3fb8}
+#pFame .fbar,.ach .pbar,.net .pbar,.hbar{background:#3a22141f}
+.streak div{background:var(--cream);border:2.5px solid #3a221440}
+.streak .today{border-color:var(--accent)}
+
+/* Sahnenin üstündeki yazılar koyu zemin üzerinde kalır */
+.overlay{color:#fff3e0;background:#2a1a10a6}
+.overlay .big{font-size:19px}
+.ev{color:#fff;border:2px solid #fff;background:#3a2214d9}
+#toast{color:#fff;background:#3a2214f0;border:2.5px solid #fff3e0;font-weight:600}
+#eventCard{border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink)}
+
+/* Alt menü (UI-2'de yeniden tasarlanacak): krem zemin, koyu üst çizgi */
+#tabs{background:var(--cream);border-top:4px solid var(--ink)}
+.tab{color:var(--muted)}
+.tab.on{color:var(--tea)}
+.tab.on::before{background:var(--tea)}
+.badge{border-color:var(--cream)}
+@media(min-width:1000px){#tabs{border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink)}.tab.on{background:#ffe2c2}}
 </style>
 </head>
 <body>
 <header class="hud">
   <h1 class="brand" id="shopTitle">🍵 Çay Ocağı</h1>
-  <span class="stat money" id="money"></span>
-  <span class="stat" id="rep"></span>
-  <span class="stat" id="day"></span>
+  <div class="res money"><span class="ri">💰</span><b id="money"></b><small id="moneyRate"></small></div>
+  <div class="res rep"><span class="ri">⭐</span><b id="rep"></b><span class="rbar"><i id="repBar"></i></span></div>
+  <div class="res clock"><span class="ri">📅</span><b id="day"></b></div>
   <button class="icon-btn" id="shopsBtn" aria-label="Dükkânlarım" hidden>🏪</button>
   <button class="icon-btn" id="pauseBtn" aria-label="Duraklat" hidden>⏸️</button>
   <button class="icon-btn" id="settingsBtn" aria-label="Ayarlar">⚙️</button>
@@ -2794,7 +2898,9 @@ function renderUI(){
   setHTML('#evBar', eb);
   $('#evBar').classList.toggle('soon', !cal.cur);
   $('#money').textContent = '₺' + fmt(S.money);
-  $('#rep').textContent = '⭐ ' + Math.round(S.rep);
+  $('#moneyRate').textContent = status === 'running' ? `bugün +₺${fmt(R.stats.earned + R.stats.tips)}` : '';
+  $('#rep').textContent = Math.round(S.rep) + '%';
+  $('#repBar').style.width = Math.round(S.rep) + '%';
   const frac = Math.min(1, R.t / DAY_LEN);
   const mins = 8 * 60 + Math.floor(frac * 12 * 60);
   $('#day').textContent = `Gün ${S.day} · ${WD().short} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
@@ -3169,7 +3275,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.17.0';
+const APP_VERSION = '2.18.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün

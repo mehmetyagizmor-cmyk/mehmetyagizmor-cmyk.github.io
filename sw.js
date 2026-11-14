@@ -1,6 +1,6 @@
 // Çay Ocağı Tycoon — çevrimdışı çalışma
 // Yeni sürüm yayınlarken VERSION'ı artır: eski önbellek silinir, oyuncular güncel sürümü alır.
-const VERSION = 'v51';
+const VERSION = 'v52';
 const CACHE = 'cayocagi-' + VERSION;
 const FILES = [
   './',
@@ -15,6 +15,8 @@ const FILES = [
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './icons/favicon.png',
+  './fonts/fredoka-latin.woff2',
+  './fonts/fredoka-latin-ext.woff2',
 ];
 
 self.addEventListener('install', e => {
