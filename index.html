@@ -421,6 +421,65 @@ h3{color:var(--muted)}
   /* Sahne düğme ve menü için biraz yer bıraksın */
   main{padding-bottom:calc(var(--nav) + var(--sb) + 20px)}
 }
+/* ---------- UI-3: Eşyalarım alt sekmeleri, albüm, müdavim kartları, kupa rafı ---------- */
+.seg{display:flex;gap:6px;margin:4px 0 12px}
+.seg button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 2px;font-size:20px;cursor:pointer;
+  background:var(--cream);border:2.5px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);color:var(--muted)}
+.seg button span{font-size:11px}
+.seg button.on{background:var(--accent);color:#fff;text-shadow:0 1px 0 var(--ink)}
+.seg button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+/* İlerleme hapı: koyu zemin, yeşil dolgu, ortada yazı */
+.pb{position:relative;display:block;height:16px;background:var(--ink);border:2px solid var(--ink);border-radius:999px;overflow:hidden}
+.pb i{position:absolute;inset:0 auto 0 0;background:linear-gradient(#7fd36f,var(--good));border-radius:999px}
+.pb em{position:relative;display:block;font-style:normal;font-size:10.5px;font-weight:700;line-height:12px;color:#fff;text-align:center;text-shadow:0 1px 0 #0008}
+.album-head,.rhead{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:10px;border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);
+  background:linear-gradient(135deg,#ffcf8a,#f2a65a)}
+.album-head .ah-em{font-size:40px}
+.album-head .ah-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.album-head small{color:var(--ink);font-size:12px}
+.rhead{justify-content:space-between;font-size:16px}
+.album{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.aset{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 8px;cursor:pointer;font:inherit;color:var(--ink);
+  background:var(--cream);border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink)}
+.aset .ae{font-size:38px;line-height:1.1}
+.aset .rib{margin-top:-4px;padding:2px 6px;font-size:11.5px;font-weight:700;background:#ffd36b;border:2px solid var(--ink);border-radius:6px;line-height:1.2;text-align:center}
+.aset .pb{width:100%}
+.aset.done{background:#e3f4dc}
+.aset.sel{outline:3px solid var(--accent);outline-offset:2px}
+.aset:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.aset-detail{margin-top:12px}
+.rfeat{display:flex;gap:12px;align-items:center;padding:10px;margin-bottom:10px;border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink);background:var(--cream)}
+.rfeat .port{width:84px;flex:none}
+.rf-info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.rf-info .tag{align-self:flex-start;padding:1px 8px;font-size:10px;font-weight:700;color:#fff;background:var(--tea);border:2px solid var(--ink);border-radius:6px}
+.rf-info small{color:var(--muted);font-size:12px}
+.tier-h{display:inline-block;margin:10px 0 8px;padding:3px 14px;font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 0 var(--ink);
+  border:2.5px solid var(--ink);border-radius:8px;box-shadow:0 3px 0 var(--ink);transform:skew(-8deg)}
+.tier-h.t1,.rcard.t1 .rname{background:#3aa64c}
+.tier-h.t2,.rcard.t2 .rname{background:#2e86c1}
+.tier-h.t3,.rcard.t3 .rname{background:#8e44ad}
+.rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.rcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 5px 6px;border:3px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink)}
+.rcard.t1,.rfeat.t1{background:#cdeec3}
+.rcard.t2,.rfeat.t2{background:#cfe5f6}
+.rcard.t3,.rfeat.t3{background:#e6d3f1}
+.port{display:block;width:100%;aspect-ratio:64/80;border-radius:10px;background:#fff8ec;border:2px solid var(--ink)}
+.rcard .rname{width:calc(100% + 6px);margin-top:-12px;padding:1px 2px;font-size:10.5px;font-weight:700;color:#fff;text-align:center;text-shadow:0 1px 0 var(--ink);
+  border:2px solid var(--ink);border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rcard .pb{width:100%;height:14px}
+.rcard .pb em{font-size:9.5px;line-height:10px}
+.rcard small{font-size:9.5px;color:var(--muted);text-align:center;line-height:1.2}
+.rcard.locked{filter:saturate(.5)}
+.rcard .lock{position:absolute;top:-8px;right:-6px;font-size:18px;filter:drop-shadow(0 2px 0 var(--ink))}
+.shelf{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;margin-bottom:10px;border:3px solid var(--ink);border-radius:16px;
+  background:linear-gradient(#8a5a35 0 6px,#fff6e6 6px);box-shadow:0 4px 0 var(--ink)}
+.cup{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;text-align:center}
+.cup .ce{font-size:30px;filter:drop-shadow(0 3px 0 #3a221455)}
+.cup i{position:absolute;top:0;right:4px;font-style:normal;font-size:11px;font-weight:700;color:#fff;background:var(--tea);border:2px solid var(--ink);border-radius:999px;padding:0 5px}
+.cup small{font-size:10px;line-height:1.15;color:var(--ink)}
+.cup.off{opacity:.35;filter:grayscale(1)}
+@media(min-width:1000px){.rgrid{grid-template-columns:repeat(4,1fr)}}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -3105,9 +3164,19 @@ function renderMenu(menu){
 }
 
 // Eşyalarım: sahip olunan her şey
+// Eşyalarım alt sekmeleri: profil, albüm, müdavimler, ödüller
+let invTab = 'profil', albumSet = null;
+const INV_TABS = [['profil', '📊', 'Profil'], ['album', '🏺', 'Albüm'], ['mudavim', '💛', 'Müdavimler'], ['odul', '🏅', 'Ödüller']];
+const invCard = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
+const invDots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
+const pbar = (n, of, txt) => `<span class="pb"><i style="width:${Math.round(Math.min(1, n / Math.max(1, of)) * 100)}%"></i><em>${txt || `${n}/${of}`}</em></span>`;
 function renderInventory(){
-  const card = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
-  const dots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
+  let v = `<div class="seg">${INV_TABS.map(([id, em, t]) => `<button class="${invTab === id ? 'on' : ''}" data-inv="${id}">${em}<span>${t}</span></button>`).join('')}</div>`;
+  v += invTab === 'album' ? albumHTML() : invTab === 'mudavim' ? regularsHTML() : invTab === 'odul' ? trophiesHTML() : profileHTML();
+  setHTML('#inventory', v);
+  drawPortraits();
+}
+function profileHTML(){
   let v = `<div class="kv">
     <div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div>
     <div><small>Mutlu müşteri</small><b>${fmt(S.served)}</b></div><div><small>En kârlı gün</small><b>₺${fmt(S.bestDay)}</b></div>
@@ -3115,51 +3184,99 @@ function renderInventory(){
     <div><small>En uzun kombo</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>Tamamlanan görev</small><b>📋 ${S.questsDone || 0}</b></div>
     <div><small>Ünlülük</small><b>🌟 ${fmt(S.fame)}</b></div><div><small>Röportaj</small><b>🎤 ${S.interviews || 0}</b></div></div>
     ${S.lastCover ? '<button class="btn2" data-cover style="width:100%;margin-top:8px">📰 Son kapağını gör ve paylaş</button>' : ''}`;
-  const metN = REGULARS.filter(r => (S.regs[r.id] || {}).met).length;
-  v += `<h3>💛 Müdavimler (${metN}/${REGULARS.length})</h3><p class="hint">Mahallenin sakinleri yalnızca ana dükkâna uğrar. Mutlu ettikçe kalp kazanırlar: her kalp +%10 bahşiş ve bir hediye. 4 kalpli müdavim seni herkese anlatır (her gün +1 🌟).</p>`;
-  REGULARS.forEach(r => {
-    const d = S.regs[r.id] || {}, l = d.met ? regLv(r.id) : 0;
-    v += d.met
-      ? `<div class="ach${l >= REG_HEARTS.length - 1 ? ' done' : ''}"><div class="em">${r.emoji}</div>
-          <div class="info"><b>${r.name} <span class="hearts">${hearts(l)}</span></b><small>"${r.lines[l]}"</small>
-          <small>Her zamanki: ${regOrder(r).map(p => P[p].emoji).join('')} · ${d.visits || 0} ziyaret</small></div></div>`
-      : `<div class="ach"><div class="em">❔</div><div class="info"><b>Henüz tanışmadın</b><small>${S.day >= r.day ? 'Ana dükkânda bir gün uğrar…' : `${r.day}. günden sonra uğramaya başlar`}</small></div></div>`;
-  });
-  if (S.reviews) v += `<p class="hint">📰 Eleştirmen yazıları: ${S.reviews.n} · En iyi puan <span style="color:#f5c518">${starStr(S.reviews.best)}</span></p>`;
-  // Koleksiyon
-  const ownN = COL_ITEMS.filter(it => owned(it.id)).length;
-  const bon = [['tip', 'bahşiş'], ['pat', 'sabır'], ['fame', 'ünlülük'], ['off', 'sen yokken kasası']]
-    .filter(([k]) => colBonus(k) > 0).map(([k, w]) => `+%${Math.round(colBonus(k) * 100)} ${w}`);
-  v += `<h3>🏺 Koleksiyon (${ownN}/${COL_ITEMS.length})</h3>
-    <p class="hint">${bon.length ? 'Toplam bonus: ' + bon.join(' · ') : 'Mağazadaki antikacıdan parça al, etkinlik görevlerinden hatıra kazan.'}</p>`;
-  COL_SETS.forEach(st => {
-    v += `<p class="hint" style="margin:8px 0 4px"><b>${st.emoji} ${st.name}</b> · parça başı +%${Math.round(st.per * 100)}, set +%${Math.round(st.full * 100)} ${st.what}${setDone(st) ? ' ✅' : ''}</p><div class="inv">`
-      + st.items.map(it => card(owned(it.id) ? it.emoji : '❔', it.name, owned(it.id) ? 'Koleksiyonunda' : st.event ? 'Etkinlik ödülü' : `₺${fmt(it.cost)}`, '', !owned(it.id))).join('') + '</div>';
-  });
-  v += awardsHTML();
-  const done = ACH.filter(a => S.ach[a.id]).length;
-  v += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
-  // Tamamlanmamışlar önce, en çok ilerleyen en üstte
-  const prog = a => S.ach[a.id] ? 1 : Math.min(1, a.val() / a.goal);
-  [...ACH].sort((a, b) => (!!S.ach[a.id] - !!S.ach[b.id]) || prog(b) - prog(a)).forEach(a => {
-    const ok = !!S.ach[a.id], p = prog(a);
-    v += `<div class="ach${ok ? ' done' : ''}"><div class="em">${ok ? a.emoji : '🔒'}</div>
-      <div class="info"><b>${a.name}</b><small>${a.desc}${ok ? '' : ` · ${fmt(Math.min(a.val(), a.goal))}/${fmt(a.goal)}`}</small>
-      <div class="pbar"><div style="width:${Math.round(p * 100)}%"></div></div></div>
-      <span class="rw">${ok ? '✓' : '₺' + fmt(a.reward)}</span></div>`;
-  });
-  v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => card(i === 3 ? '🏆' : '🏪', L.name,
+  v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => invCard(i === 3 ? '🏆' : '🏪', L.name,
     i < lv('dukkan') ? 'Geride kaldı' : i === lv('dukkan') ? 'Şu anki dükkânın' : `Gün ${L.day}+ · ₺${fmt(L.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
   [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
     v += `<h3>${title}</h3><div class="inv">` + UPGRADES.filter(u => u.grp === grp).map(u => {
       const l = lv(u.id);
-      return card(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', dots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
+      return invCard(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', invDots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
     }).join('') + '</div>';
   });
-  v += '<h3>🌟 Şöhret Ayrıcalıkları</h3><div class="inv">' + FAME_PERKS.map(p => card(p.emoji, p.name,
+  v += '<h3>🌟 Şöhret Ayrıcalıkları</h3><div class="inv">' + FAME_PERKS.map(p => invCard(p.emoji, p.name,
     fameLv() >= p.lv ? p.desc : `🔒 ${FAME_LEVELS[p.lv].emoji} ${FAME_LEVELS[p.lv].name}`, '', fameLv() < p.lv)).join('') + '</div>';
-  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => card(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : p.tool ? UPGRADES.find(u => u.id === p.tool).name : SHOP_LEVELS[p.shop].name) : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
-  setHTML('#inventory', v);
+  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => invCard(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : p.tool ? UPGRADES.find(u => u.id === p.tool).name : SHOP_LEVELS[p.shop].name) : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
+  return v;
+}
+// Albüm: setler rozet ızgarasında; dokunulan setin parçaları altta açılır
+function albumHTML(){
+  const ownN = COL_ITEMS.filter(it => owned(it.id)).length;
+  const bon = [['tip', 'bahşiş'], ['pat', 'sabır'], ['fame', 'ünlülük'], ['off', 'sen yokken kasası']]
+    .filter(([k]) => colBonus(k) > 0).map(([k, w]) => `+%${Math.round(colBonus(k) * 100)} ${w}`);
+  let h = `<div class="album-head"><span class="ah-em">🏺</span><div class="ah-txt"><b>Koleksiyon Albümü</b>
+      <small>${bon.length ? 'Bonusun: ' + bon.join(' · ') : 'Antikacıdan parça al, etkinlik görevlerinden hatıra kazan. Her set kalıcı bonus verir!'}</small>
+      ${pbar(ownN, COL_ITEMS.length)}</div></div>`;
+  h += '<div class="album">' + COL_SETS.map(st => {
+    const n = st.items.filter(it => owned(it.id)).length;
+    return `<button class="aset${setDone(st) ? ' done' : ''}${albumSet === st.id ? ' sel' : ''}" data-aset="${st.id}">
+      <span class="ae">${st.emoji}</span><span class="rib">${st.name}</span>${pbar(n, st.items.length)}</button>`;
+  }).join('') + '</div>';
+  const st = COL_SETS.find(s => s.id === albumSet);
+  h += st ? `<div class="aset-detail"><h3>${st.emoji} ${st.name}${setDone(st) ? ' ✅' : ''}</h3>
+      <p class="hint">Parça başı +%${Math.round(st.per * 100)}, set tamamlanınca +%${Math.round(st.full * 100)} ${st.what}</p><div class="inv">`
+      + st.items.map(it => invCard(owned(it.id) ? it.emoji : '❔', it.name, owned(it.id) ? 'Koleksiyonunda' : st.event ? 'Etkinlik ödülü' : `₺${fmt(it.cost)}`, '', !owned(it.id))).join('') + '</div></div>'
+    : '<p class="hint" style="text-align:center;margin-top:10px">Bir sete dokun, parçalarını gör.</p>';
+  return h;
+}
+// Müdavimler: oyunun kendi karakter çizimiyle portreli kartlar, uğrama gününe göre üç bölüm
+const REG_TIERS = [
+  {id:'t1', name:'Mahallenin Demirbaşları', test:r => r.day <= 3},
+  {id:'t2', name:'Sık Uğrayanlar',          test:r => r.day > 3 && r.day <= 8},
+  {id:'t3', name:'Nadir Konuklar',          test:r => r.day > 8},
+];
+function regularsHTML(){
+  const met = r => !!(S.regs[r.id] || {}).met, metN = REGULARS.filter(met).length, maxH = REG_HEARTS.length - 1;
+  const best = REGULARS.filter(met).sort((a, b) => regLv(b.id) - regLv(a.id) || (S.regs[b.id].visits || 0) - (S.regs[a.id].visits || 0))[0];
+  let h = `<div class="rhead"><b>💛 Müdavimler</b><span>Tanışılan <b>${metN}/${REGULARS.length}</b></span></div>
+    <p class="hint">Yalnızca ana dükkâna uğrarlar. Mutlu ettikçe kalp kazanırlar: her kalp +%10 bahşiş ve bir hediye. 4 kalpli müdavim seni herkese anlatır (her gün +1 🌟).</p>`;
+  if (best){
+    const l = regLv(best.id), d = S.regs[best.id];
+    h += `<div class="rfeat ${REG_TIERS.find(t => t.test(best)).id}"><canvas class="port" data-reg="${best.id}"></canvas>
+      <div class="rf-info"><span class="tag">EN YAKIN DOSTUN</span><b>${best.name}</b><span class="hearts">${hearts(l)}</span>
+      <small>"${best.lines[l]}"</small><small>Her zamanki: ${regOrder(best).map(p => P[p].emoji).join('')} · ${d.visits || 0} ziyaret · bahşiş +%${10 * l}</small></div></div>`;
+  }
+  REG_TIERS.forEach(t => {
+    const list = REGULARS.filter(t.test);
+    h += `<div class="tier-h ${t.id}">${t.name}</div><div class="rgrid">` + list.map(r => {
+      const m = met(r), l = m ? regLv(r.id) : 0;
+      return `<div class="rcard ${t.id}${m ? '' : ' locked'}"><canvas class="port" data-reg="${r.id}"${m ? '' : ' data-lock="1"'}></canvas>
+        ${m ? '' : '<span class="lock">🔒</span>'}<span class="rname">${m ? r.name : '???'}</span>
+        ${m ? pbar(l, maxH, `${l}/${maxH} ❤️`) : `<small>${S.day >= r.day ? 'Yakında uğrar' : r.day + '. günden sonra'}</small>`}</div>`;
+    }).join('') + '</div>';
+  });
+  return h;
+}
+// Portreler: kartlar yeniden kurulunca bir kez çizilir; tanışılmayan müdavim siluet olarak görünür
+function drawPortraits(){
+  document.querySelectorAll('#inventory canvas.port:not([data-d])').forEach(c => {
+    const r = REGULARS.find(x => x.id === c.dataset.reg);
+    if (!r || !c.clientWidth) return;
+    const ctx = c.getContext('2d');
+    fitCanvas(c, ctx, 64, 80);
+    drawPerson(ctx, {x:32, y:118, look:r.look, mood:'happy', scale:1.35});
+    if (c.dataset.lock){ ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = '#3a2214'; ctx.fillRect(0, 0, 64, 80); ctx.globalCompositeOperation = 'source-over'; }
+    c.dataset.d = 1;
+  });
+}
+// Ödüller: kupa rafı, dönemin Esnaf Ödülleri ilerlemesi, başarımlar
+function trophiesHTML(){
+  const shelf = [{emoji:'🏆', name:'Lig Birinciliği', n:S.lgWins || 0},
+    ...AWARDS.map(a => ({emoji:a.emoji, name:a.name, n:(S.awards || {})[a.id] || 0}))];
+  let h = `<div class="rhead"><b>🏅 Kupa Rafı</b><span>Toplam <b>${shelf.reduce((s, x) => s + x.n, 0)}</b> kupa</span></div>
+    <div class="shelf">${shelf.map(x => `<div class="cup${x.n ? '' : ' off'}"><span class="ce">${x.emoji}</span>${x.n ? `<i>×${x.n}</i>` : ''}<small>${x.name}</small></div>`).join('')}</div>`;
+  if (S.reviews) h += `<p class="hint">📰 Eleştirmen yazıları: ${S.reviews.n} · En iyi puan <span style="color:#d39a00">${starStr(S.reviews.best)}</span></p>`;
+  h += awardsHTML();
+  const done = ACH.filter(a => S.ach[a.id]).length;
+  h += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
+  // Tamamlanmamışlar önce, en çok ilerleyen en üstte
+  const prog = a => S.ach[a.id] ? 1 : Math.min(1, a.val() / a.goal);
+  [...ACH].sort((a, b) => (!!S.ach[a.id] - !!S.ach[b.id]) || prog(b) - prog(a)).forEach(a => {
+    const ok = !!S.ach[a.id], p = prog(a);
+    h += `<div class="ach${ok ? ' done' : ''}"><div class="em">${ok ? a.emoji : '🔒'}</div>
+      <div class="info"><b>${a.name}</b><small>${a.desc}${ok ? '' : ` · ${fmt(Math.min(a.val(), a.goal))}/${fmt(a.goal)}`}</small>
+      <div class="pbar"><div style="width:${Math.round(p * 100)}%"></div></div></div>
+      <span class="rw">${ok ? '✓' : '₺' + fmt(a.reward)}</span></div>`;
+  });
+  return h;
 }
 
 // Stilize dünya haritası: kaba kıta şekilleri [boylam, enlem]
@@ -3334,7 +3451,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.19.0';
+const APP_VERSION = '2.20.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3981,7 +4098,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -4003,6 +4120,8 @@ document.addEventListener('click', e => {
   else if (d.legacy !== undefined){ if (canLegacy() && status !== 'running') showLegacy(); }
   else if (d.fix) fixBranch(+d.fix);
   else if (d.ct) answerContract(d.ct === 'yes');
+  else if (d.inv){ invTab = d.inv; SFX.serve(); }
+  else if (d.aset){ albumSet = albumSet === d.aset ? null : d.aset; SFX.serve(); }
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
     const el = $(`#br-${d.pin === 'tr' ? 'ana' : d.pin}`);
