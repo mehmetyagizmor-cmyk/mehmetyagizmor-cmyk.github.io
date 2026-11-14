@@ -523,6 +523,10 @@ h3{color:var(--muted)}
 .tn small{font-size:10px;color:var(--muted);line-height:1.15}
 .tn i{font-style:normal;font-size:10.5px;font-weight:700;color:var(--good);line-height:1.2}
 
+/* E-2: geliştirilebilir kişi işareti ve kapalı ana düğme */
+.tn.can::after{content:'⬆';position:absolute;top:-6px;right:6px;width:20px;height:20px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;background:var(--good);border:2px solid var(--ink);border-radius:50%}
+.big:disabled{background:#e8dcc9;color:#9a8270;text-shadow:none;box-shadow:0 2px 0 #3a221455;cursor:not-allowed;transform:none}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -1219,7 +1223,7 @@ let status = 'closed'; // 'running' | 'closed'
 const lv = id => S.lv[id] || 0;
 const shopLevel = () => SHOP_LEVELS[lv('dukkan')];
 const maxLv = u => u.id === 'masa' ? shopLevel().tables - 2 : u.need && !lv(u.need) ? 0 : u.max;
-const garsonSpeed = () => 190 * (1 + 0.2 * lv('garsonhiz'));
+const garsonSpeed = i => 190 * (1 + 0.2 * (crewLv('garson', i) - 1));   // garson kendi seviyesiyle
 // Kir: müşteri kalkınca masanın önünde leke kalabilir; her leke sabrı ve müşteri sıklığını biraz düşürür
 const MAX_STAINS = 8;
 const dirt = () => R.stains.length;
@@ -1322,7 +1326,7 @@ const rescueCost = b => fixCost(b) * 3;
 const riskActive = () => S.riskOn || S.branches.length > 1;
 const troubled = () => riskActive() && S.branches.some(b => b.issue || b.crisis);
 // Müdür geliri: sorun varken yarıya iner, krizde hiç gelmez
-const managedIncome = b => b.crisis ? 0 : Math.round(branchIncome(b) * (b.issue ? 0.5 : 1) * (fameLv() >= 4 ? 1.25 : 1) * (conceptOf(b).items ? 1.15 : 1));
+const managedIncome = b => b.crisis ? 0 : Math.round(branchIncome(b) * teamMult(b) * (b.issue ? 0.5 : 1) * (fameLv() >= 4 ? 1.25 : 1) * (conceptOf(b).items ? 1.15 : 1));
 
 // Gün sonunda şubeleri günceller; karnede gösterilecek haberleri döndürür
 function riskDay(interviewDay){
@@ -1618,7 +1622,7 @@ function pay(c){
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier())
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip()
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
     * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip;
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
@@ -2102,7 +2106,7 @@ function tick(dt){
       const n = needed(); const p = Object.keys(n).find(k => n[k] > 0);
       if (p) R.helpers[i] = {p, prog:0};
     } else {
-      h.prog += dt * 0.7 * (1 + 0.2 * lv('cirakhiz'));
+      h.prog += dt * 0.7 * (1 + 0.2 * (crewLv('cirak', i) - 1));   // çırak kendi seviyesiyle
       if (h.prog >= prepTime(h.p)){ trayAdd(h.p); R.helpers[i] = null; }
     }
   }
@@ -2125,7 +2129,7 @@ function tick(dt){
         break;
       }
     } else if (gs.state === 'go'){
-      if (moveAlong(gs, dt, garsonSpeed())){
+      if (moveAlong(gs, dt, garsonSpeed(gs.i))){
         const c = R.customers.find(c => c.id === gs.cid);
         const o = c && seated(c) && c.order.find(o => !o.done && o.p === gs.carry);
         if (o){
@@ -2138,7 +2142,7 @@ function tick(dt){
         gs.path = [{x:s.x + 33, y:s.y}, {x:s.x + 33, y:a}, {x:home.x, y:a}, home];
       }
     } else if (gs.state === 'back'){
-      if (moveAlong(gs, dt, garsonSpeed())){ gs.state = 'idle'; gs.flip = false; }
+      if (moveAlong(gs, dt, garsonSpeed(gs.i))){ gs.state = 'idle'; gs.flip = false; }
     }
   }
 
@@ -2206,7 +2210,7 @@ function endDay(){
   if (canBranch()) goals.push({t:'🏙️ Yeni şube', c:branchCost()});
   if (canBranch('world')) goals.push({t:'🌍 Yurt dışı şubesi', c:branchCost('world')});
   S.unlocked.filter(id => recLv(id) < MAX_RECIPE).forEach(id => goals.push({t:`${P[id].emoji} ${P[id].name} tarifi`, c:recipeCost(id)}));
-  UPGRADES.filter(u => lv(u.id) < maxLv(u)).forEach(u => goals.push({t:`${u.emoji} ${u.name}`, c:upCost(u)}));
+  UPGRADES.filter(u => lv(u.id) < maxLv(u) && !STAFF_UPS.includes(u.id)).forEach(u => goals.push({t:`${u.emoji} ${u.name}`, c:upCost(u)}));
   const goal = goals.filter(x => x.c > S.money).sort((a, b) => a.c - b.c)[0];
   const buyNow = goals.filter(x => x.c <= S.money).sort((a, b) => a.c - b.c)[0];
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
@@ -3039,7 +3043,7 @@ desktopMQ.addEventListener('change', applyTab);
 applyTab();
 
 const canGrow = () => { const n = SHOP_LEVELS[lv('dukkan') + 1]; return n && S.day >= n.day && S.money >= n.cost; };
-const canUpgrade = () => UPGRADES.some(u => lv(u.id) < maxLv(u) && S.money >= upCost(u));
+const canUpgrade = () => UPGRADES.some(u => !STAFF_UPS.includes(u.id) && lv(u.id) < maxLv(u) && S.money >= upCost(u));
 const canUnlock = () => PRODUCTS.some(p => !S.unlocked.includes(p.id) && !shopLocked(p) && S.money >= p.cost)
   || S.unlocked.some(id => recLv(id) < MAX_RECIPE && S.money >= recipeCost(id));
 const stars5 = l => `<span class="rs">${'★'.repeat(l)}<i>${'★'.repeat(MAX_RECIPE - l)}</i></span>`;
@@ -3190,7 +3194,7 @@ function renderShop(){
   }
   [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
     s += `<h3>${title}</h3>`;
-    UPGRADES.filter(u => u.grp === grp).forEach(u => {
+    UPGRADES.filter(u => u.grp === grp && !STAFF_UPS.includes(u.id)).forEach(u => {
       const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
       const need = u.need && !lv(u.need) && UPGRADES.find(x => x.id === u.need);
       const desc = need ? `🔒 Önce ${need.name.toLowerCase()} tut` : u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
@@ -3407,7 +3411,7 @@ function ensureStaff(){
     for (const role of ['head', 'cirak', 'garson']){
       const want = role === 'head' ? 1 : (b.lv[role] || 0);
       const have = S.staff.filter(p => p.city === b.city && p.role === role);
-      const start = role === 'head' ? 1 + (b.lv.dukkan || 0) + (b.lv.mudur || 0) : 1 + (b.lv[role + 'hiz'] || 0);
+      const start = role === 'head' ? 1 : 1 + (b.lv[role + 'hiz'] || 0);
       for (let i = have.length; i < want; i++){ S.staff.push(newPerson(role, b.city, start)); changed = true; }
       if (have.length > want){ const drop = new Set(have.slice(want)); S.staff = S.staff.filter(p => !drop.has(p)); changed = true; }
     }
@@ -3415,6 +3419,40 @@ function ensureStaff(){
   const cities = new Set(S.branches.map(b => b.city));   // batan şubenin ekibi gider
   if (S.staff.some(p => !cities.has(p.city))){ S.staff = S.staff.filter(p => cities.has(p.city)); changed = true; }
   if (changed) save();
+}
+// ---------- Kişi başı geliştirme (E-2) ----------
+// Çırak: kendi hazırlama hızı, garson: kendi yürüme hızı (seviye başı %20).
+// Ustabaşı: oynanan dükkânda bahşiş (%5), yönetilen dükkânda gelir (%6); şubede ekibin her geliştirmesi geliri %2 artırır
+const STAFF_UPS = ['cirakhiz', 'garsonhiz'];   // eski toplu eğitimler: artık kişi kişi, Mağaza'da görünmez
+const STAFF_MAX = 8;
+const crewOf = (city, role) => (S.staff || []).filter(p => p.city === city && p.role === role);
+// Oynanan dükkândaki i. çırak/garsonun seviyesi (ekip kaydı yoksa eski toplu eğitim)
+const crewLv = (role, i) => { const p = crewOf(branch().city, role)[i]; return p ? p.lv : 1 + lv(role + 'hiz'); };
+const headOf = b => crewOf(b.city, 'head')[0];
+const headTip = () => { const h = headOf(branch()); return 1 + 0.05 * ((h ? h.lv : 1) - 1); };
+function teamMult(b){
+  const h = headOf(b), crew = (S.staff || []).filter(p => p.city === b.city && p.role !== 'head');
+  return 1 + 0.06 * ((h ? h.lv : 1) - 1) + 0.02 * crew.reduce((a, p) => a + p.lv - 1, 0);
+}
+function staffCost(p){
+  if (p.role === 'head'){
+    const b = S.branches.find(x => x.city === p.city);
+    return Math.round((b && b.city !== 'ana' ? Math.max(1500, paidOf(b) * 0.08) : 1500) * Math.pow(1.9, p.lv - 1) / 10) * 10;
+  }
+  return Math.round((p.role === 'cirak' ? 450 : 600) * Math.pow(2, p.lv - 1) / 10) * 10;   // bot denemesi: 1,8 ile ekip 40 günde tavan yaptı
+}
+const staffEffect = p => p.lv <= 1 ? 'temel seviye' : p.role === 'cirak' ? `%${20 * (p.lv - 1)} hızlı hazırlar`
+  : p.role === 'garson' ? `%${20 * (p.lv - 1)} hızlı taşır` : `bahşiş +%${5 * (p.lv - 1)}, sen yokken gelir +%${6 * (p.lv - 1)}`;
+const upCls = p => p.lv < STAFF_MAX && S.money >= staffCost(p) ? ' can' : '';
+let staffSel = null;
+function upgradeStaff(sid){
+  const p = S.staff.find(x => x.id === sid);
+  if (!p || p.lv >= STAFF_MAX) return;
+  const c = staffCost(p);
+  if (S.money < c){ toast('Yeterli paran yok'); SFX.error(); return; }
+  S.money -= c; p.lv++;
+  toast(`⬆️ ${p.name} seviye ${p.lv}!`); SFX.buy(); bump('#money', 'bump'); save();
+  hideModal(); showStaff(sid); renderUI();
 }
 // Dükkânın günlük geliri: oynanan dükkânda son günün satışı, diğerlerinde müdür geliri
 const shopIncome = b => b === branch() ? (b.lastEarn || 0) : managedIncome(b);
@@ -3437,8 +3475,8 @@ function staffTreeHTML(){
   const crew = b => S.staff.filter(p => p.city === b.city && p.role !== 'head').sort((x, y) => (x.role > y.role) - (x.role < y.role) || y.lv - x.lv);
   const heads = S.branches.map(b => {
     const h = S.staff.find(p => p.city === b.city && p.role === 'head'), c = crew(b);
-    return `<li>${tnode(h.id, 'head', h.lv, h.name, b.city === 'ana' ? 'Ana dükkân' : CITY[b.city].name, staffIncome(h))}`
-      + (c.length ? '<ul>' + c.map(p => `<li>${tnode(p.id, p.role, p.lv, p.name, ROLE[p.role], staffIncome(p))}</li>`).join('') + '</ul>' : '') + '</li>';
+    return `<li>${tnode(h.id, 'head' + upCls(h), h.lv, h.name, b.city === 'ana' ? 'Ana dükkân' : CITY[b.city].name, staffIncome(h))}`
+      + (c.length ? '<ul>' + c.map(p => `<li>${tnode(p.id, p.role + upCls(p), p.lv, p.name, ROLE[p.role], staffIncome(p))}</li>`).join('') + '</ul>' : '') + '</li>';
   }).join('');
   return `<p class="hint">Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.</p>
     <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, 'Usta · sen', total)}
@@ -3461,6 +3499,7 @@ function drawStaffPortraits(){
 }
 function showStaff(sid){
   if (modalOpen()) return;
+  staffSel = sid;
   const fr = bestFriend();
   if (sid === 'usta' || sid === 'sag'){
     showModal(sid === 'usta'
@@ -3475,8 +3514,10 @@ function showStaff(sid){
   showModal(`<h2>${esc(p.name)} · ${ROLE[p.role]}</h2>
     <table><tr><td>Dükkân</td><td>${where}</td></tr><tr><td>Seviye</td><td>${p.lv}</td></tr><tr><td>Günlük katkısı</td><td style="color:var(--good)">₺${fmt(staffIncome(p))}</td></tr></table>
     <p class="hint">${job}${b === branch() && !b.lastEarn ? ' Katkısı dükkânı bir gün açınca hesaplanır.' : ''}</p>
-    <p class="hint">⏳ Kişi kişi geliştirme bir sonraki güncellemede geliyor.</p>
-    <button class="big" id="modalOk">Tamam</button>`);
+    ${p.lv >= STAFF_MAX ? '<p class="banner">🏅 En üst seviyede!</p><button class="big" id="modalOk">Tamam</button>'
+      : `<p class="hint">Şu an: ${staffEffect(p)} → sonraki: <b>${staffEffect({...p, lv:p.lv + 1})}</b></p>
+      <button class="big" id="staffUp" ${S.money < staffCost(p) ? 'disabled' : ''}>⬆️ Seviye ${p.lv + 1} · ₺${fmt(staffCost(p))}</button>
+      <div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
 }
 
 function branchesHTML(){
@@ -3615,7 +3656,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.23.0';
+const APP_VERSION = '2.24.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -3941,6 +3982,7 @@ $('#modal').addEventListener('click', e => {
   if (id === 'editOwnerM'){ openOwnerEditor(false); return; }
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
+  if (id === 'staffUp'){ upgradeStaff(staffSel); return; }
   if (id === 'codeOut'){ showCodeOut(); return; }
   if (id === 'codeIn'){ showCodeIn(); return; }
   if (id === 'codeCopy'){ copyCode(); return; }
