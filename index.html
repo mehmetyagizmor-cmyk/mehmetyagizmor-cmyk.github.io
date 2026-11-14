@@ -480,6 +480,18 @@ h3{color:var(--muted)}
 .cup.off{opacity:.35;filter:grayscale(1)}
 @media(min-width:1000px){.rgrid{grid-template-columns:repeat(4,1fr)}}
 
+/* ---------- UI-5: vektör ikonlar (svg <use>) ---------- */
+.ic{width:1.15em;height:1.15em;display:inline-block;vertical-align:middle;flex:none;overflow:visible}
+.res .ri .ic{width:22px;height:22px}
+.fab .ic{width:27px;height:27px}
+.tab .ic{width:28px;height:28px;filter:drop-shadow(0 2px 0 #3a221433)}
+.tab:not(.on):not(.hub) .ic{opacity:.85}
+.tab.hub .hubc .ic{width:42px;height:42px}
+.seg .ic{width:24px;height:24px}
+.lgbadge .lgc .ic{width:24px;height:24px}
+@media(max-width:620px){.res .ri .ic{width:19px;height:19px}}
+@media(min-width:1000px){.tab .ic{width:22px;height:22px}}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -551,11 +563,31 @@ h3{color:var(--muted)}
 </style>
 </head>
 <body>
+<!-- İkonlar (UI-5): oyunun kendi çizimi, tek yerden değiştirilebilir. Kullanım: ic('ad') -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-shop" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="21" width="32" height="21" rx="3" fill="#ffd9a8"/><rect x="19" y="29" width="10" height="13" fill="#8a5a35"/><path d="M8 8H40L43 19H5Z" fill="#d9483b"/><path d="M18 8 17 19M30 8 31 19" stroke="#fff6e6"/><path d="M5 19q3.2 5 6.4 0q3.2 5 6.4 0q3.2 5 6.4 0q3.2 5 6.4 0q3.2 5 6.4 0q3.2 5 6.4 0" fill="#fff6e6"/></g></symbol>
+  <symbol id="i-menu" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="10" y="8" width="28" height="35" rx="4" fill="#fff6e6"/><rect x="17" y="4" width="14" height="8" rx="2" fill="#8a5a35"/><path d="M16 20h16M16 27h16M16 34h9"/><circle cx="34" cy="35" r="4" fill="#3aa64c"/></g></symbol>
+  <symbol id="i-tea" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><ellipse cx="24" cy="41" rx="16" ry="4.5" fill="#fff6e6"/><path d="M15 10H33C33 18 28 20 28 24C28 29 32 31 31 38H17C16 31 20 29 20 24C20 20 15 18 15 10Z" fill="#c0452a"/><path d="M16 10H32L31 14H17Z" fill="#f6d1b0" stroke="none"/><path d="M19 17q1 4 3 6" stroke="#ffffff" stroke-opacity=".75" fill="none"/><path d="M20 6q-2-2 0-4M28 6q-2-2 0-4" fill="none" stroke-width="2.5"/></g></symbol>
+  <symbol id="i-city" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="19" width="14" height="23" fill="#3b8fd1"/><rect x="19" y="7" width="15" height="35" fill="#f2a65a"/><rect x="34" y="23" width="9" height="19" fill="#3aa64c"/><path d="M9 25h6M9 31h6M23 13h7M23 19h7M23 25h7M23 31h7M37 29h3" stroke="#fff6e6" stroke-width="2.5"/></g></symbol>
+  <symbol id="i-bag" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M17 13q0-8 7-8t7 8" fill="none"/><rect x="9" y="13" width="30" height="30" rx="9" fill="#e85d75"/><path d="M9 23q15 8 30 0" fill="none"/><rect x="16" y="29" width="16" height="10" rx="3" fill="#ffd36b"/></g></symbol>
+  <symbol id="i-gear" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(0 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(45 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(90 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(135 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(180 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(225 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(270 24 24)"/><rect x="20" y="3" width="8" height="10" rx="2" fill="#9aa7b8" transform="rotate(315 24 24)"/><circle cx="24" cy="24" r="13" fill="#b9c4d2"/><circle cx="24" cy="24" r="5" fill="#fff6e6"/></g></symbol>
+  <symbol id="i-gift" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="8" y="21" width="32" height="21" rx="2" fill="#d9483b"/><rect x="6" y="14" width="36" height="8" rx="2" fill="#e8672c"/><rect x="21" y="14" width="6" height="28" fill="#ffc94a"/><path d="M24 14C18 3 9 9 15 14ZM24 14C30 3 39 9 33 14Z" fill="#ffc94a"/></g></symbol>
+  <symbol id="i-pause" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><circle cx="24" cy="24" r="18" fill="#3b8fd1"/><rect x="16.5" y="15" width="5.5" height="18" rx="1.5" fill="#fff6e6"/><rect x="26" y="15" width="5.5" height="18" rx="1.5" fill="#fff6e6"/></g></symbol>
+  <symbol id="i-store" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M5 22 24 7 43 22" fill="#d9483b"/><rect x="10" y="21" width="28" height="21" fill="#fff6e6"/><rect x="20" y="29" width="8" height="13" fill="#8a5a35"/><rect x="13" y="25" width="5" height="5" fill="#9fd3f5"/><rect x="30" y="25" width="5" height="5" fill="#9fd3f5"/></g></symbol>
+  <symbol id="i-coin" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M10 33v5c0 3 6 5 14 5s14-2 14-5v-5" fill="#e0a92e"/><ellipse cx="24" cy="33" rx="14" ry="5" fill="#ffd36b"/><path d="M10 23v5c0 3 6 5 14 5s14-2 14-5v-5" fill="#e0a92e"/><ellipse cx="24" cy="23" rx="14" ry="5" fill="#ffd36b"/><path d="M10 13v5c0 3 6 5 14 5s14-2 14-5v-5" fill="#e0a92e"/><ellipse cx="24" cy="13" rx="14" ry="5" fill="#ffe08a"/><path d="M20 13h8" stroke-width="2.5"/></g></symbol>
+  <symbol id="i-star" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M24 4 30 17 44 18 33 27 37 42 24 33 11 42 15 27 4 18 18 17Z" fill="#ffc94a"/><path d="M19 20q2-4 5-5" stroke="#fff" stroke-opacity=".8" fill="none"/></g></symbol>
+  <symbol id="i-cal" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="7" y="10" width="34" height="32" rx="5" fill="#fff6e6"/><path d="M7 15a5 5 0 0 1 5-5h24a5 5 0 0 1 5 5v6H7Z" fill="#d9483b"/><path d="M16 6v8M32 6v8" /><path d="M14 28h4M22 28h4M30 28h4M14 35h4M22 35h4" stroke-width="3.5"/></g></symbol>
+  <symbol id="i-trophy" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M15 10H9q0 11 9 11M33 10h6q0 11-9 11" fill="none"/><path d="M14 6h20v9a10 10 0 0 1-20 0Z" fill="#ffc94a"/><rect x="21" y="25" width="6" height="7" fill="#e0a92e"/><rect x="14" y="32" width="20" height="9" rx="2" fill="#8a5a35"/><path d="M19 10q0 6 3 8" stroke="#fff" stroke-opacity=".8" fill="none"/></g></symbol>
+  <symbol id="i-album" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><rect x="9" y="6" width="31" height="37" rx="4" fill="#8e5bd0"/><path d="M15 6v37" /><rect x="19" y="13" width="15" height="13" rx="2" fill="#fff6e6"/><path d="M20 25l5-6 4 4 2-2 3 4" fill="none" stroke-width="2.5"/><path d="M19 33h15" stroke="#ffd36b"/></g></symbol>
+  <symbol id="i-person" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M8 43q0-14 16-14t16 14Z" fill="#3aa64c"/><circle cx="24" cy="18" r="9" fill="#f2c79a"/><path d="M15 16q1-9 9-9t9 9q-5-3-9-2t-9 2" fill="#5a3420"/><path d="M38 6c-3-3-7 1-3 4l3 3 3-3c4-3 0-7-3-4" fill="#e85d75" stroke-width="2.5"/></g></symbol>
+  <symbol id="i-medal" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M14 4h8l4 14h-8ZM34 4h-8l-4 14h8Z" fill="#3b8fd1"/><circle cx="24" cy="30" r="13" fill="#ffc94a"/><path d="M24 22l2.5 5 5.5.5-4 3.8 1 5.5-5-2.8-5 2.8 1-5.5-4-3.8 5.5-.5Z" fill="#fff6e6" stroke-width="2"/></g></symbol>
+  <symbol id="i-chart" viewBox="0 0 48 48"><g stroke="#3a2214" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M6 42H42" /><rect x="9" y="25" width="8" height="17" rx="1.5" fill="#3b8fd1"/><rect x="20" y="15" width="8" height="27" rx="1.5" fill="#3aa64c"/><rect x="31" y="8" width="8" height="34" rx="1.5" fill="#e8672c"/></g></symbol>
+</svg>
 <header class="hud">
   <h1 class="brand" id="shopTitle">🍵 Çay Ocağı</h1>
-  <div class="res money"><span class="ri">💰</span><b id="money"></b><small id="moneyRate"></small></div>
-  <div class="res rep"><span class="ri">⭐</span><b id="rep"></b><span class="rbar"><i id="repBar"></i></span></div>
-  <div class="res clock"><span class="ri">📅</span><b id="day"></b></div>
+  <div class="res money"><span class="ri"><svg class="ic"><use href="#i-coin"/></svg></span><b id="money"></b><small id="moneyRate"></small></div>
+  <div class="res rep"><span class="ri"><svg class="ic"><use href="#i-star"/></svg></span><b id="rep"></b><span class="rbar"><i id="repBar"></i></span></div>
+  <div class="res clock"><span class="ri"><svg class="ic"><use href="#i-cal"/></svg></span><b id="day"></b></div>
   <div class="daybar"><div id="clockfill"></div></div>
 </header>
 
@@ -568,10 +600,10 @@ h3{color:var(--muted)}
         <div id="events"></div>
         <!-- Sahnenin köşelerinde yüzen düğmeler -->
         <div class="fabs">
-          <button class="fab" id="settingsBtn" aria-label="Ayarlar">⚙️</button>
-          <button class="fab" id="pauseBtn" aria-label="Duraklat" hidden>⏸️</button>
-          <button class="fab" id="dailyBtn" aria-label="Günlük ödül">🎁<i class="dot" hidden></i></button>
-          <button class="fab" id="shopsBtn" aria-label="Dükkânlarım" hidden>🏪</button>
+          <button class="fab" id="settingsBtn" aria-label="Ayarlar"><svg class="ic"><use href="#i-gear"/></svg></button>
+          <button class="fab" id="pauseBtn" aria-label="Duraklat" hidden><svg class="ic"><use href="#i-pause"/></svg></button>
+          <button class="fab" id="dailyBtn" aria-label="Günlük ödül"><svg class="ic"><use href="#i-gift"/></svg><i class="dot" hidden></i></button>
+          <button class="fab" id="shopsBtn" aria-label="Dükkânlarım" hidden><svg class="ic"><use href="#i-store"/></svg></button>
         </div>
         <button class="lgbadge" id="lgBadge" hidden></button>
         <div class="overlay" id="closedOverlay">
@@ -599,11 +631,11 @@ h3{color:var(--muted)}
   </div>
   <div class="right">
     <nav id="tabs">
-      <button class="tab" data-tab="magaza">🛒<span>Mağaza</span><i class="badge"></i></button>
-      <button class="tab" data-tab="menu">📋<span>Menü</span><i class="badge"></i></button>
-      <button class="tab hub" data-tab="mutfak"><b class="hubc">🫖</b><span>Dükkân</span></button>
-      <button class="tab" data-tab="sube" hidden>🏙️<span>Şubeler</span><i class="badge"></i></button>
-      <button class="tab" data-tab="esya">🎒<span>Eşyalarım</span></button>
+      <button class="tab" data-tab="magaza"><svg class="ic"><use href="#i-shop"/></svg><span>Mağaza</span><i class="badge"></i></button>
+      <button class="tab" data-tab="menu"><svg class="ic"><use href="#i-menu"/></svg><span>Menü</span><i class="badge"></i></button>
+      <button class="tab hub" data-tab="mutfak"><b class="hubc"><svg class="ic"><use href="#i-tea"/></svg></b><span>Dükkân</span></button>
+      <button class="tab" data-tab="sube" hidden><svg class="ic"><use href="#i-city"/></svg><span>Şubeler</span><i class="badge"></i></button>
+      <button class="tab" data-tab="esya"><svg class="ic"><use href="#i-bag"/></svg><span>Eşyalarım</span></button>
     </nav>
     <section class="panel" id="p-sube">
       <h2>🏙️ Şubeler</h2>
@@ -638,6 +670,7 @@ const $ = s => document.querySelector(s);
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const fmt = n => Math.floor(n).toLocaleString('tr-TR');
+const ic = id => `<svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg>`;   // vektör ikon (UI-5)
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 // ---------- Oyun verileri ----------
@@ -3023,7 +3056,7 @@ function renderUI(){
   $('#day').title = WD().name;
   $('#clockfill').style.width = frac * 100 + '%';
   $('#shopsBtn').hidden = status === 'running' || S.branches.length < 2;
-  $('#shopsBtn').textContent = city().emoji;
+  $('#shopsBtn').title = 'Dükkânlarım · ' + city().name;
   const where = S.cur ? ` · ${city().name}` : '';
   $('#shopTitle').textContent = '🍵 ' + owner().shopName + where;
   $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name} şubesi · ` : '') + shopLevel().name + ' kapalı. Hazır olunca aç!' + (offerPending() ? ' 📞 Bir röportaj isteği var!' : '') + (S.critic === S.day ? ' 🧐 Bugün eleştirmen geliyor!' : '');
@@ -3049,7 +3082,7 @@ function renderUI(){
   lb.hidden = !lgs;
   if (lgs){
     const rk = lgs.findIndex(x => x.id === 'me') + 1;
-    setHTML('#lgBadge', `<span class="lgc">🏆</span><b>${rk}.</b><small>LİG</small>`);
+    setHTML('#lgBadge', `<span class="lgc">${ic('trophy')}</span><b>${rk}.</b><small>LİG</small>`);
     lb.classList.toggle('lead', rk === 1);
   }
   document.body.classList.toggle('running', status === 'running');
@@ -3174,12 +3207,12 @@ function renderMenu(menu){
 // Eşyalarım: sahip olunan her şey
 // Eşyalarım alt sekmeleri: profil, albüm, müdavimler, ödüller
 let invTab = 'profil', albumSet = null;
-const INV_TABS = [['profil', '📊', 'Profil'], ['album', '🏺', 'Albüm'], ['mudavim', '💛', 'Müdavimler'], ['odul', '🏅', 'Ödüller']];
+const INV_TABS = [['profil', 'chart', 'Profil'], ['album', 'album', 'Albüm'], ['mudavim', 'person', 'Müdavimler'], ['odul', 'medal', 'Ödüller']];
 const invCard = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
 const invDots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
 const pbar = (n, of, txt) => `<span class="pb"><i style="width:${Math.round(Math.min(1, n / Math.max(1, of)) * 100)}%"></i><em>${txt || `${n}/${of}`}</em></span>`;
 function renderInventory(){
-  let v = `<div class="seg">${INV_TABS.map(([id, em, t]) => `<button class="${invTab === id ? 'on' : ''}" data-inv="${id}">${em}<span>${t}</span></button>`).join('')}</div>`;
+  let v = `<div class="seg">${INV_TABS.map(([id, em, t]) => `<button class="${invTab === id ? 'on' : ''}" data-inv="${id}">${ic(em)}<span>${t}</span></button>`).join('')}</div>`;
   v += invTab === 'album' ? albumHTML() : invTab === 'mudavim' ? regularsHTML() : invTab === 'odul' ? trophiesHTML() : profileHTML();
   setHTML('#inventory', v);
   drawPortraits();
@@ -3459,7 +3492,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.21.0';
+const APP_VERSION = '2.22.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
