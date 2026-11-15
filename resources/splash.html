@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Açılış ekranı kaynağı (2732×2732). Telefon kenarları kırpar: önemli her şey ortadaki ~1200 pikselde. -->
+<html><head><meta charset="utf-8"><style>
+@font-face{font-family:Fredoka;font-weight:300 700;src:url(../fonts/fredoka-latin.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F}
+@font-face{font-family:Fredoka;font-weight:300 700;src:url(../fonts/fredoka-latin-ext.woff2) format('woff2');
+  unicode-range:U+0100-0130,U+0132-0151,U+0154-02BA}
+html,body{margin:0;width:2732px;height:2732px;overflow:hidden;background:#fbecd3}
+.wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  background:radial-gradient(circle at 50% 45%,#fff6e6 0,#fbecd3 38%,#f4d3a5 100%)}
+h1{margin:0;font:700 150px/1 Fredoka,system-ui,sans-serif;color:#3a2214;letter-spacing:2px}
+h1 span{color:#e8672c}
+</style></head><body><div class="wrap">
+<svg width="760" height="760" viewBox="200 40 624 860" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8562a"/><stop offset="1" stop-color="#9c2a16"/></linearGradient>
+    <path id="glass" d="M364,250 L660,250 C652,330 610,420 600,520 C592,600 640,660 628,730 C620,770 590,790 512,790 C434,790 404,770 396,730 C384,660 432,600 424,520 C414,420 372,330 364,250 Z"/>
+    <clipPath id="clip"><use href="#glass"/></clipPath>
+  </defs>
+  <g fill="none" stroke-linecap="round">
+    <path d="M440,205 C410,170 470,140 440,95 M512,200 C482,160 542,130 512,70 M584,205 C554,170 614,140 584,95" stroke="#3a2214" stroke-width="44"/>
+    <path d="M440,205 C410,170 470,140 440,95 M512,200 C482,160 542,130 512,70 M584,205 C554,170 614,140 584,95" stroke="#fff6e6" stroke-width="22"/>
+  </g>
+  <ellipse cx="512" cy="800" rx="290" ry="66" fill="#d9423a" stroke="#3a2214" stroke-width="20"/>
+  <ellipse cx="512" cy="796" rx="180" ry="34" fill="#b8322a"/>
+  <use href="#glass" fill="#fff6e6" fill-opacity=".55"/>
+  <g clip-path="url(#clip)"><rect x="300" y="300" width="420" height="520" fill="url(#tea)"/></g>
+  <rect x="425" y="320" width="28" height="380" rx="14" fill="#ffffff" fill-opacity=".38"/>
+  <use href="#glass" fill="none" stroke="#3a2214" stroke-width="44" stroke-linejoin="round"/>
+  <use href="#glass" fill="none" stroke="#fff6e6" stroke-width="18" stroke-linejoin="round"/>
+</svg>
+<h1>Çay Ocağı <span>Tycoon</span></h1>
+</div></body></html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<!-- App Store simgesi kaynağı (1024×1024, köşesiz, şeffaflıksız). PNG'ye çevirmek için resources/README.md'ye bakın. -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;width:1024px;height:1024px;overflow:hidden}</style></head><body>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="#ffd890"/><stop offset=".6" stop-color="#f2a65a"/><stop offset="1" stop-color="#d9702e"/></radialGradient>
+    <linearGradient id="tea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8562a"/><stop offset="1" stop-color="#9c2a16"/></linearGradient>
+    <path id="glass" d="M364,250 L660,250 C652,330 610,420 600,520 C592,600 640,660 628,730 C620,770 590,790 512,790 C434,790 404,770 396,730 C384,660 432,600 424,520 C414,420 372,330 364,250 Z"/>
+    <clipPath id="clip"><use href="#glass"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- buhar -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M440,205 C410,170 470,140 440,95 M512,200 C482,160 542,130 512,70 M584,205 C554,170 614,140 584,95" stroke="#3a2214" stroke-width="44"/>
+    <path d="M440,205 C410,170 470,140 440,95 M512,200 C482,160 542,130 512,70 M584,205 C554,170 614,140 584,95" stroke="#fff6e6" stroke-width="22"/>
+  </g>
+  <!-- tabak -->
+  <ellipse cx="512" cy="800" rx="290" ry="66" fill="#d9423a" stroke="#3a2214" stroke-width="20"/>
+  <ellipse cx="512" cy="796" rx="180" ry="34" fill="#b8322a"/>
+  <!-- bardak -->
+  <use href="#glass" fill="#fff6e6" fill-opacity=".55"/>
+  <g clip-path="url(#clip)"><rect x="300" y="300" width="420" height="520" fill="url(#tea)"/></g>
+  <rect x="425" y="320" width="28" height="380" rx="14" fill="#ffffff" fill-opacity=".38"/>
+  <use href="#glass" fill="none" stroke="#3a2214" stroke-width="44" stroke-linejoin="round"/>
+  <use href="#glass" fill="none" stroke="#fff6e6" stroke-width="18" stroke-linejoin="round"/>
+</svg>
+</body></html>
