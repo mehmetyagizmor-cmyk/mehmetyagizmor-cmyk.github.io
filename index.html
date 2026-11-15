@@ -234,6 +234,28 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .wmap .can circle:not(.hit){fill:var(--good);animation:pinA 1.2s infinite}
 .wmap .lock circle:not(.hit){fill:#7d6a5a}
 .wmap .lock text{fill:#a8957f}
+/* K-1: Usta kartları */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;margin-top:10px}
+.cards.one{grid-template-columns:minmax(0,170px);justify-content:center}
+.ucard{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 4px 8px;text-align:center;background:var(--cream);border:3px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);cursor:pointer}
+.ucard.r{background:linear-gradient(#d4e8ff,#f3f9ff)}
+.ucard.e{background:linear-gradient(#ffd770,#fff6d6)}
+.ucard .urar{position:absolute;top:-10px;left:50%;transform:translateX(-50%);padding:0 7px;font-size:10px;font-weight:700;color:#fff;background:#8a6a4a;border:2px solid var(--ink);border-radius:999px;white-space:nowrap}
+.ucard.r .urar{background:#2e6fa8}
+.ucard.e .urar{background:#d38a00}
+.uem{font-size:34px;line-height:1.15}
+.ucard b{font-size:12px;line-height:1.15}
+.ust{color:#f2a01e;font-size:11px;letter-spacing:1px}
+.ust i{font-style:normal;color:#3a221430}
+.ucard small{font-size:10.5px;color:var(--muted);line-height:1.2}
+.ucard.off{opacity:.5;filter:grayscale(1);cursor:default}
+.ucard.on{outline:3px solid var(--good);outline-offset:2px}
+.utag{position:absolute;top:6px;right:4px;padding:0 5px;font-size:9px;font-weight:700;color:#fff;background:var(--bad);border-radius:6px}
+.cards.pack{margin-bottom:14px}
+.cards.pack .ucard{animation:cardIn .5s both}
+@keyframes cardIn{from{transform:rotateY(90deg) scale(.6);opacity:0}to{transform:none;opacity:1}}
+.packrow{display:flex;gap:8px;margin:6px 0 4px}
+.packrow>*{flex:1;margin:0}
 /* H-1: kişili harita balonları */
 .mapw{position:relative}
 .mapw .wmap{margin:8px 0 2px}
@@ -714,6 +736,7 @@ h3{color:var(--muted)}
     <section class="panel" id="p-ekip">
       <h2>👥 Ekip</h2>
       <div id="ekipTree"></div>
+      <div id="cardList"></div>
     </section>
     <section class="panel" id="p-sube">
       <h2>🏘️ Mahalle</h2>
@@ -1287,7 +1310,7 @@ const recLv = id => (S.rec || {})[id] || 0;
 const basePrice = id => Math.round(P[id].price * (P[id].ev ? 1 + 0.6 * mainLv() : 1 + 0.25 * recLv(id)) * legacyMult());
 const recipeCost = id => Math.round(P[id].price * 15 * Math.pow(1.9, recLv(id)));
 const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1) * ((CM().priceMult || {})[id] || 1)
-  * (((EV() || {}).priceMult || {})[id] || 1) * (conceptOf().items && inConcept(id) ? 1.3 : 1) * hoodPrice());
+  * (((EV() || {}).priceMult || {})[id] || 1) * (conceptOf().items && inConcept(id) ? 1.3 : 1) * hoodPrice() * (1 + cardBonus('price')));
 // Mutfaktaki ürünler: menü + (varsa) etkinlik ürünü en sonda
 const kitchenMenu = () => [...PRODUCTS.filter(p => sellable().includes(p.id)), ...(evProduct() ? [evProduct()] : [])];
 const shopLocked = p => p.city ? !hasCity(p.city) : p.tool ? !lv(p.tool) : (p.shop || 0) > lv('dukkan');
@@ -1559,7 +1582,7 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
-  return base * hoodSpawn() * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameTier())
+  return base * hoodSpawn() * (1 - cardBonus('spawn')) * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameTier())
     * (WD().spawn || 1) * Q().spawn * (ivBuff('esprili') ? 0.75 : 1) * (effect('fans') ? 0.5 : 1) * (1 + 0.04 * (R.stains || []).length)
     * (S.day <= 2 ? 0.7 : 1)    // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
     * ((EV() || {}).spawn || 1)
@@ -1579,7 +1602,7 @@ const PAT = {base:15, item:5, dekor:2, rep:5, ramp:0.018, floor:0.62, from:3};
 function patienceFor(count){
   const ramp = Math.max(PAT.floor, 1 - PAT.ramp * Math.max(0, S.day - PAT.from));
   return (ivBuff('samimi') ? 1.2 : 1) * (PAT.base + count * PAT.item + lv('dekor') * PAT.dekor + S.rep / 100 * PAT.rep) * ramp * (DE().patience || 1) * (CM().patience || 1)
-    * (1 + colBonus('pat')) * hoodPat();
+    * (1 + colBonus('pat')) * hoodPat() * (1 + cardBonus('pat'));
 }
 
 // special: 'vip' | 'influencer' | 'turist' | undefined
@@ -1673,7 +1696,7 @@ function pay(c){
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameTier();
   if (autograph) tip += Math.round(base * 0.3);
-  const mat = Math.round(base * Q().cost * hoodMat());   // malzeme gideri
+  const mat = Math.round(base * Q().cost * hoodMat() * (1 - cardBonus('mat')));   // malzeme gideri
   S.money += base + tip - mat; S.total += base + tip - mat; R.stats.mat += mat;
   addFame(0.25 + (c.special === 'influencer' ? 5 : 0) + (autograph ? 0.5 : 0));
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
@@ -2298,6 +2321,7 @@ function endDay(){
     ${awLine}
     ${ctLine}
     ${S.critic ? '<p class="banner">🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.</p>' : ''}
+    ${S.day % 3 === 0 ? '<p class="banner">📦 Bedava usta paketi kazandın! Ekip ekranında aç.</p>' : ''}
     ${buyNow ? `<p class="hint">🛒 Şimdi alabilirsin: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
     ${goal ? `<p class="hint">🎯 Sıradaki hedef: <b>${goal.t}</b> · ₺${fmt(S.money)} / ₺${fmt(goal.c)}</p>` : ''}
     ${askRate ? `<div class="banner" id="rateRow">❤️ Çay Ocağı'nı sevdin mi? Bir yorumun oyunu büyütmemize çok yardım eder!
@@ -2309,6 +2333,7 @@ function endDay(){
   // 4 kalpli müdavimler seni herkese anlatır: kişi başı her gün +1 ünlülük
   const family = REGULARS.filter(r => regLv(r.id) >= REG_HEARTS.length - 1).length;
   addFame(stars + (perfect ? 5 : 0) + 2 * trCount() + 5 * worldCount() + family);
+  if (S.day % 3 === 0) S.packs = (S.packs || 0) + 1;   // K-1: bedava usta paketi
   S.day++;
   // Yarın için röportaj isteği (3. günden sonra, %40 ihtimal)
   S.offer = null;
@@ -3152,7 +3177,7 @@ function renderUI(){
   setHTML('#pFame', `${F.emoji} ${F.name} · 🌟 ${fmt(S.fame)}${FN ? ' / ' + fmt(FN.need) : ''}<span class="fbar"><i style="width:${Math.round(fp * 100)}%"></i></span>`);
 
   document.querySelector('.tab[data-tab=magaza]').classList.toggle('has', !!(canGrow() || canUpgrade() || canAntique() || canUnlock()));
-  document.querySelector('.tab[data-tab=ekip]').classList.toggle('has', (S.staff || []).some(p => upCls(p)));
+  document.querySelector('.tab[data-tab=ekip]').classList.toggle('has', (S.staff || []).some(p => upCls(p)) || S.packs > 0);
   const subeTab = document.querySelector('.tab[data-tab=sube]');
   subeTab.hidden = false;   // Dükkânlarım ağacı baştan açık (şube açmak yine dükkân seviyesi ister)
   subeTab.classList.toggle('has', affordBranch() || troubled() || canHood());
@@ -3214,7 +3239,7 @@ function renderUI(){
     if (shopTab === 'menu') renderMenu(menu); else renderShop();
   }
   else if (side === 'esya') renderInventory();
-  else if (side === 'ekip'){ setHTML('#ekipTree', staffTreeHTML()); drawStaffPortraits(); }
+  else if (side === 'ekip'){ setHTML('#ekipTree', staffTreeHTML()); setHTML('#cardList', cardsHTML()); drawStaffPortraits(); }
   else if (side === 'sube'){
     setHTML('#subeSeg', `<div class="seg">${[['mahalle', 'store', 'Mahalle'], ['sube', 'city', 'Şubeler']].map(([id, icn, t]) => `<button class="${hoodTab === id ? 'on' : ''}" data-htab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
     $('#hood3dWrap').hidden = hoodTab !== 'mahalle' || hood3dFail;
@@ -3488,7 +3513,7 @@ const headOf = b => crewOf(b.city, 'head')[0];
 const headTip = () => { const h = headOf(branch()); return 1 + 0.05 * ((h ? h.lv : 1) - 1); };
 function teamMult(b){
   const h = headOf(b), crew = (S.staff || []).filter(p => p.city === b.city && p.role !== 'head');
-  return 1 + 0.06 * ((h ? h.lv : 1) - 1) + 0.02 * crew.reduce((a, p) => a + p.lv - 1, 0);
+  return (1 + 0.06 * ((h ? h.lv : 1) - 1) + 0.02 * crew.reduce((a, p) => a + p.lv - 1, 0)) * (1 + cardBonus('branch'));
 }
 function staffCost(p){
   if (p.role === 'head'){
@@ -3524,12 +3549,12 @@ function staffIncome(p){
 const ustaLv = () => Math.max(1, ...S.staff.filter(p => p.role === 'head').map(p => p.lv)) + 1 + fameLv();
 // Sağ kol: oyuncunun seçtiği müdavim; her kalbi bahşişe %1 ekler
 const sagKol = () => REGULARS.find(r => r.id === S.sagkol && (S.regs[r.id] || {}).met);
-const sagTip = () => { const r = sagKol(); return 1 + 0.01 * (r ? regLv(r.id) : 0); };
+const sagTip = () => 1 + cardBonus('tip');   // K-1: sağ kol yuvasında usta kartı
 function sagHTML(){
-  const met = REGULARS.filter(r => (S.regs[r.id] || {}).met), cur = sagKol();
-  return '<h2>🤝 Sağ kol</h2><p class="hint">Tanıştığın bir müdavimi sağ kolun yap: her kalbi bahşişlere +%1 ekler.</p>'
-    + (met.length ? met.map(r => `<button class="ans" data-sag="${r.id}">${r.emoji} <b>${r.name}</b> · ${hearts(regLv(r.id))} · +%${regLv(r.id)} bahşiş${cur === r ? ' ✓' : ''}</button>`).join('')
-      : '<p>Henüz bir müdavimle tanışmadın. Ana dükkânı aç, mahalleli uğrasın.</p>')
+  const own = CARDS.filter(c => cardN(c.id)), cur = sagCard();
+  return '<h2>🤝 Sağ kol</h2><p class="hint">Bir usta kartını sağ kolun yap: bonusu bütün dükkânlarında geçerli.</p>'
+    + (own.length ? own.map(c => `<button class="ans" data-sagcard="${c.id}">${c.emoji} <b>${c.name}</b> · ${'★'.repeat(cardLv(c.id))} · ${cardFxTxt(c, cardLv(c.id))}${cur === c ? ' ✓' : ''}</button>`).join('')
+      : '<p>Henüz usta kartın yok. Ekip ekranında paket aç.</p>')
     + '<button class="big" id="modalOk">Kapat</button>';
 }
 const bestFriend = () => REGULARS.filter(r => (S.regs[r.id] || {}).met).sort((a, b) => regLv(b.id) - regLv(a.id))[0];
@@ -3537,7 +3562,7 @@ const tnode = (sid, cls, lv, name, sub, inc) => `<div class="tn ${cls}" data-sid
   <b>${esc(name)}</b><small>${sub}</small>${inc != null ? `<i>₺${fmt(inc)}/gün</i>` : ''}</div>`;
 function staffTreeHTML(){
   ensureStaff();
-  const total = S.branches.reduce((a, b) => a + shopIncome(b), 0), fr = sagKol();
+  const total = S.branches.reduce((a, b) => a + shopIncome(b), 0), sc = sagCard();
   const crew = b => S.staff.filter(p => p.city === b.city && p.role !== 'head').sort((x, y) => (x.role > y.role) - (x.role < y.role) || y.lv - x.lv);
   const heads = S.branches.map(b => {
     const h = S.staff.find(p => p.city === b.city && p.role === 'head'), c = crew(b);
@@ -3546,18 +3571,18 @@ function staffTreeHTML(){
   }).join('');
   return `<p class="hint">Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.</p>
     <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, 'Usta · sen', total)}
-      ${tnode('sag', 'sag', 0, fr ? fr.name : 'Seç', fr ? `Sağ kol · +%${regLv(fr.id)} bahşiş` : 'Sağ kol · boş', null)}</div><ul>${heads}</ul></li></ul></div></div>`;
+      ${tnode('sag', 'sag', sc ? cardLv(sc.id) : 0, sc ? sc.name : 'Kart tak', sc ? `Sağ kol · ${cardFxTxt(sc, cardLv(sc.id))}` : 'Sağ kol · boş', null)}</div><ul>${heads}</ul></li></ul></div></div>`;
 }
 // Ağaçtaki portreler: oyunun karakter çizimiyle, bir kez çizilir
 function drawStaffPortraits(){
   document.querySelectorAll('canvas.sport:not([data-d])').forEach(c => {
-    const sid = c.dataset.sid, p = S.staff.find(x => x.id === sid), fr = sagKol();
-    const look = sid === 'usta' ? owner() : sid === 'sag' ? fr && fr.look : p && p.look;
+    const sid = c.dataset.sid, p = S.staff.find(x => x.id === sid), sc = sagCard();
+    const look = sid === 'usta' ? owner() : sid === 'sag' ? null : p && p.look;
     if (!c.clientWidth) return;
     const ctx = c.getContext('2d');
     fitCanvas(c, ctx, 64, 64);
     if (look) drawPerson(ctx, {x:32, y:104, look, mood:'happy', scale:1.25, apron:sid === 'usta' || (p && p.role !== 'garson')});
-    else { ctx.font = '30px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('❔', 32, 34); }
+    else { ctx.font = '30px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(sid === 'sag' && sc ? sc.emoji : '❔', 32, 34); }
     c.dataset.d = 1;
   });
   const w = document.querySelector('.treewrap');
@@ -3584,6 +3609,86 @@ function showStaff(sid){
       : `<p class="hint">Şu an: ${staffEffect(p)} → sonraki: <b>${staffEffect({...p, lv:p.lv + 1})}</b></p>
       <button class="big" id="staffUp" ${S.money < staffCost(p) ? 'disabled' : ''}>⬆️ Seviye ${p.lv + 1} · ₺${fmt(staffCost(p))}</button>
       <div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
+}
+
+// ---------- Usta kartları (K-1) ----------
+// Toplanabilir hayalî ustalar: paketten çıkar, aynısı tekrar gelince seviye atlar, biri Sağ kol yuvasına takılır
+const CARDS = [
+  {id:'demci',   emoji:'🫖', name:'Demci Hüsnü',       rar:'c', fx:{tip:3}},
+  {id:'simitci', emoji:'🥯', name:'Simitçi Nuri',      rar:'c', fx:{price:2}},
+  {id:'hamal',   emoji:'💪', name:'Hamal Rıza',        rar:'c', fx:{branch:4}},
+  {id:'tavlaci', emoji:'🎲', name:'Tavlacı Cemil',     rar:'c', fx:{pat:4}},
+  {id:'postaci', emoji:'✉️', name:'Postacı Ayten',     rar:'c', fx:{spawn:3}},
+  {id:'pazarci', emoji:'🧺', name:'Pazarcı Gülsüm',    rar:'c', fx:{mat:3}},
+  {id:'rizeli',  emoji:'🌿', name:'Rizeli Fadime',     rar:'r', fx:{price:4}},
+  {id:'kahveci', emoji:'☕', name:'Kahveci Zeki',      rar:'r', fx:{tip:6}},
+  {id:'muhtar',  emoji:'🎖️', name:'Muhtar Şevket',    rar:'r', fx:{pat:7}},
+  {id:'reis',    emoji:'🏪', name:'Esnaf Reisi Kadir', rar:'r', fx:{branch:8}},
+  {id:'nine',    emoji:'👵', name:'Bilge Nine',        rar:'e', fx:{tip:5, price:4}},
+  {id:'semaver', emoji:'🔥', name:'Semaverci Hayri',   rar:'e', fx:{branch:10, spawn:4}},
+];
+const RAR = {c:{name:'Sıradan', p:0.7}, r:{name:'Nadir', p:0.25}, e:{name:'Efsane', p:0.05}};
+const FX_TXT = {tip:'bahşiş +%', price:'fiyat +%', branch:'şube geliri +%', pat:'sabır +%', spawn:'müşteri +%', mat:'malzeme -%'};
+const CARD_LV = [1, 2, 4, 7, 11];   // her seviye için gereken toplam kopya
+const CARD_MAX = CARD_LV.length;
+const cardN = id => (S.cards || {})[id] || 0;
+const cardLv = id => CARD_LV.filter(n => cardN(id) >= n).length;
+const sagCard = () => CARDS.find(c => c.id === S.sagCard && cardN(c.id));
+const cardFxTxt = (c, l) => Object.entries(c.fx).map(([k, v]) => FX_TXT[k] + v * l).join(', ');
+// Takılı kartın bonusu (oran): bütün dükkânlarda geçerli
+function cardBonus(k){ const c = sagCard(); return c && c.fx[k] ? c.fx[k] * cardLv(c.id) / 100 : 0; }
+const packCost = () => Math.round(400 * Math.pow(2, mainLv()) / 10) * 10;
+function rollCard(){
+  const r = Math.random(), rar = r < RAR.e.p ? 'e' : r < RAR.e.p + RAR.r.p ? 'r' : 'c';
+  return pick(CARDS.filter(c => c.rar === rar));
+}
+function openPack(buy){
+  if (modalOpen()) return;
+  if (buy){
+    const c = packCost();
+    if (S.money < c){ toast('Yeterli paran yok'); SFX.error(); return; }
+    S.money -= c;
+  } else {
+    if (!(S.packs > 0)) return;
+    S.packs--;
+  }
+  S.cards = S.cards || {};
+  const got = [rollCard(), rollCard(), rollCard()].map(c => {
+    const before = cardLv(c.id);
+    S.cards[c.id] = cardN(c.id) + 1;
+    return {c, tag:!before ? 'YENİ' : cardLv(c.id) > before ? 'SEVİYE!' : ''};
+  });
+  if (!sagCard()) S.sagCard = [...got].sort((a, b) => 'erc'.indexOf(a.c.rar) - 'erc'.indexOf(b.c.rar))[0].c.id;   // boş yuvaya en iyisi
+  save(); SFX.build();
+  showModal(`<h2>📦 Usta paketi</h2><div class="cards pack">${got.map((g, i) => cardHTML(g.c, `style="animation-delay:${i * 0.25}s"`, g.tag)).join('')}</div>
+    <p class="hint">Aynı usta tekrar çıkınca kartı seviye atlar. Sağ kol yuvasına bir kart tak, bonusu bütün dükkânlarında geçerli olsun.</p>
+    <button class="big" id="modalOk">Harika!</button>`, true);
+  renderUI();
+}
+function cardHTML(c, attr = '', tag = ''){
+  const own = cardN(c.id) > 0, l = cardLv(c.id);
+  return `<div class="ucard ${c.rar}${own ? '' : ' off'}${own && S.sagCard === c.id ? ' on' : ''}" data-card="${c.id}" ${attr}>
+    ${tag ? `<span class="utag">${tag}</span>` : ''}<span class="urar">${RAR[c.rar].name}</span><span class="uem">${own ? c.emoji : '❔'}</span>
+    <b>${own ? c.name : '???'}</b><span class="ust">${'★'.repeat(l)}<i>${'★'.repeat(CARD_MAX - l)}</i></span>
+    <small>${own ? cardFxTxt(c, l) : 'Paketten çıkabilir'}</small></div>`;
+}
+function cardsHTML(){
+  if (S.packs == null) S.packs = 1;   // tanışma hediyesi: herkese bir bedava paket
+  const own = CARDS.filter(c => cardN(c.id)).length, c = packCost();
+  return `<h3>🃏 Usta Kartları (${own}/${CARDS.length})</h3>
+    <p class="hint">Her 3 günde bir bedava paket gelir. Sağ kola takılan kartın bonusu bütün dükkânlarında geçerli.</p>
+    <div class="packrow"><button class="big" data-pack="free" ${S.packs > 0 ? '' : 'disabled'}>📦 Paket aç${S.packs > 0 ? ` (${S.packs})` : ''}</button>
+      <button class="btn2" data-pack="buy" ${S.money < c ? 'disabled' : ''}>🛒 Paket al ₺${fmt(c)}</button></div>
+    <div class="cards">${CARDS.map(x => cardHTML(x)).join('')}</div>`;
+}
+function showCard(id){
+  const c = CARDS.find(x => x.id === id);
+  if (!c || !cardN(id) || modalOpen()) return;
+  const l = cardLv(id);
+  showModal(`<div class="cards one">${cardHTML(c)}</div>
+    <p class="hint">${l >= CARD_MAX ? '🏅 En üst seviyede!' : `Kopya: ${cardN(id)}/${CARD_LV[l]} · sonraki seviye: <b>${cardFxTxt(c, l + 1)}</b>`}</p>
+    ${S.sagCard === id ? '<p class="banner">🤝 Şu an sağ kolun</p><button class="big" id="modalOk">Tamam</button>'
+      : `<button class="big" data-sagcard="${id}">🤝 Sağ kola tak</button><div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
 }
 
 // ---------- Kişili harita (H-1) ----------
@@ -3821,7 +3926,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.28.0';
+const APP_VERSION = '2.29.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4148,6 +4253,7 @@ $('#modal').addEventListener('click', e => {
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
   if (id === 'staffUp'){ upgradeStaff(staffSel); return; }
+  if (btn && btn.dataset.sagcard){ S.sagCard = btn.dataset.sagcard; save(); hideModal(); renderUI(); toast(`🤝 ${sagCard().name} artık sağ kolun!`); SFX.buy(); return; }
   if (btn && btn.dataset.sag){ S.sagkol = btn.dataset.sag; save(); hideModal(); renderUI(); toast(`🤝 ${REGULARS.find(r => r.id === S.sagkol).name} artık sağ kolun!`); SFX.buy(); return; }
   if (id === 'codeOut'){ showCodeOut(); return; }
   if (id === 'codeIn'){ showCodeIn(); return; }
@@ -4470,7 +4576,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab],[data-hood],[data-htab]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab],[data-hood],[data-htab],[data-card],[data-pack]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -4497,6 +4603,8 @@ document.addEventListener('click', e => {
   else if (d.stab){ shopTab = d.stab; SFX.serve(); }
   else if (d.htab){ hoodTab = d.htab; SFX.serve(); }
   else if (d.hood) buyHood(d.hood);
+  else if (d.pack) openPack(d.pack === 'buy');
+  else if (d.card) showCard(d.card);
   else if (d.aset){ albumSet = albumSet === d.aset ? null : d.aset; SFX.serve(); }
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
