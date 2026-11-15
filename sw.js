@@ -1,6 +1,6 @@
 // Çay Ocağı Tycoon — çevrimdışı çalışma
 // Yeni sürüm yayınlarken VERSION'ı artır: eski önbellek silinir, oyuncular güncel sürümü alır.
-const VERSION = 'v64';
+const VERSION = 'v65';
 const CACHE = 'cayocagi-' + VERSION;
 const FILES = [
   './',
