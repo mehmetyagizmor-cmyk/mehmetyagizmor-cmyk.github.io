@@ -3963,7 +3963,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.30.0';
+const APP_VERSION = '2.30.1';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4066,7 +4066,7 @@ function startSaveGuard(){
     return;
   }
   if (frameRisk && S.owner){ homeCode ? showFrameWarn() : saveCode().then(c => { homeCode = c; showFrameWarn(); }); return; }
-  if (isIOS && !inFrame && !standalone() && S.owner && S.day >= 3 && (S.iosHint || 0) + 3 <= S.day){
+  if (isIOS && !inFrame && !standalone() && !isApp() && S.owner && S.day >= 3 && (S.iosHint || 0) + 3 <= S.day){
     S.iosHint = S.day; save();
     announce({emoji:'📲', name:'Kaydın kaybolmasın', desc:'Safari, 7 gün girilmeyen sitenin kaydını silebilir. Paylaş → Ana Ekrana Ekle'});
   }
@@ -4075,7 +4075,7 @@ function startSaveGuard(){
 }
 
 function installRow(){
-  if (standalone() || inFrame) return '';
+  if (standalone() || inFrame || isApp()) return '';   // App Store uygulaması zaten yüklü
   if (installEvt) return '<div class="set-row"><span>📲 Ana ekrana ekle</span><button class="btn2" id="installBtn">Yükle</button></div>';
   if (isIOS) return '<div class="set-row"><span>📲 Ana ekrana eklemek için Safari\'de <b>Paylaş</b> → <b>Ana Ekrana Ekle</b></span></div>';
   return '';
@@ -4108,7 +4108,8 @@ function showSettings(){
     <div class="set-row"><span>💾 Kaydını yedekle ya da taşı</span><button class="btn2" id="codeOut">Kayıt kodu</button></div>
     <div class="set-row"><span>📥 Kayıt kodu ile yükle</span><button class="btn2" id="codeIn">Yükle</button></div>
     <div class="set-row"><span>🗑️ İlerlemeyi sil</span><button class="btn2 danger" id="resetAsk">Sıfırla</button></div>
-    <p class="hint" style="margin:12px 0">Kayıtların bu cihazda otomatik tutulur. Tarayıcı verisi silinirse kaybolur: ara sıra kayıt kodunu bir yere not al. · <a href="privacy.html" style="color:var(--muted)">Gizlilik</a> · Sürüm ${APP_VERSION}</p>
+    <p class="hint" style="margin:12px 0">${isApp() ? 'Kayıtların bu telefonda otomatik tutulur. Telefon değiştirirsen kayıt kodunu kullan.'
+      : 'Kayıtların bu cihazda otomatik tutulur. Tarayıcı verisi silinirse kaybolur: ara sıra kayıt kodunu bir yere not al.'} · <a href="privacy.html" style="color:var(--muted)">Gizlilik</a> · Sürüm ${APP_VERSION}</p>
     <button class="big" id="modalOk">${status === 'running' ? '▶️ Oyuna dön' : 'Kapat'}</button>`);
 }
 function showResetConfirm(){
