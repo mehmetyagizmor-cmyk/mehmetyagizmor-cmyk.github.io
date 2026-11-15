@@ -531,6 +531,22 @@ h3{color:var(--muted)}
 @media(max-width:999px){body.tab-ekip:not(.running) .scene-sec{display:none}}
 .tab.hub .badge{top:-30px;left:calc(50% + 20px);z-index:2}
 
+/* M-1: Mahalle binaları */
+.hood{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.hb{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;text-align:center;background:var(--cream);border:3px solid var(--ink);border-radius:16px;box-shadow:0 4px 0 var(--ink)}
+.hb .he{font-size:42px;line-height:1.1}
+.hb .rib{margin-top:-6px;padding:2px 10px;font-size:13px;font-weight:700;background:#ffd36b;border:2px solid var(--ink);border-radius:6px}
+.hb .hstars{color:#f2a01e;letter-spacing:1px;font-size:14px}
+.hb .hstars i{font-style:normal;color:#3a221430}
+.hb small{font-size:11.5px;color:var(--muted);line-height:1.25;min-height:2.5em}
+.hb button{width:100%;padding:8px 6px;border:3px solid var(--ink);border-radius:12px;box-shadow:0 3px 0 var(--ink);background:var(--good);color:#fff;font:inherit;font-weight:700;text-shadow:0 1px 0 var(--ink);cursor:pointer}
+.hb button:disabled{background:#e8dcc9;color:#9a8270;text-shadow:none;box-shadow:0 2px 0 #3a221455;border-color:#3a221466;cursor:not-allowed}
+.hb button:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.hb.built{background:#e3f4dc}
+.hb.locked .he{filter:grayscale(1);opacity:.45}
+.lockb{padding:5px 10px;font-size:11.5px;font-weight:700;color:#fff;background:var(--ink);border-radius:999px}
+.lockb.max{background:var(--good)}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -673,7 +689,7 @@ h3{color:var(--muted)}
       <button class="tab" data-tab="mutfak"><svg class="ic"><use href="#i-tea"/></svg><span>Mutfak</span></button>
       <button class="tab" data-tab="magaza"><svg class="ic"><use href="#i-shop"/></svg><span>Mağaza</span><i class="badge"></i></button>
       <button class="tab hub" data-tab="ekip"><b class="hubc"><svg class="ic"><use href="#i-person"/></svg></b><span>Ekip</span><i class="badge"></i></button>
-      <button class="tab" data-tab="sube" hidden><svg class="ic"><use href="#i-city"/></svg><span>Şubeler</span><i class="badge"></i></button>
+      <button class="tab" data-tab="sube" hidden><svg class="ic"><use href="#i-city"/></svg><span>Mahalle</span><i class="badge"></i></button>
       <button class="tab" data-tab="esya"><svg class="ic"><use href="#i-bag"/></svg><span>Eşyalarım</span></button>
     </nav>
     <section class="panel" id="p-ekip">
@@ -681,7 +697,9 @@ h3{color:var(--muted)}
       <div id="ekipTree"></div>
     </section>
     <section class="panel" id="p-sube">
-      <h2>🏙️ Şubeler</h2>
+      <h2>🏘️ Mahalle</h2>
+      <div id="subeSeg"></div>
+      <div id="hoodView"></div>
       <div id="branchList"></div>
     </section>
     <section class="panel" id="p-magaza">
@@ -1249,7 +1267,7 @@ const recLv = id => (S.rec || {})[id] || 0;
 const basePrice = id => Math.round(P[id].price * (P[id].ev ? 1 + 0.6 * mainLv() : 1 + 0.25 * recLv(id)) * legacyMult());
 const recipeCost = id => Math.round(P[id].price * 15 * Math.pow(1.9, recLv(id)));
 const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1) * ((CM().priceMult || {})[id] || 1)
-  * (((EV() || {}).priceMult || {})[id] || 1) * (conceptOf().items && inConcept(id) ? 1.3 : 1));
+  * (((EV() || {}).priceMult || {})[id] || 1) * (conceptOf().items && inConcept(id) ? 1.3 : 1) * hoodPrice());
 // Mutfaktaki ürünler: menü + (varsa) etkinlik ürünü en sonda
 const kitchenMenu = () => [...PRODUCTS.filter(p => sellable().includes(p.id)), ...(evProduct() ? [evProduct()] : [])];
 const shopLocked = p => p.city ? !hasCity(p.city) : p.tool ? !lv(p.tool) : (p.shop || 0) > lv('dukkan');
@@ -1521,7 +1539,7 @@ const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
-  return base * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameTier())
+  return base * hoodSpawn() * (DE().spawn || 1) * (CM().spawn || 1) * (1 - 0.08 * lv('dukkan')) * (1 - 0.05 * fameTier())
     * (WD().spawn || 1) * Q().spawn * (ivBuff('esprili') ? 0.75 : 1) * (effect('fans') ? 0.5 : 1) * (1 + 0.04 * (R.stains || []).length)
     * (S.day <= 2 ? 0.7 : 1)    // ilk iki gün daha hareketli: yeni oyuncu boş beklemesin
     * ((EV() || {}).spawn || 1)
@@ -1541,7 +1559,7 @@ const PAT = {base:15, item:5, dekor:2, rep:5, ramp:0.018, floor:0.62, from:3};
 function patienceFor(count){
   const ramp = Math.max(PAT.floor, 1 - PAT.ramp * Math.max(0, S.day - PAT.from));
   return (ivBuff('samimi') ? 1.2 : 1) * (PAT.base + count * PAT.item + lv('dekor') * PAT.dekor + S.rep / 100 * PAT.rep) * ramp * (DE().patience || 1) * (CM().patience || 1)
-    * (1 + colBonus('pat'));
+    * (1 + colBonus('pat')) * hoodPat();
 }
 
 // special: 'vip' | 'influencer' | 'turist' | undefined
@@ -1628,14 +1646,14 @@ function pay(c){
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip() * sagTip()
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip() * sagTip() * hoodTip()
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
     * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip;
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameTier();
   if (autograph) tip += Math.round(base * 0.3);
-  const mat = Math.round(base * Q().cost);   // malzeme gideri
+  const mat = Math.round(base * Q().cost * hoodMat());   // malzeme gideri
   S.money += base + tip - mat; S.total += base + tip - mat; R.stats.mat += mat;
   addFame(0.25 + (c.special === 'influencer' ? 5 : 0) + (autograph ? 0.5 : 0));
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
@@ -2194,6 +2212,7 @@ function endDay(){
   S.money += passive; S.total += passive;
   const fameInc = (fameLv() >= 2 ? 25 * S.day : 0) + (fameLv() >= 3 ? 5 * R.stats.served : 0) + (fameLv() >= 6 ? 500 * S.branches.length : 0);   // reklam + çay markası + müze
   S.money += fameInc; S.total += fameInc;
+  const intr = bankInterest(); S.money += intr; S.total += intr;   // Mahalle bankası
   const risk = riskDay(R.interview);
   let night = null;
   if (S.day >= 5 && Math.random() < 0.06){
@@ -2249,6 +2268,7 @@ function endDay(){
       ${st.loss ? `<tr><td>🔥 Yangın zararı</td><td style="color:var(--bad)">-₺${fmt(st.loss)}</td></tr>` : ''}
       <tr><td><b>Net kâr</b></td><td style="color:${net < 0 ? 'var(--bad)' : 'var(--good)'}">${net < 0 ? '-' : ''}₺${fmt(Math.abs(net))}</td></tr>
       ${fameInc ? `<tr><td>🌟 Reklam${fameLv() >= 6 ? ', marka ve müze' : ' ve çay markası'}</td><td style="color:var(--good)">+₺${fmt(fameInc)}</td></tr>` : ''}
+      ${intr ? `<tr><td>🏦 Banka faizi</td><td style="color:var(--good)">+₺${fmt(intr)}</td></tr>` : ''}
       ${passive ? `<tr><td>🏙️ Diğer şubeler (müdürler)</td><td style="color:var(--good)">+₺${fmt(passive)}</td></tr>` : ''}
     </table>
     ${risk.lost.map(l => `<p class="banner bad">💥 ${l.nm} şubesi battı! Kalan eşyalar satıldı: +₺${fmt(l.refund)}</p>`).join('')}
@@ -3035,7 +3055,7 @@ function setHTML(sel, html){ const el = $(sel); if (el._html !== html){ el.inner
 
 // Sekmeler: telefonda biri görünür; bilgisayarda mutfak hep solda, sağda diğerleri
 const desktopMQ = matchMedia('(min-width:1000px)');
-let tab = 'mutfak', shopTab = 'esya';   // shopTab: Mağaza içindeki Eşyalar / Menü
+let tab = 'mutfak', shopTab = 'esya', hoodTab = 'mahalle';   // shopTab: Mağaza içindeki Eşyalar / Menü
 function setTab(t){ tab = t; applyTab(); renderUI(); }
 const sidePanel = () => desktopMQ.matches && tab === 'mutfak' ? 'magaza' : tab;
 // Dikey telefonda sayfa yerine main kayar: ikisini de başa sar
@@ -3115,7 +3135,7 @@ function renderUI(){
   document.querySelector('.tab[data-tab=ekip]').classList.toggle('has', (S.staff || []).some(p => upCls(p)));
   const subeTab = document.querySelector('.tab[data-tab=sube]');
   subeTab.hidden = false;   // Dükkânlarım ağacı baştan açık (şube açmak yine dükkân seviyesi ister)
-  subeTab.classList.toggle('has', affordBranch() || troubled());
+  subeTab.classList.toggle('has', affordBranch() || troubled() || canHood());
   if (subeTab.hidden && tab === 'sube') setTab('mutfak');
 
   $('#pauseBtn').hidden = status !== 'running';
@@ -3175,7 +3195,11 @@ function renderUI(){
   }
   else if (side === 'esya') renderInventory();
   else if (side === 'ekip'){ setHTML('#ekipTree', staffTreeHTML()); drawStaffPortraits(); }
-  else if (side === 'sube') setHTML('#branchList', branchesHTML());
+  else if (side === 'sube'){
+    setHTML('#subeSeg', `<div class="seg">${[['mahalle', 'store', 'Mahalle'], ['sube', 'city', 'Şubeler']].map(([id, icn, t]) => `<button class="${hoodTab === id ? 'on' : ''}" data-htab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
+    $('#hoodView').hidden = hoodTab !== 'mahalle'; $('#branchList').hidden = hoodTab === 'mahalle';
+    if (hoodTab === 'mahalle') setHTML('#hoodView', hoodHTML()); else setHTML('#branchList', branchesHTML());
+  }
 }
 
 // Mağaza: dükkân büyütme + eşyalar + çalışanlar
@@ -3541,6 +3565,46 @@ function showStaff(sid){
       <div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
 }
 
+// ---------- Mahalle (M-1) ----------
+// Mahalle esnafına yatırım: binalar dükkân seviyesiyle açılır, satın alınır, 5 seviyeye kadar büyür; her seviye kalıcı bonus
+const HOODS = [
+  {id:'firin',  emoji:'🥖', name:'Fırın',  need:0, base:600,   fx:l => `malzeme gideri -%${3 * l}`},
+  {id:'manav',  emoji:'🍋', name:'Manav',  need:1, base:1500,  fx:l => `satış fiyatları +%${2 * l}`},
+  {id:'durak',  emoji:'🚌', name:'Durak',  need:1, base:2500,  fx:l => `müşteriler %${3 * l} daha sık gelir`},
+  {id:'berber', emoji:'💈', name:'Berber', need:2, base:5000,  fx:l => `müşteriler %${4 * l} daha sabırlı`},
+  {id:'banka',  emoji:'🏦', name:'Banka',  need:2, base:9000,  fx:l => `gece kasana %${String(0.4 * l).replace('.', ',')} faiz`},
+  {id:'sinema', emoji:'🎭', name:'Sinema', need:3, base:20000, fx:l => `hafta sonu bahşişi +%${8 * l}`},
+];
+const HOOD_MAX = 5;
+const hoodLv = id => (S.hood || {})[id] || 0;
+const hoodCost = h => Math.round(h.base * Math.pow(2.2, hoodLv(h.id)) / 10) * 10;
+const hoodOpen = h => mainLv() >= h.need;
+const canHood = () => HOODS.some(h => hoodOpen(h) && hoodLv(h.id) < HOOD_MAX && S.money >= hoodCost(h));
+const hoodMat = () => 1 - 0.03 * hoodLv('firin');
+const hoodPrice = () => 1 + 0.02 * hoodLv('manav');
+const hoodSpawn = () => 1 - 0.03 * hoodLv('durak');
+const hoodPat = () => 1 + 0.04 * hoodLv('berber');
+const hoodTip = () => WD().tip ? 1 + 0.08 * hoodLv('sinema') : 1;
+const bankInterest = () => Math.min(Math.round(S.money * 0.004 * hoodLv('banka')), 1500 * hoodLv('banka'));
+function buyHood(id){
+  const h = HOODS.find(x => x.id === id);
+  if (!h || !hoodOpen(h) || hoodLv(id) >= HOOD_MAX) return;
+  const c = hoodCost(h);
+  if (S.money < c){ toast('Yeterli paran yok'); SFX.error(); return; }
+  S.money -= c; S.hood = S.hood || {}; S.hood[id] = hoodLv(id) + 1;
+  toast(`${h.emoji} ${h.name} ${S.hood[id] === 1 ? 'açıldı' : 'seviye ' + S.hood[id]}: ${h.fx(S.hood[id])}`); SFX.build(); save();
+}
+function hoodHTML(){
+  return '<p class="hint">Mahalle esnafına yatırım yap: her bina kalıcı bonus verir, 5 seviyeye kadar büyür.</p><div class="hood">' + HOODS.map(h => {
+    const l = hoodLv(h.id), open = hoodOpen(h), c = hoodCost(h);
+    const btn = !open ? `<span class="lockb">🔒 Gereken: ${SHOP_LEVELS[h.need].name}</span>`
+      : l >= HOOD_MAX ? '<span class="lockb max">🏅 En üst seviye</span>'
+      : `<button data-hood="${h.id}" ${S.money < c ? 'disabled' : ''}>${l ? '⬆️ Büyüt' : '🔨 Kur'} ₺${fmt(c)}</button>`;
+    return `<div class="hb${open ? '' : ' locked'}${l ? ' built' : ''}"><span class="he">${l || !open ? h.emoji : '🚧'}</span><span class="rib">${h.name}</span>
+      <span class="hstars">${'★'.repeat(l)}<i>${'★'.repeat(HOOD_MAX - l)}</i></span><small>${l ? h.fx(l) : 'Kurunca: ' + h.fx(1)}</small>${btn}</div>`;
+  }).join('') + '</div>';
+}
+
 function branchesHTML(){
   const n = trCount(), w = worldCount(), wo = worldOpen();
   let h = wo
@@ -3677,7 +3741,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.25.0';
+const APP_VERSION = '2.26.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4326,7 +4390,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab],[data-hood],[data-htab]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -4351,6 +4415,8 @@ document.addEventListener('click', e => {
   else if (d.inv){ invTab = d.inv; SFX.serve(); }
   else if (d.sid) showStaff(d.sid);
   else if (d.stab){ shopTab = d.stab; SFX.serve(); }
+  else if (d.htab){ hoodTab = d.htab; SFX.serve(); }
+  else if (d.hood) buyHood(d.hood);
   else if (d.aset){ albumSet = albumSet === d.aset ? null : d.aset; SFX.serve(); }
   else if (d.pin){
     // Haritadaki iğne: o şehrin satırına kaydır ve parlat
