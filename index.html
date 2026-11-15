@@ -547,6 +547,11 @@ h3{color:var(--muted)}
 .lockb{padding:5px 10px;font-size:11.5px;font-weight:700;color:#fff;background:var(--ink);border-radius:999px}
 .lockb.max{background:var(--good)}
 
+/* M-2: 3D mahalle maketi */
+.hood3d{position:relative;height:250px;margin:0 0 12px;border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:0 4px 0 var(--ink);background:#bfe3f2}
+#hood3d{display:block;width:100%;height:100%;cursor:pointer;touch-action:manipulation}
+.hb.flash{animation:flashA 1.2s}
+
 /* Yatay telefon ve bilgisayar: orta düğme sıradan sekme gibi */
 @media not all and (max-width:999px) and (orientation:portrait){
   .tab.hub .hubc{font-size:inherit;font-weight:400}
@@ -699,6 +704,7 @@ h3{color:var(--muted)}
     <section class="panel" id="p-sube">
       <h2>🏘️ Mahalle</h2>
       <div id="subeSeg"></div>
+      <div class="hood3d" id="hood3dWrap" hidden><canvas id="hood3d"></canvas></div>
       <div id="hoodView"></div>
       <div id="branchList"></div>
     </section>
@@ -3197,8 +3203,9 @@ function renderUI(){
   else if (side === 'ekip'){ setHTML('#ekipTree', staffTreeHTML()); drawStaffPortraits(); }
   else if (side === 'sube'){
     setHTML('#subeSeg', `<div class="seg">${[['mahalle', 'store', 'Mahalle'], ['sube', 'city', 'Şubeler']].map(([id, icn, t]) => `<button class="${hoodTab === id ? 'on' : ''}" data-htab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
+    $('#hood3dWrap').hidden = hoodTab !== 'mahalle' || hood3dFail;
     $('#hoodView').hidden = hoodTab !== 'mahalle'; $('#branchList').hidden = hoodTab === 'mahalle';
-    if (hoodTab === 'mahalle') setHTML('#hoodView', hoodHTML()); else setHTML('#branchList', branchesHTML());
+    if (hoodTab === 'mahalle'){ setHTML('#hoodView', hoodHTML()); drawHood3D(); } else setHTML('#branchList', branchesHTML());
   }
 }
 
@@ -3600,10 +3607,33 @@ function hoodHTML(){
     const btn = !open ? `<span class="lockb">🔒 Gereken: ${SHOP_LEVELS[h.need].name}</span>`
       : l >= HOOD_MAX ? '<span class="lockb max">🏅 En üst seviye</span>'
       : `<button data-hood="${h.id}" ${S.money < c ? 'disabled' : ''}>${l ? '⬆️ Büyüt' : '🔨 Kur'} ₺${fmt(c)}</button>`;
-    return `<div class="hb${open ? '' : ' locked'}${l ? ' built' : ''}"><span class="he">${l || !open ? h.emoji : '🚧'}</span><span class="rib">${h.name}</span>
+    return `<div data-hid="${h.id}" class="hb${open ? '' : ' locked'}${l ? ' built' : ''}"><span class="he">${l || !open ? h.emoji : '🚧'}</span><span class="rib">${h.name}</span>
       <span class="hstars">${'★'.repeat(l)}<i>${'★'.repeat(HOOD_MAX - l)}</i></span><small>${l ? h.fx(l) : 'Kurunca: ' + h.fx(1)}</small>${btn}</div>`;
   }).join('') + '</div>';
 }
+
+// Mahalle 3D görünümü (M-2): Mahalle ekranı açıkken yüklenir; yüklenemezse yalnızca kartlar kalır
+let hood3d = null, hood3dLoading = false, hood3dFail = false;
+function drawHood3D(){
+  const wrap = $('#hood3dWrap');
+  if (!wrap || wrap.hidden) return;
+  if (!hood3d){
+    if (!hood3dLoading){
+      hood3dLoading = true;
+      import('./mahalle3d.js').then(m => { m.init($('#hood3d')); hood3d = m; drawHood3D(); })
+        .catch(err => { console.error(err); hood3dFail = true; wrap.hidden = true; });
+    }
+    return;
+  }
+  try { hood3d.update(HOODS.map(h => ({id:h.id, emoji:h.emoji, name:h.name, lv:hoodLv(h.id), open:hoodOpen(h)})), owner().shopName); }
+  catch (err){ console.error(err); hood3dFail = true; wrap.hidden = true; }
+}
+// Maketteki binaya dokununca kartına kayar ve kart parlar
+$('#hood3d').addEventListener('click', e => {
+  const id = hood3d && hood3d.pick(e.clientX, e.clientY), card = id && document.querySelector(`.hb[data-hid="${id}"]`);
+  if (!card) return;
+  card.scrollIntoView({behavior:'smooth', block:'center'}); card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash'); SFX.serve();
+});
 
 function branchesHTML(){
   const n = trCount(), w = worldCount(), wo = worldOpen();
@@ -3741,7 +3771,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.26.0';
+const APP_VERSION = '2.27.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
