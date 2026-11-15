@@ -234,6 +234,20 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .wmap .can circle:not(.hit){fill:var(--good);animation:pinA 1.2s infinite}
 .wmap .lock circle:not(.hit){fill:#7d6a5a}
 .wmap .lock text{fill:#a8957f}
+/* H-1: kişili harita balonları */
+.mapw{position:relative}
+.mapw .wmap{margin:8px 0 2px}
+.trmap .pin text{font-size:9px}
+.mb{position:absolute;transform:translate(-50%,-22px);display:flex;flex-direction:column;align-items:center;gap:1px;padding:0;background:none;border:0;font:inherit;cursor:pointer;z-index:1}
+.mb.here{z-index:2}
+.mbp{position:relative;width:40px;height:40px;border-radius:50%;background:#fff3d9;border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);overflow:visible}
+.mbp canvas{width:100%;height:100%;border-radius:50%;pointer-events:none;display:block}
+.mbp .tlv{position:absolute;right:-7px;top:-6px;min-width:17px;height:17px;padding:0 3px;font-size:10px;line-height:13px;font-weight:700;color:#fff;background:var(--tea);border:2px solid var(--ink);border-radius:999px}
+.mb.here .mbp{background:#ffd36b}
+.mb.bad .mbp{border-color:var(--bad);animation:pinA 1s infinite}
+.mba{position:absolute;left:-6px;top:-6px;width:17px;height:17px;border-radius:50%;background:var(--bad);color:#fff;font:700 12px/17px system-ui;font-style:normal;border:2px solid var(--ink)}
+.mbt{margin-top:2px;padding:0 6px;font-size:10.5px;font-weight:700;white-space:nowrap;color:var(--ink);background:#ffd36b;border:2px solid var(--ink);border-radius:6px}
+.mbi{font-size:9.5px;font-weight:700;white-space:nowrap;color:#d8f5c8;text-shadow:0 1px 0 #1a2a36,0 0 3px #1a2a36}
 @keyframes pinA{50%{opacity:.35}}
 
 /* Ünlülük & röportaj */
@@ -3205,7 +3219,7 @@ function renderUI(){
     setHTML('#subeSeg', `<div class="seg">${[['mahalle', 'store', 'Mahalle'], ['sube', 'city', 'Şubeler']].map(([id, icn, t]) => `<button class="${hoodTab === id ? 'on' : ''}" data-htab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
     $('#hood3dWrap').hidden = hoodTab !== 'mahalle' || hood3dFail;
     $('#hoodView').hidden = hoodTab !== 'mahalle'; $('#branchList').hidden = hoodTab === 'mahalle';
-    if (hoodTab === 'mahalle'){ setHTML('#hoodView', hoodHTML()); drawHood3D(); } else setHTML('#branchList', branchesHTML());
+    if (hoodTab === 'mahalle'){ setHTML('#hoodView', hoodHTML()); drawHood3D(); } else { setHTML('#branchList', branchesHTML()); drawStaffPortraits(); }
   }
 }
 
@@ -3426,7 +3440,7 @@ function worldMapSVG(){
     const st = own ? (b.crisis || b.issue ? 'own bad' : 'own') : canBranch('world') ? 'can' : 'lock';
     if (own) arcs += `<path class="arc" d="M${tx},${ty} Q${(tx + x) / 2},${Math.min(ty, y) - 22} ${x},${y}"/>`;
     pins += `<g class="pin ${st}" data-pin="${c.id}"><circle cx="${x}" cy="${y}" r="9" class="hit"/><circle cx="${x}" cy="${y}" r="${own ? 4.5 : 3.5}"/>
-      ${mapLabel(c.id, x, y, c.name)}</g>`;
+      ${own ? '' : mapLabel(c.id, x, y, c.name)}</g>`;   // sahip olunan şehrin adı balonda yazar
   });
   const trBad = S.branches.some(b => regionOf(b.city) === 'tr' && (b.issue || b.crisis));
   pins += `<g class="pin own home${trBad ? ' bad' : ''}" data-pin="tr"><circle cx="${tx}" cy="${ty}" r="9" class="hit"/><circle cx="${tx}" cy="${ty}" r="5"/>
@@ -3572,6 +3586,41 @@ function showStaff(sid){
       <div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
 }
 
+// ---------- Kişili harita (H-1) ----------
+// Her şube haritada ustabaşısının portresiyle görünür: seviye, günlük gelir, sorun varsa ünlem
+const TR_SHAPE = [[26,41.9],[28,41.6],[29.1,41.2],[31.5,41.2],[33.5,42],[35.2,42],[38,41],[40,41],[41.5,41.5],[43.5,41.1],[44.8,39.7],
+  [44.4,37.2],[42.4,37.1],[40,36.9],[38,36.8],[36.6,36.2],[36.2,35.8],[35.8,36.7],[34.6,36.8],[32.5,36.1],[30.6,36.6],[29.6,36.2],
+  [27.4,37],[26.3,38.3],[26.7,39.5],[26.1,40.1],[26.6,40.6]];
+const TR_CITY = {ana:[32.5, 37.9], istanbul:[28.9, 41.5], ankara:[32.85, 39.93], izmir:[27.3, 38], rize:[40.52, 41.02], antep:[37.38, 37.07]};
+const trXY = ([lon, lat]) => [(lon - 25.5) * 18, (42.6 - lat) * 23];
+function mapBubble(b, x, y, W, H){
+  const h = headOf(b), here = b === branch(), bad = riskActive() && (b.issue || b.crisis);
+  const c = CITY[b.city], name = b.city === 'ana' ? 'Ana Dükkân' : c.name;
+  return `<button class="mb${bad ? ' bad' : ''}${here ? ' here' : ''}" data-pin="${b.city}" style="left:${(x / W * 100).toFixed(2)}%;top:${(y / H * 100).toFixed(2)}%"
+    title="${esc(h ? h.name : '')} · ${name}"><span class="mbp"><canvas class="sport" data-sid="${h ? h.id : ''}"></canvas>${h ? `<span class="tlv">${h.lv}</span>` : ''}${bad ? '<i class="mba">!</i>' : ''}</span>
+    <span class="mbt">${here ? '📍 ' : ''}${name}</span><span class="mbi">₺${fmt(shopIncome(b))}/gün</span></button>`;
+}
+function trMapHTML(){
+  ensureStaff();
+  const W = 360, H = 190;
+  const land = `<path d="M${TR_SHAPE.map(p => trXY(p).map(v => v.toFixed(1)).join(',')).join('L')}Z"/>`;
+  let pins = '', bubbles = '';
+  CITIES.filter(c => regionOf(c.id) !== 'world' && TR_CITY[c.id]).forEach(c => {
+    const [x, y] = trXY(TR_CITY[c.id]), b = S.branches.find(b => b.city === c.id);
+    if (b) bubbles += mapBubble(b, x, y, W, H);
+    else pins += `<g class="pin ${canBranch('tr') ? 'can' : 'lock'}" data-pin="${c.id}"><circle cx="${x}" cy="${y}" r="10" class="hit"/><circle cx="${x}" cy="${y}" r="4"/>
+      <text x="${x}" y="${y + 13}">${c.name}</text></g>`;
+  });
+  return `<div class="mapw"><svg class="wmap trmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Türkiye şube haritası"><g class="land">${land}</g>${pins}</svg>${bubbles}</div>`;
+}
+function worldMapHTML(){
+  const bubbles = S.branches.filter(b => regionOf(b.city) === 'world').map(b => {
+    const [x, y] = mapXY(CITY[b.city].pin);
+    return mapBubble(b, x, y, 360, 136);
+  }).join('');
+  return `<div class="mapw">${worldMapSVG()}${bubbles}</div>`;
+}
+
 // ---------- Mahalle (M-1) ----------
 // Mahalle esnafına yatırım: binalar dükkân seviyesiyle açılır, satın alınır, 5 seviyeye kadar büyür; her seviye kalıcı bonus
 const HOODS = [
@@ -3644,7 +3693,8 @@ function branchesHTML(){
     : `<div class="net">🗺️ Türkiye şubeleri: <b>${n}/${TR_GOAL}</b>
       <small style="display:block;color:var(--muted)">${TR_GOAL} şube açınca yurt dışına açılabilirsin.</small>
       <div class="pbar"><div style="width:${n / TR_GOAL * 100}%"></div></div></div>`;
-  h += worldMapSVG();
+  h += trMapHTML();
+  h += worldMapHTML();
   h += '<h3>Şubelerim</h3>';
   S.branches.forEach((b, i) => {
     const c = CITY[b.city], here = i === S.cur, L = SHOP_LEVELS[b.lv.dukkan || 0];
@@ -3771,7 +3821,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.27.1';
+const APP_VERSION = '2.28.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
