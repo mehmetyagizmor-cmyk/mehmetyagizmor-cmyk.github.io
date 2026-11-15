@@ -96,7 +96,7 @@ const ray = new THREE.Raycaster(), groundPlane = new THREE.Plane(new THREE.Vecto
 
 export function init(canvas){
   renderer = new THREE.WebGLRenderer({canvas, antialias:(window.devicePixelRatio || 1) < 2, powerPreference:'high-performance'});
-  renderer.setClearColor('#f6e3c4');
+  renderer.setClearColor('#bfe3f2');   // en uzakta gökyüzü mavisi (çevre zemini ve binalar her yeri doldurur)
   // Sessizce siyah çizmek yerine hata versin: index.html yakalayıp 2D'ye döner ve sebebini gösterir
   renderer.debug.onShaderError = (gl, program) => { throw new Error('shader: ' + (gl.getProgramInfoLog(program) || 'derlenemedi').slice(0, 100)); };
   // Telefon kilitlenince bağlam kısa süre düşebilir: geri gelmesi beklenir, gelince oda yeniden kurulur
@@ -183,6 +183,16 @@ function buildRoom(){
   box(room, 10, 16, front - FLOOR, wallCol, -5, 0, (FLOOR + front) / 2);
   // Maket tabanı ve duvar üstü kalın kenarlar (çizgi film konturu gibi)
   box(room, RW + 20, 22, front - FLOOR + 14, '#6b4428', RW / 2, -22, (FLOOR + front) / 2 + 2);
+  // Çevre: ekranın hiçbir kenarı boş kalmasın; altta kaldırım, önde sokak, arkada komşu binalar
+  box(room, 9000, 4, 9000, '#d9c39c', RW / 2, -26, (FLOOR + front) / 2);
+  box(room, 9000, 2, 150, '#6b6f78', RW / 2, -22, front + 110);
+  for (let x = -4000; x <= 4000; x += 400) box(room, 120, 1, 8, '#f5f0e0', RW / 2 + x, -20, front + 110);
+  const HOUSE = ['#e8a15a', '#8fbfd9', '#e6dcc6', '#c97b6b', '#9fcf8a', '#f2c94c'];
+  for (let i = -8; i <= 8; i++){
+    const k = i + 8, x = RW / 2 + i * 150, hgt = 180 + (k * 53) % 140;
+    box(room, 140, hgt, 120, HOUSE[k % HOUSE.length], x, -22, FLOOR - 90);
+    box(room, 150, 10, 130, '#5a3a22', x, hgt - 22, FLOOR - 90);
+  }
   box(room, RW + 10, 8, 14, '#3a2214', RW / 2, TALL, FLOOR - 5);
   box(room, 14, 8, front - FLOOR, '#3a2214', RW + 5, TALL, (FLOOR + front) / 2);
   const a = aisleY(), doorA = a - 45, doorB = a + 45;
