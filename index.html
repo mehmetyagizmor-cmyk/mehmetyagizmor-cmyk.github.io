@@ -719,8 +719,8 @@ h3{color:var(--muted)}
       <p class="hint newbie" data-en="Tap a product → it brews on the stove → lands on the tray. Then tap the customer with the green bubble.">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
-        <div><h3>Ocak</h3><div class="slots" id="queue"></div></div>
-        <div><h3 id="trayTitle">Tepsi</h3><div class="slots tray" id="tray"></div></div>
+        <div><h3 data-en="Stove">Ocak</h3><div class="slots" id="queue"></div></div>
+        <div><h3 id="trayTitle" data-en="Tray">Tepsi</h3><div class="slots tray" id="tray"></div></div>
       </div>
       <p class="hint newbie" style="margin:8px 0 0" data-en="Tapping a product on the tray throws it away.">Tepsideki ürüne dokunursan çöpe atarsın.</p>
     </section>
@@ -981,22 +981,21 @@ const UPGRADES = [
   {id:'mudur',   grp:'ekip', emoji:'👔', name:'Müdür',         desc:'Kızmak üzere olan müşteriyi yatıştırır, kirayı %25 indirir', base:5000, mult:2.6, max:3},
 ];
 // Eşyalarım ekranında her geliştirmenin o anki etkisi
+const toolFx = l => l > 1 ? L(`%${(l - 1) * 25} hızlı`, `${(l - 1) * 25}% faster`) : L('Kuruldu', 'Installed');
 const UP_FX = {
-  masa:    () => `${numTables()} masa`,
-  tepsi:   () => `${trayCap()} ürün taşır`,
-  semaver: l => `%${l * 15} daha hızlı`,
-  dekor:   l => `+%${l * 10} bahşiş`,
-  tabela:  l => `${l}. seviye neon`,
-  cirak:   l => `${l} çırak`,
-  garson:  l => `${l} garson`,
-  cirakhiz:  l => `%${l * 20} hızlı çırak`,
-  garsonhiz: l => `%${l * 20} hızlı garson`,
-  temizlikci: l => `${l} temizlikçi`,
-  mudur:     l => `günde ${l} yatıştırma`,
-  guvenlik:  l => `gece %${Math.min(100, 35 * l)} koruma`,
-  tostmak: l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
-  firin:   l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
-  izgara:  l => l > 1 ? `%${(l - 1) * 25} hızlı` : 'Kuruldu',
+  masa:    () => L(`${numTables()} masa`, `${numTables()} tables`),
+  tepsi:   () => L(`${trayCap()} ürün taşır`, `holds ${trayCap()} items`),
+  semaver: l => L(`%${l * 15} daha hızlı`, `${l * 15}% faster`),
+  dekor:   l => L(`+%${l * 10} bahşiş`, `+${l * 10}% tips`),
+  tabela:  l => L(`${l}. seviye neon`, `level ${l} neon`),
+  cirak:   l => L(`${l} çırak`, `${l} apprentice${l > 1 ? 's' : ''}`),
+  garson:  l => L(`${l} garson`, `${l} waiter${l > 1 ? 's' : ''}`),
+  cirakhiz:  l => L(`%${l * 20} hızlı çırak`, `apprentices ${l * 20}% faster`),
+  garsonhiz: l => L(`%${l * 20} hızlı garson`, `waiters ${l * 20}% faster`),
+  temizlikci: l => L(`${l} temizlikçi`, `${l} cleaner${l > 1 ? 's' : ''}`),
+  mudur:     l => L(`günde ${l} yatıştırma`, `calms ${l} a day`),
+  guvenlik:  l => L(`gece %${Math.min(100, 35 * l)} koruma`, `${Math.min(100, 35 * l)}% night protection`),
+  tostmak: toolFx, firin: toolFx, izgara: toolFx,
 };
 
 const DAY_EVENTS = [
@@ -1239,6 +1238,40 @@ const QUALITY = {
   iyi: {name:'Birinci Kalite', emoji:'🌟', cost:0.40, spawn:0.85, tip:1.15, good:0.3,  bad:0.01, desc:'Daha çok müşteri ve bahşiş, bol iyi yorum'},
 };
 const Q = () => QUALITY[S.quality || 'orta'];
+// İngilizce adlar (EN-2): yalnızca görünen ad ve açıklama değişir; kayıtta hep kimlikler durur
+if (LANG === 'en'){
+  const put = (list, map) => list.forEach(o => map[o.id] && Object.assign(o, map[o.id]));
+  put(PRODUCTS, {cay:{name:'Tea'}, simit:{name:'Simit'}, pogaca:{name:'Pogaca Bun'}, limonata:{name:'Lemonade'}, kahve:{name:'Turkish Coffee'},
+    tost:{name:'Toastie'}, sahlep:{name:'Salep'}, menemen:{name:'Menemen'}, baklava:{name:'Baklava'}, sutlac:{name:'Rice Pudding'},
+    kasarli:{name:'Cheese Toastie'}, bazlama:{name:'Flatbread Toastie'}, lahmacun:{name:'Lahmacun'}, borek:{name:'Water Börek'},
+    sucuk:{name:'Sucuk Sandwich'}, kofte:{name:'Köfte Sandwich'}, sis:{name:'Chicken Shish'}, balik:{name:'Fish Sandwich'},
+    kurusu:{name:'Beypazarı Biscuit'}, boyoz:{name:'Boyoz'}, rizecay:{name:'Rize Tea'}, fistik:{name:'Pistachio Baklava'}, doner:{name:'Döner'},
+    scone:{name:'Scone'}, cheese:{name:'Cheesecake'}, mochi:{name:'Mochi'}, dubaicik:{name:'Dubai Chocolate'}});
+  put(EV_PRODUCTS, {pasta:{name:'Republic Day Cake'}, kestane:{name:'Roast Chestnuts'}, cilek:{name:'Strawberry Dessert'}, pide:{name:'Ramadan Pide'},
+    seker:{name:'Holiday Candy'}, lolipop:{name:'Lollipop'}, kavurma:{name:'Kavurma'}, dondurma:{name:'Maraş Ice Cream'}});
+  ['Neighbourhood Tea Stand', 'Coffeehouse', 'Retro Café', 'Famous Spot'].forEach((n, i) => SHOP_LEVELS[i] && (SHOP_LEVELS[i].name = n));
+  Object.assign(CONCEPTS.klasik, {name:'Classic Tea House', desc:'The whole menu is sold'});
+  Object.assign(CONCEPTS.kahve, {name:'Coffee Shop', desc:'Hot and cold drinks'});
+  Object.assign(CONCEPTS.tatli, {name:'Dessert Shop', desc:'Desserts and tea'});
+  Object.assign(CONCEPTS.kebap, {name:'Kebab House', desc:'Grill and oven dishes'});
+  Object.assign(CONCEPTS.kahvalti, {name:'Breakfast Place', desc:'Simit, börek, toasties and menemen'});
+  const tool = 'Cooks apart from the stove; later levels are 25% faster';
+  put(UPGRADES, {masa:{name:'New Table', desc:'Put one more table in the shop'}, tepsi:{name:'Big Tray', desc:'Tray holds +1 item'},
+    semaver:{name:'Fast Samovar', desc:'Prepares 15% faster'},
+    dekor:{name:'Decoration', desc:'Plants, paintings, rugs, lamps… Customers wait longer and tip more'},
+    tabela:{name:'Neon Sign', desc:'Your sign glows and customers come more often'},
+    tostmak:{name:'Toastie Maker', desc:'Unlocks Cheese and Flatbread Toasties. ' + tool},
+    firin:{name:'Stone Oven', desc:'Unlocks Lahmacun and Water Börek. ' + tool},
+    izgara:{name:'Charcoal Grill', desc:'Unlocks Sucuk Sandwich, Köfte Sandwich and Chicken Shish. ' + tool},
+    cirak:{name:'Apprentice', desc:'Makes missing orders by themselves'}, cirakhiz:{name:'Cook Training', desc:'Apprentices prepare 20% faster'},
+    garson:{name:'Waiter', desc:'Carries tray items to the tables'}, garsonhiz:{name:'Waiter Training', desc:'Waiters walk 20% faster'},
+    temizlikci:{name:'Cleaner', desc:'Cleans the dirt in front of the tables'},
+    guvenlik:{name:'Security Guard', desc:'Catches the arsonist and stops night thieves'},
+    mudur:{name:'Manager', desc:'Calms customers who are about to get angry and cuts rent by 25%'}});
+  Object.assign(QUALITY.kotu, {name:'Cheap Ingredients', desc:'High profit, but fewer customers and many bad reviews'});
+  Object.assign(QUALITY.orta, {name:'Standard Ingredients', desc:'Balanced'});
+  Object.assign(QUALITY.iyi, {name:'Premium Quality', desc:'More customers and tips, lots of good reviews'});
+}
 const REVIEWS = {
   good:['😍 Çok taze!', '👍 Harika lezzet!', '⭐ Buraya yine gelirim!', '😋 Ellerine sağlık!'],
   bad: ['🤢 Bayat bu!', '👎 Tadı berbat!', '😒 Bir daha gelmem.', '🤮 Malzeme kötü!'],
@@ -1421,7 +1454,9 @@ const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] |
 // Mutfaktaki ürünler: menü + (varsa) etkinlik ürünü en sonda
 const kitchenMenu = () => [...PRODUCTS.filter(p => sellable().includes(p.id)), ...(evProduct() ? [evProduct()] : [])];
 const shopLocked = p => p.city ? !hasCity(p.city) : p.tool ? !lv(p.tool) : (p.shop || 0) > lv('dukkan');
-const lockText = p => p.city ? `${CITY[p.city].name} şubesiyle` : p.tool ? `${UPGRADES.find(u => u.id === p.tool).name} alınca` : `${SHOP_LEVELS[p.shop].name} olunca`;
+const lockText = p => p.city ? L(`${CITY[p.city].name} şubesiyle`, `with the ${CITY[p.city].name} branch`)
+  : p.tool ? L(`${UPGRADES.find(u => u.id === p.tool).name} alınca`, `after buying the ${UPGRADES.find(u => u.id === p.tool).name}`)
+  : L(`${SHOP_LEVELS[p.shop].name} olunca`, `at ${SHOP_LEVELS[p.shop].name}`);
 
 // ---------- Şubeler ----------
 const branch = () => S.branches[S.cur];
@@ -3234,14 +3269,15 @@ function coach(){
   const none = {msg:'', want:[]};
   if (S.day > 2) return none;
   if (status !== 'running') return {msg:L('☀️ Hazırsan yukarıdaki "Dükkânı Aç" düğmesine dokun.', '☀️ When you are ready, tap "Open Shop" above.'), want:[]};
-  if (R.customers.some(canServe)) return {msg:'👆 Yeşil balonlu müşteriye dokun, siparişini servis et!', want:[]};
+  if (R.customers.some(canServe)) return {msg:L('👆 Yeşil balonlu müşteriye dokun, siparişini servis et!', '👆 Tap the customer with the green bubble to serve the order!'), want:[]};
   const n = needed(), want = Object.keys(n).filter(k => n[k] > 0);
   if (want.length){
-    if (!hasRoom()) return {msg:'🍽️ Tepsi dolu! İstenmeyen ürüne dokunup çöpe atabilirsin.', want:[]};
-    return {msg:`👇 Sipariş var: ${want.map(k => P[k].emoji + ' ' + P[k].name).join(', ')}. Yanıp sönen ürüne dokun!`, want};
+    if (!hasRoom()) return {msg:L('🍽️ Tepsi dolu! İstenmeyen ürüne dokunup çöpe atabilirsin.', '🍽️ The tray is full! Tap an unwanted item to throw it away.'), want:[]};
+    const wl = want.map(k => P[k].emoji + ' ' + P[k].name).join(', ');
+    return {msg:L(`👇 Sipariş var: ${wl}. Yanıp sönen ürüne dokun!`, `👇 New order: ${wl}. Tap the blinking product!`), want};
   }
-  if (inProgress()) return {msg:'⏳ Ocakta hazırlanıyor, birazdan tepsiye düşecek…', want:[]};
-  return {msg:'🚶 Müşteri bekleniyor… Geldiğinde balonunda siparişini göreceksin.', want:[]};
+  if (inProgress()) return {msg:L('⏳ Ocakta hazırlanıyor, birazdan tepsiye düşecek…', '⏳ Brewing on the stove, it will land on the tray soon…'), want:[]};
+  return {msg:L('🚶 Müşteri bekleniyor… Geldiğinde balonunda siparişini göreceksin.', '🚶 Waiting for customers… You will see their order in a bubble.'), want:[]};
 }
 
 let prodKey = '';
@@ -3255,28 +3291,28 @@ function renderUI(){
   let eb = '';
   if (cal.cur){
     const ev = cal.cur.ev, ep = evProg(), n = Math.min(ep.n, ev.goal);
-    eb = `<b>${ev.emoji} ${ev.name}</b> · ${cal.cur.left > 1 ? `${cal.cur.left} gün kaldı` : 'son gün!'}
-      <small>${ep.done ? `✅ Görev tamam: ${ev.col.emoji} ${ev.col.name} koleksiyonunda` : `🎯 ${ev.goal} müşteriye servis et → ${ev.col.emoji} ${ev.col.name} + para · ${n}/${ev.goal}`}</small>
+    eb = `<b>${ev.emoji} ${ev.name}</b> · ${cal.cur.left > 1 ? L(`${cal.cur.left} gün kaldı`, `${cal.cur.left} days left`) : L('son gün!', 'last day!')}
+      <small>${ep.done ? L(`✅ Görev tamam: ${ev.col.emoji} ${ev.col.name} koleksiyonunda`, `✅ Done: ${ev.col.emoji} ${ev.col.name} is in your collection`) : L(`🎯 ${ev.goal} müşteriye servis et → ${ev.col.emoji} ${ev.col.name} + para · ${n}/${ev.goal}`, `🎯 Serve ${ev.goal} customers → ${ev.col.emoji} ${ev.col.name} + cash · ${n}/${ev.goal}`)}</small>
       <i style="width:${ep.done ? 100 : n / ev.goal * 100}%"></i>`;
   } else if (cal.next && status !== 'running'){
-    eb = `📅 <b>${cal.next.ev.emoji} ${cal.next.ev.name}</b> ${cal.next.days} gün sonra!<small>Etkinlik ürünü, süslemeler ve koleksiyon ödülü geliyor.</small>`;
+    eb = `📅 <b>${cal.next.ev.emoji} ${cal.next.ev.name}</b> ${L(`${cal.next.days} gün sonra!`, `in ${cal.next.days} days!`)}<small>${L('Etkinlik ürünü, süslemeler ve koleksiyon ödülü geliyor.', 'A special product, decorations and a collection reward are coming.')}</small>`;
   }
   setHTML('#evBar', eb);
   $('#evBar').classList.toggle('soon', !cal.cur);
   $('#money').textContent = '₺' + fmt(S.money);
-  $('#moneyRate').textContent = status === 'running' ? `bugün +₺${fmt(R.stats.earned + R.stats.tips)}` : '';
+  $('#moneyRate').textContent = status === 'running' ? `${L('bugün', 'today')} +₺${fmt(R.stats.earned + R.stats.tips)}` : '';
   $('#rep').textContent = Math.round(S.rep) + '%';
   $('#repBar').style.width = Math.round(S.rep) + '%';
   const frac = Math.min(1, R.t / DAY_LEN);
   const mins = 8 * 60 + Math.floor(frac * 12 * 60);
-  $('#day').textContent = `Gün ${S.day} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
+  $('#day').textContent = `${L('Gün', 'Day')} ${S.day} · ` + String(Math.floor(mins / 60)).padStart(2, '0') + ':' + String(mins % 60).padStart(2, '0');
   $('#day').title = WD().name;
   $('#clockfill').style.width = frac * 100 + '%';
   $('#shopsBtn').hidden = status === 'running' || S.branches.length < 2;
-  $('#shopsBtn').title = 'Dükkânlarım · ' + city().name;
+  $('#shopsBtn').title = L('Dükkânlarım', 'My shops') + ' · ' + city().name;
   const where = S.cur ? ` · ${city().name}` : '';
   $('#shopTitle').textContent = '🍵 ' + owner().shopName + where;
-  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name}${L(' şubesi', ' branch')} · ` : '') + shopLevel().name + L(' kapalı. Hazır olunca aç!', ' is closed. Open when ready!') + (offerPending() ? L(' 📞 Bir röportaj isteği var!', ' 📞 An interview request is waiting!') : '') + (S.critic === S.day ? ' 🧐 Bugün eleştirmen geliyor!' : '');
+  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name}${L(' şubesi', ' branch')} · ` : '') + shopLevel().name + L(' kapalı. Hazır olunca aç!', ' is closed. Open when ready!') + (offerPending() ? L(' 📞 Bir röportaj isteği var!', ' 📞 An interview request is waiting!') : '') + (S.critic === S.day ? L(' 🧐 Bugün eleştirmen geliyor!', ' 🧐 A food critic is coming today!') : '');
   $('#closedOverlay').hidden = status === 'running';
   $('#openBtn').textContent = L(`☀️ Dükkânı Aç (Gün ${S.day})`, `☀️ Open Shop (Day ${S.day})`);
   $('#pName').textContent = owner().name;
@@ -3299,7 +3335,7 @@ function renderUI(){
   lb.hidden = !lgs;
   if (lgs){
     const rk = lgs.findIndex(x => x.id === 'me') + 1;
-    setHTML('#lgBadge', `<span class="lgc">${ic('trophy')}</span><b>${rk}.</b><small>LİG</small>`);
+    setHTML('#lgBadge', `<span class="lgc">${ic('trophy')}</span><b>${rk}.</b><small>${L('LİG', 'LEAGUE')}</small>`);
     lb.classList.toggle('lead', rk === 1);
   }
   document.body.classList.toggle('running', status === 'running');
@@ -3319,38 +3355,38 @@ function renderUI(){
     document.body.style.setProperty('--pextra', Math.max(0, $('#products').offsetHeight - 64) + 'px')); }
   setHTML('#products', menu.map((p, i) =>
     `<button class="prod${room ? '' : ' full'}${co.want.includes(p.id) ? ' pulse' : ''}" data-prod="${p.id}"><kbd>${(i + 1) % 10}</kbd><span class="em">${p.emoji}</span>
-     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span><span class="pt"> · ${prepTime(p.id).toFixed(1)} sn</span></small></button>`).join(''));
+     <b>${p.name}</b><small><span class="${itemPrice(p.id) > p.price ? 'up' : ''}">₺${itemPrice(p.id)}</span><span class="pt"> · ${prepTime(p.id).toFixed(1)} ${L('sn', 's')}</span></small></button>`).join(''));
 
   let ev = '';
   if (status === 'running'){
     if (R.dayEvent) ev += `<span class="ev">${R.dayEvent.emoji} <b>${R.dayEvent.name}</b></span>`;
-    R.effects.forEach(e => ev += `<span class="ev">${e.ev.emoji} <b>${e.ev.name}</b> <small>${Math.ceil(e.left)} sn</small></span>`);
+    R.effects.forEach(e => ev += `<span class="ev">${e.ev.emoji} <b>${e.ev.name}</b> <small>${Math.ceil(e.left)} ${L('sn', 's')}</small></span>`);
   }
-  if (status === 'running' && fameLv() >= 1 && !R.fansUsed && DAY_LEN - R.t > 20) ev += '<button class="ev fans" data-fans>📣 <b>Hayranlarını çağır</b></button>';
+  if (status === 'running' && fameLv() >= 1 && !R.fansUsed && DAY_LEN - R.t > 20) ev += `<button class="ev fans" data-fans>📣 <b>${L('Hayranlarını çağır', 'Call your fans')}</b></button>`;
   setHTML('#events', ev);
   document.body.classList.toggle('blackout', status === 'running' && effect('elektrik'));
 
   const chip = (p, prog, who) => `<span class="chip">${P[p].emoji}<span class="who">${who}</span><span class="prog" style="width:${Math.min(1, prog) * 100}%"></span></span>`;
   let q = R.queue.map(x => chip(x.p, x.prog / prepTime(x.p), P[x.p].tool ? UPGRADES.find(u => u.id === P[x.p].tool).emoji : ''));
   R.helpers.forEach(x => { if (x) q.push(chip(x.p, x.prog / prepTime(x.p), '🧒')); });
-  setHTML('#queue', q.join('') || '<small class="hint" style="margin:8px">Ocak boş</small>');
+  setHTML('#queue', q.join('') || `<small class="hint" style="margin:8px">${L('Ocak boş', 'Stove is empty')}</small>`);
 
-  $('#trayTitle').textContent = `Tepsi (${R.tray.length}/${trayCap()})`;
-  let t = R.tray.map((p, i) => `<span class="item" data-trash="${i}" title="Çöpe at">${P[p].emoji}</span>`).join('');
+  $('#trayTitle').textContent = `${L('Tepsi', 'Tray')} (${R.tray.length}/${trayCap()})`;
+  let t = R.tray.map((p, i) => `<span class="item" data-trash="${i}" title="${L('Çöpe at', 'Throw away')}">${P[p].emoji}</span>`).join('');
   for (let i = R.tray.length; i < trayCap(); i++) t += '<span class="slot"></span>';
   setHTML('#tray', t);
 
   // Yalnızca görünen panel üretilir: geri kalanı saniyede 10 kez boşuna hesaplanmasın
   const side = sidePanel();
   if (side === 'magaza'){
-    setHTML('#shopSeg', `<div class="seg">${[['esya', 'shop', 'Eşyalar'], ['menu', 'menu', 'Menü']].map(([id, icn, t]) => `<button class="${shopTab === id ? 'on' : ''}" data-stab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
+    setHTML('#shopSeg', `<div class="seg">${[['esya', 'shop', L('Eşyalar', 'Items')], ['menu', 'menu', L('Menü', 'Menu')]].map(([id, icn, t]) => `<button class="${shopTab === id ? 'on' : ''}" data-stab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
     $('#shop').hidden = shopTab === 'menu'; $('#menuList').hidden = shopTab !== 'menu';
     if (shopTab === 'menu') renderMenu(menu); else renderShop();
   }
   else if (side === 'esya') renderInventory();
   else if (side === 'ekip'){ setHTML('#ekipTree', staffTreeHTML()); setHTML('#cardList', cardsHTML()); drawStaffPortraits(); }
   else if (side === 'sube'){
-    setHTML('#subeSeg', `<div class="seg">${[['mahalle', 'store', 'Mahalle'], ['sube', 'city', 'Şubeler']].map(([id, icn, t]) => `<button class="${hoodTab === id ? 'on' : ''}" data-htab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
+    setHTML('#subeSeg', `<div class="seg">${[['mahalle', 'store', L('Mahalle', 'Town')], ['sube', 'city', L('Şubeler', 'Branches')]].map(([id, icn, t]) => `<button class="${hoodTab === id ? 'on' : ''}" data-htab="${id}">${ic(icn)}<span>${t}</span></button>`).join('')}</div>`);
     $('#hood3dWrap').hidden = hoodTab !== 'mahalle' || hood3dFail;
     $('#hoodView').hidden = hoodTab !== 'mahalle'; $('#branchList').hidden = hoodTab === 'mahalle';
     if (hoodTab === 'mahalle'){ setHTML('#hoodView', hoodHTML()); drawHood3D(); } else { setHTML('#branchList', branchesHTML()); drawStaffPortraits(); }
@@ -3359,35 +3395,35 @@ function renderUI(){
 
 // Mağaza: dükkân büyütme + eşyalar + çalışanlar
 function renderShop(){
-  let sev = '<h3>🚚 Sevkiyat</h3><p class="hint">Malzeme kalitesini seç. Her satışın bir payı malzemeye gider. Dükkân kapalıyken değiştirilir.</p>';
+  let sev = `<h3>${L('🚚 Sevkiyat', '🚚 Supplies')}</h3><p class="hint">${L('Malzeme kalitesini seç. Her satışın bir payı malzemeye gider. Dükkân kapalıyken değiştirilir.', 'Pick your ingredient quality. A share of every sale goes to ingredients. Change it while the shop is closed.')}</p>`;
   Object.entries(QUALITY).forEach(([id, q]) => {
     const on = (S.quality || 'orta') === id;
     sev += `<div class="shop-item"><div class="em">${q.emoji}</div>
-      <div class="info"><b>${q.name} <span class="lvl">%${Math.round(q.cost * 100)} malzeme payı</span></b><small>${q.desc}</small></div>
-      <button data-qual="${id}" ${on || status === 'running' ? 'disabled' : ''}>${on ? '✓ Seçili' : 'Seç'}</button></div>`;
+      <div class="info"><b>${q.name} <span class="lvl">${L(`%${Math.round(q.cost * 100)} malzeme payı`, `${Math.round(q.cost * 100)}% ingredient share`)}</span></b><small>${q.desc}</small></div>
+      <button data-qual="${id}" ${on || status === 'running' ? 'disabled' : ''}>${on ? L('✓ Seçili', '✓ Selected') : L('Seç', 'Select')}</button></div>`;
   });
   let s = '';
   const next = SHOP_LEVELS[lv('dukkan') + 1];
   if (next){
     const locked = S.day < next.day;
     s += `<div class="shop-item hl"><div class="em">🏪</div>
-      <div class="info"><b>Büyüt: ${next.name}</b><small>${locked ? `${next.day}. günden itibaren açılır` : `${next.tables} masaya kadar yer, yeni görünüm, daha çok müşteri`}</small></div>
-      <button data-grow ${locked || S.money < next.cost ? 'disabled' : ''}>${locked ? '🔒 Gün ' + next.day : '₺' + fmt(next.cost)}</button></div>`;
+      <div class="info"><b>${L('Büyüt', 'Upgrade')}: ${next.name}</b><small>${locked ? L(`${next.day}. günden itibaren açılır`, `Opens from day ${next.day}`) : L(`${next.tables} masaya kadar yer, yeni görünüm, daha çok müşteri`, `Room for up to ${next.tables} tables, a new look, more customers`)}</small></div>
+      <button data-grow ${locked || S.money < next.cost ? 'disabled' : ''}>${locked ? `🔒 ${L('Gün', 'Day')} ${next.day}` : '₺' + fmt(next.cost)}</button></div>`;
   } else {
-    s += `<div class="shop-item hl"><div class="em">🏆</div><div class="info"><b>${shopLevel().name}</b><small>Dükkânın en üst seviyede!</small></div></div>`;
+    s += `<div class="shop-item hl"><div class="em">🏆</div><div class="info"><b>${shopLevel().name}</b><small>${L('Dükkânın en üst seviyede!', 'Your shop is at the top level!')}</small></div></div>`;
     if (S.cur === 0){
-      const L = legacy(), ok = canLegacy();
-      s += `<div class="shop-item"><div class="em">🎖️</div><div class="info"><b>Usta Mirası</b><small>${ok ? `Dükkânı çırağına devret, baştan başla: +${legacyGain()} miras puanı (her puan kalıcı +%5 satış)`
-        : S.day < legacyDay() ? `${legacyDay()}. günden itibaren dükkânını çırağına devredip kalıcı bonusla baştan başlayabilirsin` : 'Biraz daha kazan: miras puanı toplam kazancınla büyür'}${L.pts ? ` · şu an +%${5 * L.pts}` : ''}</small></div>
-        <button data-legacy ${ok && status !== 'running' ? '' : 'disabled'}>${ok ? 'Devret' : '🔒 Gün ' + legacyDay()}</button></div>`;
+      const LG = legacy(), ok = canLegacy();
+      s += `<div class="shop-item"><div class="em">🎖️</div><div class="info"><b>${L('Usta Mirası', "Master's Legacy")}</b><small>${ok ? L(`Dükkânı çırağına devret, baştan başla: +${legacyGain()} miras puanı (her puan kalıcı +%5 satış)`, `Hand the shop to your apprentice and start over: +${legacyGain()} legacy points (each is a permanent +5% sales)`)
+        : S.day < legacyDay() ? L(`${legacyDay()}. günden itibaren dükkânını çırağına devredip kalıcı bonusla baştan başlayabilirsin`, `From day ${legacyDay()} you can hand the shop to your apprentice and start over with a permanent bonus`) : L('Biraz daha kazan: miras puanı toplam kazancınla büyür', 'Earn a bit more: legacy points grow with your total earnings')}${LG.pts ? L(` · şu an +%${5 * LG.pts}`, ` · now +${5 * LG.pts}%`) : ''}</small></div>
+        <button data-legacy ${ok && status !== 'running' ? '' : 'disabled'}>${ok ? L('Devret', 'Hand over') : `🔒 ${L('Gün', 'Day')} ${legacyDay()}`}</button></div>`;
     }
   }
-  [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
+  [['esya', L('Eşyalar', 'Items')], ['alet', L('Mutfak Aletleri', 'Kitchen Tools')], ['ekip', L('Çalışanlar', 'Staff')]].forEach(([grp, title]) => {
     s += `<h3>${title}</h3>`;
     UPGRADES.filter(u => u.grp === grp && !STAFF_UPS.includes(u.id)).forEach(u => {
       const l = lv(u.id), m = maxLv(u), isMax = l >= m, c = upCost(u);
       const need = u.need && !lv(u.need) && UPGRADES.find(x => x.id === u.need);
-      const desc = need ? `🔒 Önce ${need.name.toLowerCase()} tut` : u.id === 'masa' && isMax && next ? 'Daha fazla masa için dükkânı büyüt' : u.desc;
+      const desc = need ? L(`🔒 Önce ${need.name.toLowerCase()} tut`, `🔒 Hire a ${need.name.toLowerCase()} first`) : u.id === 'masa' && isMax && next ? L('Daha fazla masa için dükkânı büyüt', 'Upgrade the shop for more tables') : u.desc;
       s += `<div class="shop-item"><div class="em">${u.emoji}</div>
         <div class="info"><b>${u.name} <span class="lvl">${l}/${u.max || m}</span></b><small>${desc}</small></div>
         <button data-buy="${u.id}" ${need || isMax || S.money < c ? 'disabled' : ''}>${need ? '🔒' : isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
@@ -3395,38 +3431,38 @@ function renderShop(){
   });
   s += sev;
   // Antikacı: koleksiyon parçaları
-  s += '<h3>🏺 Antikacı</h3>';
-  if (S.day < ANTIQUE_DAY) s += `<p class="hint">🔒 ${ANTIQUE_DAY}. günden itibaren mahalleye bir antikacı uğrar.</p>`;
+  s += `<h3>${L('🏺 Antikacı', '🏺 Antique Dealer')}</h3>`;
+  if (S.day < ANTIQUE_DAY) s += `<p class="hint">🔒 ${L(`${ANTIQUE_DAY}. günden itibaren mahalleye bir antikacı uğrar.`, `From day ${ANTIQUE_DAY}, an antique dealer visits the neighbourhood.`)}</p>`;
   else {
     const stock = antiqueStock();
-    s += '<p class="hint">Vitrin her gün yenilenir. Koleksiyon parçaları kalıcı bonus verir; seti tamamla, büyük bonusu kap!</p>';
+    s += `<p class="hint">${L('Vitrin her gün yenilenir. Koleksiyon parçaları kalıcı bonus verir; seti tamamla, büyük bonusu kap!', 'The window changes every day. Collection pieces give permanent bonuses; complete a set for a big bonus!')}</p>`;
     s += stock.length ? stock.map(it => `<div class="shop-item"><div class="em">${it.emoji}</div>
       <div class="info"><b>${it.name}</b><small>${it.set.emoji} ${it.set.name} · +%${Math.round(it.set.per * 100)} ${it.set.what}</small></div>
       <button data-col="${it.id}" ${S.money < it.cost ? 'disabled' : ''}>₺${fmt(it.cost)}</button></div>`).join('')
-      : '<p class="hint">🎉 Antikacının sana satacağı bir şey kalmadı!</p>';
+      : `<p class="hint">${L('🎉 Antikacının sana satacağı bir şey kalmadı!', '🎉 The antique dealer has nothing left to sell you!')}</p>`;
   }
   setHTML('#shop', s);
 }
 
 // Menü: tarif geliştirme + açılabilecek ürünler
 function renderMenu(menu){
-  let m = '<h3>Tarifler</h3><p class="hint">Tarifi geliştirdikçe ürün daha lezzetli olur: her yıldız +%25 satış fiyatı.</p>';
+  let m = `<h3>${L('Tarifler', 'Recipes')}</h3><p class="hint">${L('Tarifi geliştirdikçe ürün daha lezzetli olur: her yıldız +%25 satış fiyatı.', 'Better recipes taste better: every star is +25% sale price.')}</p>`;
   menu.filter(p => !p.ev).forEach(p => {
     const l = recLv(p.id), isMax = l >= MAX_RECIPE, c = recipeCost(p.id);
     m += `<div class="shop-item"><div class="em">${p.emoji}</div>
-      <div class="info"><b>${p.name} <span class="lvl">${stars5(l)}</span></b><small>Satış ₺${basePrice(p.id)}${isMax ? ' · Usta tarifi!' : ` → ₺${Math.round(p.price * (1 + 0.25 * (l + 1)))}`}</small></div>
+      <div class="info"><b>${p.name} <span class="lvl">${stars5(l)}</span></b><small>${L('Satış', 'Sells for')} ₺${basePrice(p.id)}${isMax ? L(' · Usta tarifi!', " · Master's recipe!") : ` → ₺${Math.round(p.price * (1 + 0.25 * (l + 1)))}`}</small></div>
       <button data-recipe="${p.id}" ${isMax || S.money < c ? 'disabled' : ''}>${isMax ? 'MAX' : '₺' + fmt(c)}</button></div>`;
   });
   const locked = PRODUCTS.filter(p => !S.unlocked.includes(p.id));
   if (locked.length){
-    m += '<h3>Yeni Ürünler</h3>';
+    m += `<h3>${L('Yeni Ürünler', 'New Products')}</h3>`;
     locked.forEach(p => {
       const need = shopLocked(p) && lockText(p);
       m += `<div class="shop-item"><div class="em">${p.emoji}</div>
-        <div class="info"><b>${p.name}</b><small>${need ? `${need} açılır` : `Satış fiyatı ₺${p.price} · ${p.time} sn hazırlama`}</small></div>
+        <div class="info"><b>${p.name}</b><small>${need ? L(`${need} açılır`, `Unlocks ${need}`) : L(`Satış fiyatı ₺${p.price} · ${p.time} sn hazırlama`, `Sells for ₺${p.price} · ${p.time}s to make`)}</small></div>
         <button data-unlock="${p.id}" ${need || S.money < p.cost ? 'disabled' : ''}>${need ? '🔒' : '₺' + fmt(p.cost)}</button></div>`;
     });
-  } else m += '<p class="hint" style="margin-top:10px">🎉 Tüm ürünler menüde!</p>';
+  } else m += `<p class="hint" style="margin-top:10px">${L('🎉 Tüm ürünler menüde!', '🎉 Every product is on the menu!')}</p>`;
   setHTML('#menuList', m);
 }
 
@@ -3453,7 +3489,7 @@ function profileHTML(){
     ${S.lastCover ? '<button class="btn2" data-cover style="width:100%;margin-top:8px">📰 Son kapağını gör ve paylaş</button>' : ''}`;
   v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => invCard(i === 3 ? '🏆' : '🏪', L.name,
     i < lv('dukkan') ? 'Geride kaldı' : i === lv('dukkan') ? 'Şu anki dükkânın' : `Gün ${L.day}+ · ₺${fmt(L.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
-  [['esya', 'Eşyalar'], ['alet', 'Mutfak Aletleri'], ['ekip', 'Çalışanlar']].forEach(([grp, title]) => {
+  [['esya', L('Eşyalar', 'Items')], ['alet', L('Mutfak Aletleri', 'Kitchen Tools')], ['ekip', L('Çalışanlar', 'Staff')]].forEach(([grp, title]) => {
     v += `<h3>${title}</h3><div class="inv">` + UPGRADES.filter(u => u.grp === grp).map(u => {
       const l = lv(u.id);
       return invCard(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', invDots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
@@ -4039,7 +4075,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.32.0';
+const APP_VERSION = '2.33.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
