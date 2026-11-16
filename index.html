@@ -696,67 +696,67 @@ h3{color:var(--muted)}
         <div id="events"></div>
         <!-- Sahnenin köşelerinde yüzen düğmeler -->
         <div class="fabs">
-          <button class="fab" id="settingsBtn" aria-label="Ayarlar"><svg class="ic"><use href="#i-gear"/></svg></button>
-          <button class="fab" id="pauseBtn" aria-label="Duraklat" hidden><svg class="ic"><use href="#i-pause"/></svg></button>
-          <button class="fab" id="dailyBtn" aria-label="Günlük ödül"><svg class="ic"><use href="#i-gift"/></svg><i class="dot" hidden></i></button>
-          <button class="fab" id="shopsBtn" aria-label="Dükkânlarım" hidden><svg class="ic"><use href="#i-store"/></svg></button>
+          <button class="fab" id="settingsBtn" aria-label="Ayarlar" data-en-label="Settings"><svg class="ic"><use href="#i-gear"/></svg></button>
+          <button class="fab" id="pauseBtn" aria-label="Duraklat" data-en-label="Pause" hidden><svg class="ic"><use href="#i-pause"/></svg></button>
+          <button class="fab" id="dailyBtn" aria-label="Günlük ödül" data-en-label="Daily reward"><svg class="ic"><use href="#i-gift"/></svg><i class="dot" hidden></i></button>
+          <button class="fab" id="shopsBtn" aria-label="Dükkânlarım" data-en-label="My shops" hidden><svg class="ic"><use href="#i-store"/></svg></button>
         </div>
         <button class="lgbadge" id="lgBadge" hidden></button>
         <div class="overlay" id="closedOverlay">
           <div style="font-size:38px">🔒</div>
           <div id="levelName"></div>
-          <button class="big" data-open id="openBtn">☀️ Dükkânı Aç</button>
+          <button class="big" data-open id="openBtn" data-en="☀️ Open Shop">☀️ Dükkânı Aç</button>
         </div>
       </div>
     </section>
     <section class="panel" id="p-mutfak">
-      <h2>🔥 Mutfak</h2>
+      <h2 data-en="🔥 Kitchen">🔥 Mutfak</h2>
       <div class="coach" id="coach" hidden></div>
       <div class="evbar" id="evBar"></div>
       <div class="evbar" id="ctBar"></div>
       <div class="evbar" id="lgBar"></div>
       <div class="quests" id="quests"></div>
-      <p class="hint newbie">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
+      <p class="hint newbie" data-en="Tap a product → it brews on the stove → lands on the tray. Then tap the customer with the green bubble.">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
         <div><h3>Ocak</h3><div class="slots" id="queue"></div></div>
         <div><h3 id="trayTitle">Tepsi</h3><div class="slots tray" id="tray"></div></div>
       </div>
-      <p class="hint newbie" style="margin:8px 0 0">Tepsideki ürüne dokunursan çöpe atarsın.</p>
+      <p class="hint newbie" style="margin:8px 0 0" data-en="Tapping a product on the tray throws it away.">Tepsideki ürüne dokunursan çöpe atarsın.</p>
     </section>
   </div>
   <div class="right">
     <nav id="tabs">
-      <button class="tab" data-tab="mutfak"><svg class="ic"><use href="#i-tea"/></svg><span>Mutfak</span></button>
-      <button class="tab" data-tab="magaza"><svg class="ic"><use href="#i-shop"/></svg><span>Mağaza</span><i class="badge"></i></button>
-      <button class="tab hub" data-tab="ekip"><b class="hubc"><svg class="ic"><use href="#i-person"/></svg></b><span>Ekip</span><i class="badge"></i></button>
-      <button class="tab" data-tab="sube" hidden><svg class="ic"><use href="#i-city"/></svg><span>Mahalle</span><i class="badge"></i></button>
-      <button class="tab" data-tab="esya"><svg class="ic"><use href="#i-bag"/></svg><span>Eşyalarım</span></button>
+      <button class="tab" data-tab="mutfak"><svg class="ic"><use href="#i-tea"/></svg><span data-en="Kitchen">Mutfak</span></button>
+      <button class="tab" data-tab="magaza"><svg class="ic"><use href="#i-shop"/></svg><span data-en="Shop">Mağaza</span><i class="badge"></i></button>
+      <button class="tab hub" data-tab="ekip"><b class="hubc"><svg class="ic"><use href="#i-person"/></svg></b><span data-en="Crew">Ekip</span><i class="badge"></i></button>
+      <button class="tab" data-tab="sube" hidden><svg class="ic"><use href="#i-city"/></svg><span data-en="Town">Mahalle</span><i class="badge"></i></button>
+      <button class="tab" data-tab="esya"><svg class="ic"><use href="#i-bag"/></svg><span data-en="My Stuff">Eşyalarım</span></button>
     </nav>
     <section class="panel" id="p-ekip">
-      <h2>👥 Ekip</h2>
+      <h2 data-en="👥 Crew">👥 Ekip</h2>
       <div id="ekipTree"></div>
       <div id="cardList"></div>
     </section>
     <section class="panel" id="p-sube">
-      <h2>🏘️ Mahalle</h2>
+      <h2 data-en="🏘️ Town">🏘️ Mahalle</h2>
       <div id="subeSeg"></div>
       <div class="hood3d" id="hood3dWrap" hidden><canvas id="hood3d"></canvas></div>
       <div id="hoodView"></div>
       <div id="branchList"></div>
     </section>
     <section class="panel" id="p-magaza">
-      <h2>🛒 Mağaza</h2>
+      <h2 data-en="🛒 Shop">🛒 Mağaza</h2>
       <div id="shopSeg"></div>
       <div id="shop"></div>
       <div id="menuList" hidden></div>
     </section>
     <section class="panel" id="p-esya">
-      <h2>🎒 Eşyalarım</h2>
+      <h2 data-en="🎒 My Stuff">🎒 Eşyalarım</h2>
       <div class="profile">
         <canvas id="avatar"></canvas>
         <div class="info"><b id="pName"></b><small id="pShop"></small><div id="pFame"></div></div>
-        <button class="btn2" id="editOwner">✏️ Düzenle</button>
+        <button class="btn2" id="editOwner" data-en="✏️ Edit">✏️ Düzenle</button>
       </div>
       <div id="inventory"></div>
     </section>
@@ -771,7 +771,22 @@ h3{color:var(--muted)}
 const $ = s => document.querySelector(s);
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-const fmt = n => Math.floor(n).toLocaleString('tr-TR');
+// ---------- Dil (EN) ----------
+// Metinler yerinde iki dilli yazılır: L('Türkçe', 'English'). Sabit HTML'de data-en / data-en-label.
+// Çeviri bölüm bölüm ilerliyor: EN_READY true olana kadar oyun herkese Türkçe açılır, İngilizce yalnızca Ayarlar'dan seçilir
+const EN_READY = false;
+const LANG = (() => {
+  try { const s = localStorage.getItem('cayocagi-dil'); if (s === 'tr' || s === 'en') return s; } catch(e) {}
+  return EN_READY && !/^tr/i.test(navigator.language || 'tr') ? 'en' : 'tr';
+})();
+const L = (tr, en) => LANG === 'en' ? en : tr;
+const ON_TXT = L('Açık', 'On'), OFF_TXT = L('Kapalı', 'Off');
+document.documentElement.lang = LANG;
+if (LANG === 'en'){
+  document.querySelectorAll('[data-en]').forEach(el => { el.innerHTML = el.dataset.en; });
+  document.querySelectorAll('[data-en-label]').forEach(el => el.setAttribute('aria-label', el.dataset.enLabel));
+}
+const fmt = n => Math.floor(n).toLocaleString(LANG === 'en' ? 'en-US' : 'tr-TR');
 const ic = id => `<svg class="ic" aria-hidden="true"><use href="#i-${id}"/></svg>`;   // vektör ikon (UI-5)
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -1132,7 +1147,7 @@ function evReward(ep){
 const SKINS  = ['#f8d9bf','#eab68f','#c98b5f','#8d5a3b'];
 const HAIRS  = ['#24160f','#5a3420','#a0622d','#e0b85f','#9b9b9b','#c2412d'];
 const SHIRTS = ['#c0392b','#2e86c1','#27ae60','#8e44ad','#e67e22','#34495e','#e84393','#16a085'];
-const STYLES = ['Kısa','Uzun','Kel','Topuz','Kıvırcık'];
+const STYLES = L(['Kısa','Uzun','Kel','Topuz','Kıvırcık'], ['Short','Long','Bald','Bun','Curly']);
 const randomLook = () => ({skin:pick(SKINS), hair:pick(HAIRS), style:Math.floor(Math.random() * STYLES.length),
   shirt:pick(SHIRTS), beard:Math.random() < 0.25});
 
@@ -3218,7 +3233,7 @@ const stars5 = l => `<span class="rs">${'★'.repeat(l)}<i>${'★'.repeat(MAX_RE
 function coach(){
   const none = {msg:'', want:[]};
   if (S.day > 2) return none;
-  if (status !== 'running') return {msg:'☀️ Hazırsan yukarıdaki "Dükkânı Aç" düğmesine dokun.', want:[]};
+  if (status !== 'running') return {msg:L('☀️ Hazırsan yukarıdaki "Dükkânı Aç" düğmesine dokun.', '☀️ When you are ready, tap "Open Shop" above.'), want:[]};
   if (R.customers.some(canServe)) return {msg:'👆 Yeşil balonlu müşteriye dokun, siparişini servis et!', want:[]};
   const n = needed(), want = Object.keys(n).filter(k => n[k] > 0);
   if (want.length){
@@ -3261,9 +3276,9 @@ function renderUI(){
   $('#shopsBtn').title = 'Dükkânlarım · ' + city().name;
   const where = S.cur ? ` · ${city().name}` : '';
   $('#shopTitle').textContent = '🍵 ' + owner().shopName + where;
-  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name} şubesi · ` : '') + shopLevel().name + ' kapalı. Hazır olunca aç!' + (offerPending() ? ' 📞 Bir röportaj isteği var!' : '') + (S.critic === S.day ? ' 🧐 Bugün eleştirmen geliyor!' : '');
+  $('#levelName').textContent = (S.cur ? `${city().emoji} ${city().name}${L(' şubesi', ' branch')} · ` : '') + shopLevel().name + L(' kapalı. Hazır olunca aç!', ' is closed. Open when ready!') + (offerPending() ? L(' 📞 Bir röportaj isteği var!', ' 📞 An interview request is waiting!') : '') + (S.critic === S.day ? ' 🧐 Bugün eleştirmen geliyor!' : '');
   $('#closedOverlay').hidden = status === 'running';
-  $('#openBtn').textContent = `☀️ Dükkânı Aç (Gün ${S.day})`;
+  $('#openBtn').textContent = L(`☀️ Dükkânı Aç (Gün ${S.day})`, `☀️ Open Shop (Day ${S.day})`);
   $('#pName').textContent = owner().name;
   $('#pShop').textContent = owner().shopName + where + ' · ' + shopLevel().name + (legacy().n ? ' · 🎖️ ' + legacyTitle() : '');
   const fl = fameLv(), F = FAME_LEVELS[fl], FN = FAME_LEVELS[fl + 1];
@@ -4024,7 +4039,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.31.0';
+const APP_VERSION = '2.32.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4148,38 +4163,39 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
 const clockText = () => $('#day').textContent;
 function showPause(){
   showModal(`
-    <h2>⏸️ Oyun duraklatıldı</h2>
-    <p class="hint">${clockText()} · Müşteriler seni bekliyor!</p>
-    <button class="big" id="modalOk">▶️ Devam et</button>
-    <div class="btns"><button class="btn2" id="openSettings">⚙️ Ayarlar</button></div>`);
+    <h2>${L('⏸️ Oyun duraklatıldı', '⏸️ Game paused')}</h2>
+    <p class="hint">${clockText()} · ${L('Müşteriler seni bekliyor!', 'Your customers are waiting!')}</p>
+    <button class="big" id="modalOk">${L('▶️ Devam et', '▶️ Resume')}</button>
+    <div class="btns"><button class="btn2" id="openSettings">${L('⚙️ Ayarlar', '⚙️ Settings')}</button></div>`);
 }
 function showSettings(){
-  const onOff = v => v ? 'Açık' : 'Kapalı';
+  const onOff = v => v ? ON_TXT : OFF_TXT;
   showModal(`
-    <h2>⚙️ Ayarlar</h2>
-    <div class="set-row"><span>🔊 Ses</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
-    <div class="set-row"><span>🎵 Müzik</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
-    ${canVibrate || isApp() ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
-    <div class="set-row"><span>🧊 Sahne (3D yavaşsa 2D'yi seç)</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
-    ${err3d ? `<p class="hint" style="margin:4px 0 8px;color:#ff9d8a">⚠️ Son 3D hatası: ${esc(err3d)}</p>` : ''}
-    <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
-    <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
+    <h2>${L('⚙️ Ayarlar', '⚙️ Settings')}</h2>
+    <div class="set-row"><span>🌐 Dil · Language${EN_READY ? '' : ' <small>(EN beta)</small>'}</span><button class="btn2" id="langBtn">${L('Türkçe', 'English')}</button></div>
+    <div class="set-row"><span>${L('🔊 Ses', '🔊 Sound')}</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
+    <div class="set-row"><span>${L('🎵 Müzik', '🎵 Music')}</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
+    ${canVibrate || isApp() ? `<div class="set-row"><span>${L('📳 Titreşim', '📳 Vibration')}</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
+    <div class="set-row"><span>${L("🧊 Sahne (3D yavaşsa 2D'yi seç)", '🧊 Scene (pick 2D if 3D is slow)')}</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
+    ${err3d ? `<p class="hint" style="margin:4px 0 8px;color:#ff9d8a">${L('⚠️ Son 3D hatası', '⚠️ Last 3D error')}: ${esc(err3d)}</p>` : ''}
+    <div class="set-row"><span>${L('👤 Dükkân sahibi', '👤 Shop owner')}</span><button class="btn2" id="editOwnerM">${L('Düzenle', 'Edit')}</button></div>
+    <div class="set-row"><span>${L('❓ Nasıl oynanır?', '❓ How to play')}</span><button class="btn2" id="howto">${L('Göster', 'Show')}</button></div>
     ${installRow()}
-    ${plug(GC) ? '<div class="set-row"><span>🏆 Game Center</span><button class="btn2" id="gcShow">Sıralama</button></div>' : ''}
-    ${inFrame ? '<div class="set-row"><span>🔒 Bu sayfada kayıt silinebilir</span><button class="btn2" id="goHome">Kalıcı adreste aç</button></div>' : ''}
-    <div class="set-row"><span>💾 Kaydını yedekle ya da taşı</span><button class="btn2" id="codeOut">Kayıt kodu</button></div>
-    <div class="set-row"><span>📥 Kayıt kodu ile yükle</span><button class="btn2" id="codeIn">Yükle</button></div>
-    <div class="set-row"><span>🗑️ İlerlemeyi sil</span><button class="btn2 danger" id="resetAsk">Sıfırla</button></div>
-    <p class="hint" style="margin:12px 0">${isApp() ? 'Kayıtların bu telefonda otomatik tutulur. Telefon değiştirirsen kayıt kodunu kullan.'
-      : 'Kayıtların bu cihazda otomatik tutulur. Tarayıcı verisi silinirse kaybolur: ara sıra kayıt kodunu bir yere not al.'} · <a href="privacy.html" style="color:var(--muted)">Gizlilik</a> · Sürüm ${APP_VERSION}</p>
-    <button class="big" id="modalOk">${status === 'running' ? '▶️ Oyuna dön' : 'Kapat'}</button>`);
+    ${plug(GC) ? `<div class="set-row"><span>🏆 Game Center</span><button class="btn2" id="gcShow">${L('Sıralama', 'Leaderboard')}</button></div>` : ''}
+    ${inFrame ? `<div class="set-row"><span>${L('🔒 Bu sayfada kayıt silinebilir', '🔒 Your save may be lost on this page')}</span><button class="btn2" id="goHome">${L('Kalıcı adreste aç', 'Open safe address')}</button></div>` : ''}
+    <div class="set-row"><span>${L('💾 Kaydını yedekle ya da taşı', '💾 Back up or move your save')}</span><button class="btn2" id="codeOut">${L('Kayıt kodu', 'Save code')}</button></div>
+    <div class="set-row"><span>${L('📥 Kayıt kodu ile yükle', '📥 Load from save code')}</span><button class="btn2" id="codeIn">${L('Yükle', 'Load')}</button></div>
+    <div class="set-row"><span>${L('🗑️ İlerlemeyi sil', '🗑️ Delete progress')}</span><button class="btn2 danger" id="resetAsk">${L('Sıfırla', 'Reset')}</button></div>
+    <p class="hint" style="margin:12px 0">${isApp() ? L('Kayıtların bu telefonda otomatik tutulur. Telefon değiştirirsen kayıt kodunu kullan.', 'Your progress is saved on this phone automatically. Use a save code if you switch phones.')
+      : L('Kayıtların bu cihazda otomatik tutulur. Tarayıcı verisi silinirse kaybolur: ara sıra kayıt kodunu bir yere not al.', 'Your progress is saved on this device automatically. Clearing browser data deletes it, so note down a save code now and then.')} · <a href="privacy.html" style="color:var(--muted)">${L('Gizlilik', 'Privacy')}</a> · ${L('Sürüm', 'Version')} ${APP_VERSION}</p>
+    <button class="big" id="modalOk">${status === 'running' ? L('▶️ Oyuna dön', '▶️ Back to game') : L('Kapat', 'Close')}</button>`);
 }
 function showResetConfirm(){
   showModal(`
-    <h2>🗑️ Emin misin?</h2>
-    <p>Tüm paran, dükkânın ve geliştirmelerin silinir. Bu geri alınamaz.</p>
-    <button class="big" id="modalOk">Vazgeç</button>
-    <div class="btns"><button class="btn2 danger" id="resetYes">Evet, her şeyi sil</button></div>`);
+    <h2>${L('🗑️ Emin misin?', '🗑️ Are you sure?')}</h2>
+    <p>${L('Tüm paran, dükkânın ve geliştirmelerin silinir. Bu geri alınamaz.', 'All your money, your shop and your upgrades will be deleted. This cannot be undone.')}</p>
+    <button class="big" id="modalOk">${L('Vazgeç', 'Cancel')}</button>
+    <div class="btns"><button class="btn2 danger" id="resetYes">${L('Evet, her şeyi sil', 'Yes, delete everything')}</button></div>`);
 }
 function pauseGame(){ if (status === 'running' && !modalOpen()){ showPause(); SFX.serve(); } }
 
@@ -4281,17 +4297,25 @@ function showNews(){
 setInterval(() => { if (S.news && S.owner && status === 'closed' && !modalOpen()) showNews(); }, 1000);
 function showWelcome(){
   showModal(`
-    <h2>🍵 Hoş geldin, ${esc(owner().name)}!</h2>
-    <p><b>${esc(owner().shopName)}</b> artık senin. Hedefin onu mahallenin en meşhur mekânına çevirmek!</p>
-    <ol>
-      <li>Müşteriler kapıdan girip masalara oturur, balonda siparişlerini görürsün.</li>
-      <li><b>🔥 Mutfak</b>'ta ürüne dokun; hazırlanıp tepsiye düşer.</li>
-      <li><b>Müşteriye dokun</b>, tepsideki ürünler servis edilir.</li>
-      <li><b>🛒 Mağaza</b>'dan masa, çırak, garson, dekorasyon al; <b>📋 Menü</b>'ye yeni ürün ekle.</li>
-      <li>Günler geçtikçe <b>dükkânını büyütüp</b> Kıraathane'ye, Kafe'ye dönüştür!</li>
-      <li>Nostaljik Kafe olunca <b>🏙️ Şubeler</b>'den başka şehirlerde şube aç!</li>
-    </ol>
-    <button class="big" id="modalOk">Hadi başlayalım!</button>`);
+    <h2>${L('🍵 Hoş geldin', '🍵 Welcome')}, ${esc(owner().name)}!</h2>
+    <p>${L(`<b>${esc(owner().shopName)}</b> artık senin. Hedefin onu mahallenin en meşhur mekânına çevirmek!`,
+      `<b>${esc(owner().shopName)}</b> is yours now. Your goal: make it the most famous spot in the neighbourhood!`)}</p>
+    <ol>${L([
+      'Müşteriler kapıdan girip masalara oturur, balonda siparişlerini görürsün.',
+      "<b>🔥 Mutfak</b>'ta ürüne dokun; hazırlanıp tepsiye düşer.",
+      '<b>Müşteriye dokun</b>, tepsideki ürünler servis edilir.',
+      "<b>🛒 Mağaza</b>'dan masa, çırak, garson, dekorasyon ve menüye yeni ürünler al.",
+      "Ortadaki <b>👥 Ekip</b> düğmesinden ustabaşı, çırak ve garsonlarını geliştir, usta kartı topla.",
+      "Günler geçtikçe <b>dükkânını büyüt</b>, <b>🏘️ Mahalle</b>'ye yatırım yap, başka şehirlerde şube aç!",
+    ], [
+      'Customers walk in, sit at the tables and show their orders in a bubble.',
+      'In the <b>🔥 Kitchen</b>, tap a product; it gets made and lands on the tray.',
+      '<b>Tap the customer</b> to serve the products on the tray.',
+      'Buy tables, apprentices, waiters, decor and new menu items in the <b>🛒 Shop</b>.',
+      'Use the <b>👥 Crew</b> button in the middle to train your staff and collect master cards.',
+      'As the days go by, <b>grow your shop</b>, invest in the <b>🏘️ Town</b> and open branches in other cities!',
+    ]).map(x => `<li>${x}</li>`).join('')}</ol>
+    <button class="big" id="modalOk">${L('Hadi başlayalım!', "Let's go!")}</button>`);
 }
 
 // ---------- Sahip düzenleyici ----------
@@ -4305,21 +4329,21 @@ function openOwnerEditor(first){
   const tx = (k, opts, label) => `<div class="field"><label>${label}</label><div class="sw">${opts.map(([v, t]) =>
     `<button class="txt${draft[k] === v ? ' on' : ''}" data-k="${k}" data-v="${v}">${t}</button>`).join('')}</div></div>`;
   showModal(`
-    <h2>👤 ${first ? 'Dükkânın sahibi kim?' : 'Dükkân Sahibi'}</h2>
+    <h2>👤 ${first ? L('Dükkânın sahibi kim?', 'Who owns the shop?') : L('Dükkân Sahibi', 'Shop Owner')}</h2>
     <div class="editor">
       <div id="pvWrap"></div>
       <div style="width:100%">
-        <div class="field"><label>Adın</label><input id="oName" maxlength="16" value="${esc(draft.name)}"></div>
-        <div class="field"><label>Dükkânın adı (tabelada yazar)</label><input id="oShop" maxlength="22" value="${esc(draft.shopName)}"></div>
-        ${tx('g', [['e', '👨 Erkek'], ['k', '👩 Kadın']], 'Cinsiyet')}
-        ${sw('skin', SKINS, 'Ten rengi')}
-        ${sw('hair', HAIRS, 'Saç rengi')}
-        ${tx('style', STYLES.map((s, i) => [i, s]), 'Saç modeli')}
-        ${sw('shirt', SHIRTS, 'Gömlek')}
-        <div id="beardF" ${draft.g === 'k' ? 'hidden' : ''}>${tx('beard', [[true, 'Bıyıklı'], [false, 'Bıyıksız']], 'Bıyık')}</div>
+        <div class="field"><label>${L('Adın', 'Your name')}</label><input id="oName" maxlength="16" value="${esc(draft.name)}"></div>
+        <div class="field"><label>${L('Dükkânın adı (tabelada yazar)', 'Shop name (shown on the sign)')}</label><input id="oShop" maxlength="22" value="${esc(draft.shopName)}"></div>
+        ${tx('g', [['e', L('👨 Erkek', '👨 Man')], ['k', L('👩 Kadın', '👩 Woman')]], L('Cinsiyet', 'Gender'))}
+        ${sw('skin', SKINS, L('Ten rengi', 'Skin tone'))}
+        ${sw('hair', HAIRS, L('Saç rengi', 'Hair colour'))}
+        ${tx('style', STYLES.map((s, i) => [i, s]), L('Saç modeli', 'Hairstyle'))}
+        ${sw('shirt', SHIRTS, L('Gömlek', 'Shirt'))}
+        <div id="beardF" ${draft.g === 'k' ? 'hidden' : ''}>${tx('beard', [[true, L('Bıyıklı', 'Moustache')], [false, L('Bıyıksız', 'None')]], L('Bıyık', 'Moustache'))}</div>
       </div>
     </div>
-    <button class="big" id="ownerSave">${first ? 'Dükkânı devral' : 'Kaydet'}</button>`, true);
+    <button class="big" id="ownerSave">${first ? L('Dükkânı devral', 'Take over the shop') : L('Kaydet', 'Save')}</button>`, true);
   pv.id = 'preview'; $('#pvWrap').appendChild(pv);
   fitCanvas(pv, pv.getContext('2d'), 170, 212);
 }
@@ -4386,6 +4410,7 @@ $('#modal').addEventListener('click', e => {
     if (id === 'rateYes'){ S.rated = true; save(); window.open(`https://play.google.com/store/apps/details?id=${PLAY_ID}`, '_blank'); }
     $('#rateRow').remove(); SFX.serve(); return;
   }
+  if (id === 'langBtn'){ save(); try { localStorage.setItem('cayocagi-dil', LANG === 'en' ? 'tr' : 'en'); } catch(e) {} stale = true; location.reload(); return; }
   if (id === 'gcShow'){ gcSignIn().then(() => appCall(GC, 'showLeaderboard', {leaderboardID:GC_BOARD})); return; }
   if (id === 'installBtn' && installEvt){ installEvt.prompt(); installEvt = null; hideModal(); return; }
   if (id === 'resetYes'){
@@ -4397,12 +4422,12 @@ $('#modal').addEventListener('click', e => {
       muted = !muted; btn.textContent = muted ? 'Kapalı' : 'Açık';
       try { localStorage.setItem('cayocagi-ses', muted ? 'kapali' : 'acik'); } catch(e) {}
     } else if (btn.dataset.set === 'music'){
-      musicOn = !musicOn; btn.textContent = musicOn ? 'Açık' : 'Kapalı';
+      musicOn = !musicOn; btn.textContent = musicOn ? ON_TXT : OFF_TXT;
       try { localStorage.setItem('cayocagi-muzik', musicOn ? 'acik' : 'kapali'); } catch(e) {}
     } else if (btn.dataset.set === 'scene'){
       set3D(!want3d); btn.textContent = want3d ? '3D' : '2D';
     } else {
-      vibOn = !vibOn; btn.textContent = vibOn ? 'Açık' : 'Kapalı';
+      vibOn = !vibOn; btn.textContent = vibOn ? ON_TXT : OFF_TXT;
       try { localStorage.setItem('cayocagi-titresim', vibOn ? 'acik' : 'kapali'); } catch(e) {}
       buzz(40);
     }
