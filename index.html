@@ -1918,7 +1918,7 @@ function pay(c){
   const ratio = c.patience / c.max;
   let base = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
   if (c.payMul != null) base = Math.round(base * c.payMul);
-  if (c.special === 'vip') base *= 3;
+  if (c.special === 'vip') base *= c.vipPrep ? 3.5 : 3;
   if (R.focus) base = Math.round(base * 1.2);   // röportajı reddedip dükkâna odaklanılan gün
   R.combo++; R.comboT = COMBO_TIME;
   if (dirt() >= 4 && Math.random() < 0.3){
@@ -1958,7 +1958,10 @@ function pay(c){
   // Yeni kombo kademesine geçildiyse kutla
   if (cm > comboMult(R.combo - 1)){ floatText(s.x, s.y - 160, `🔥 KOMBO x${cm}!`, '#ff9d3a', 0.15); SFX.combo(); }
   floatText(s.x, s.y - 100, `+₺${base + tip - mat}`, '#ffc94a');
-  if (c.special === 'influencer') floatText(s.x, s.y - 130, '📸 +10⭐', '#e08bff', 0.3);
+  if (c.special === 'influencer'){
+    floatText(s.x, s.y - 130, c.infl === 'ikram' ? '📸 +15⭐ · +5 🌟' : '📸 +10⭐', '#e08bff', 0.3);
+    if (c.infl === 'ikram'){ S.rep = Math.min(100, S.rep + 5); addFame(5); }
+  }
   else if (autograph) floatText(s.x, s.y - 130, L('✍️ İmza istedi!', '✍️ Asked for an autograph!'), '#e08bff', 0.3);
   else if (c.ct && c.payMul == null && Math.random() < 0.15) say(s.x, s.y - 150, sayPick('happy'));
   coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
@@ -2000,15 +2003,59 @@ function regGreet(c){
   if (!d.met){
     d.met = true;
     announce({emoji:r.emoji, name:r.name, desc:`"${r.lines[0]}" · ${L('Her zamanki', 'The usual')}: ${regOrder(r).map(p => P[p].emoji).join('')}`}, L('💛 Yeni müdavim', '💛 New regular'));
-  } else floatText(s.x, s.y - 150, regLv(r.id) ? '💬 Her zamankinden!' : '💬 Merhaba usta!', '#fff3d6');
+  } else floatText(s.x, s.y - 150, regLv(r.id) ? L('💬 Her zamankinden!', '💬 The usual!') : L('💬 Merhaba usta!', '💬 Hello, master!'), '#fff3d6');
 }
 
 // ---------- Özel olaylar ----------
+// R-2: bazı olaylar oyuncuya karar sorar; soru açıkken oyun durur. Başka pencere açıksa olay eskisi gibi kartla geçer
+let choiceCb = null;
+function showChoice(title, text, opts, cb){
+  choiceCb = cb;
+  showModal(`<h2>${title}</h2><p>${text}</p>` + opts.map(o => `<button class="ans" data-ch="${o.k}" ${o.off ? 'disabled' : ''}>${o.html}</button>`).join(''));
+}
 function startDayEvent(){
   if (S.day < 2 || Math.random() > 0.55) return;
   R.dayEvent = pick(DAY_EVENTS);
   const ev = R.dayEvent;
-  setTimeout(() => announce(ev, L('Bugün', 'Today')), 700);
+  setTimeout(() => {
+    if (ev.id !== 'mac' || modalOpen() || status !== 'running') return announce(ev, L('Bugün', 'Today'));
+    // Maç Günü: dev ekran kiralarsan daha kalabalık ve bahşiş bol
+    const cost = Math.max(150, 20 * S.day);
+    showChoice(`${ev.emoji} ${ev.name}`, ev.desc, [
+      {k:'ekran', off:S.money < cost, html:L(`📺 <b>Dev ekran kirala · ₺${fmt(cost)}</b><br><small>Müşteriler daha da sık gelir, bahşişler %30 fazla</small>`, `📺 <b>Rent a big screen · ₺${fmt(cost)}</b><br><small>Even more customers, tips +30%</small>`)},
+      {k:'normal', html:L('🍵 <b>Normal devam</b><br><small>Ekstra masraf yok</small>', '🍵 <b>Carry on as usual</b><br><small>No extra cost</small>')},
+    ], k => {
+      if (k === 'ekran' && S.money >= cost){
+        S.money -= cost; R.stats.mat += cost;
+        R.dayEvent = {...ev, spawn:0.38, tip:1.3, name:ev.name + ' 📺'};
+        toast(L(`📺 Dev ekran kuruldu: -₺${fmt(cost)}`, `📺 Big screen set up: -₺${fmt(cost)}`)); SFX.build();
+      }
+    });
+  }, 700);
+}
+// Influencer ve VIP içeri girince karar
+function influencerChoice(c){
+  if (!c || modalOpen()) return false;
+  showChoice(L('📸 Influencer geldi!', '📸 An influencer is here!'), L('Telefonu elinde, takipçileri bekliyor. Nasıl karşılarsın?', 'Phone in hand, followers waiting. How do you greet them?'), [
+    {k:'ikram', html:L('🎁 <b>Ücretsiz ikram et</b><br><small>Para yok ama daha sabırlı bekler; mutlu giderse ekstra +5⭐ ve +5 🌟</small>', '🎁 <b>On the house</b><br><small>No money, but they wait longer; leave happy for an extra +5⭐ and +5 🌟</small>')},
+    {k:'normal', html:L('🙂 <b>Normal müşteri gibi davran</b><br><small>Mutlu giderse +10⭐, kızarsa -10⭐</small>', '🙂 <b>Treat them like anyone else</b><br><small>Leave happy: +10⭐, leave angry: -10⭐</small>')},
+    {k:'red', html:L('🙅 <b>Fotoğraf yok</b><br><small>Sıradan müşteri olur: risk de ödül de yok</small>', '🙅 <b>No photos</b><br><small>They become a normal customer: no risk, no reward</small>')},
+  ], k => {
+    if (k === 'ikram'){ c.payMul = 0; c.infl = 'ikram'; c.max *= 1.3; c.patience = c.max; }
+    else if (k === 'red'){ c.special = null; c.look.prop = null; }
+  });
+  return true;
+}
+function vipChoice(c){
+  if (!c || modalOpen()) return false;
+  const cost = Math.max(100, 15 * S.day);
+  showChoice(L('👑 VIP müşteri geldi!', '👑 A VIP customer is here!'), L('Büyük sipariş verecek ve 3 kat ödeyecek. Kızdırırsan -10⭐.', 'They will order big and pay triple. Make them angry and lose 10⭐.'), [
+    {k:'masa', off:S.money < cost, html:L(`👑 <b>Özel masa hazırla · ₺${fmt(cost)}</b><br><small>Daha sabırlı bekler ve 3,5 kat öder</small>`, `👑 <b>Prepare a special table · ₺${fmt(cost)}</b><br><small>They wait longer and pay 3.5×</small>`)},
+    {k:'normal', html:L('🙂 <b>Normal karşıla</b><br><small>Ekstra masraf yok</small>', '🙂 <b>Welcome them as usual</b><br><small>No extra cost</small>')},
+  ], k => {
+    if (k === 'masa' && S.money >= cost){ S.money -= cost; R.stats.mat += cost; c.vipPrep = true; c.max *= 1.4; c.patience = c.max; SFX.build(); }
+  });
+  return true;
 }
 
 function triggerLiveEvent(){
@@ -2021,7 +2068,10 @@ function triggerLiveEvent(){
   const vip = CM().vip && Math.random() < 0.5 && options.find(e => e.id === 'vip');
   const ev = vip || pick(options);
   if (ev.dur) R.effects.push({id:ev.id, left:ev.dur, ev});
-  if (ev.id === 'vip' || ev.id === 'influencer') spawnCustomer(ev.id);
+  if (ev.id === 'vip' || ev.id === 'influencer'){
+    const c = spawnCustomer(ev.id);
+    if (ev.id === 'vip' ? vipChoice(c) : influencerChoice(c)) return;   // R-2: kart yerine karar
+  }
   if (ev.id === 'kundak') R.arson = {t:ARSON_T, x:rightWall() - 45, y:aisleY()};
   if (ev.id === 'turist') for (let i = 0; i < free; i++) spawnCustomer('turist', i * 40);
   announce(ev);
@@ -4308,7 +4358,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.38.0';
+const APP_VERSION = '2.39.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4647,6 +4697,7 @@ $('#modal').addEventListener('click', e => {
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
   if (id === 'staffUp'){ upgradeStaff(staffSel); return; }
+  if (btn && btn.dataset.ch){ const cb = choiceCb; choiceCb = null; hideModal(); if (cb) cb(btn.dataset.ch); renderUI(); return; }
   if (btn && btn.dataset.ver){ answerVeresiye(btn.dataset.ver); return; }
   if (btn && btn.dataset.sagcard){ S.sagCard = btn.dataset.sagcard; save(); hideModal(); renderUI(); toast(L(`🤝 ${sagCard().name} artık sağ kolun!`, `🤝 ${sagCard().name} is now your right hand!`)); SFX.buy(); return; }
   if (btn && btn.dataset.sag){ S.sagkol = btn.dataset.sag; save(); hideModal(); renderUI(); toast(L(`🤝 ${REGULARS.find(r => r.id === S.sagkol).name} artık sağ kolun!`, `🤝 ${REGULARS.find(r => r.id === S.sagkol).name} is now your right hand!`)); SFX.buy(); return; }
