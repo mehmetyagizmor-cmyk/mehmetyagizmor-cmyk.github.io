@@ -23,7 +23,8 @@ Chrome'un PNG'si şeffaflık kanalı içerir. App Store bunu kabul etmez, bu yü
 2. Kurulum:
    ```bash
    npm init -y
-   npm i @capacitor/core @capacitor/cli @capacitor/ios @capacitor/preferences @capacitor/status-bar @capacitor/splash-screen
+   npm i @capacitor/core @capacitor/cli @capacitor/ios @capacitor/preferences @capacitor/status-bar @capacitor/splash-screen \
+     @capacitor/haptics @capacitor/local-notifications @capacitor-community/in-app-review @openforge/capacitor-game-connect
    npx cap init "Çay Ocağı" <paket-kimliği> --web-dir www
    npx cap add ios
    ```
