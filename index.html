@@ -1458,7 +1458,7 @@ let status = 'closed'; // 'running' | 'closed'
 const lv = id => S.lv[id] || 0;
 const shopLevel = () => SHOP_LEVELS[lv('dukkan')];
 const maxLv = u => u.id === 'masa' ? shopLevel().tables - 2 : u.need && !lv(u.need) ? 0 : u.max;
-const garsonSpeed = i => 190 * (1 + 0.2 * (crewLv('garson', i) - 1));   // garson kendi seviyesiyle
+const garsonSpeed = i => 190 * (1 + 0.2 * (crewLv('garson', i) - 1)) * crewSpd('garson', i);   // garson kendi seviyesiyle
 // Kir: müşteri kalkınca masanın önünde leke kalabilir; her leke sabrı ve müşteri sıklığını biraz düşürür
 const MAX_STAINS = 8;
 const dirt = () => R.stains.length;
@@ -1950,7 +1950,7 @@ function pay(c){
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
   S.bestCombo = Math.max(S.bestCombo || 0, R.combo);
   const cm = comboMult(R.combo);
-  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip() * sagTip() * hoodTip()
+  const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip() * sagTip() * hoodTip() * proTip()
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
     * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip * (c.ct ? CTYPES[c.ct].tip : 1);
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
@@ -2533,8 +2533,13 @@ function tick(dt){
       const n = needed(); const p = Object.keys(n).find(k => n[k] > 0);
       if (p) R.helpers[i] = {p, prog:0};
     } else {
-      h.prog += dt * 0.7 * (1 + 0.2 * (crewLv('cirak', i) - 1));   // çırak kendi seviyesiyle
-      if (h.prog >= prepTime(h.p)){ trayAdd(h.p); R.helpers[i] = null; }
+      h.prog += dt * 0.7 * (1 + 0.2 * (crewLv('cirak', i) - 1)) * crewSpd('cirak', i);   // çırak kendi seviyesi ve kişiliğiyle
+      if (h.prog >= prepTime(h.p)){
+        const t = trOf(crewP('cirak', i));
+        if (t.burn && Math.random() < t.burn) floatText(CIRAK_X[i] || 100, 250, L('🔥 Çırak yaktı!', '🔥 Burnt it!'), '#ff8a5e');   // sakar çırak
+        else trayAdd(h.p);
+        R.helpers[i] = null;
+      }
     }
   }
 
@@ -3912,6 +3917,32 @@ function newPerson(role, city, lv){
   return {id:Math.random().toString(36).slice(2, 8), role, city, lv, name:pick(pool.length ? pool : NAMES[g]),
     look:{...randomLook(), g, ...(g === 'k' ? {beard:false} : {})}};
 }
+// ---------- Kişilikli personel (R-4) ----------
+// Çırak ve garsonların kişiliği var: artısı ve eksisi olan seçimler. Eski çalışanlar "dengeli" kalır
+const TRAITS = {
+  hizli:  {role:'cirak',  emoji:'⚡', name:L('Hızlı ama sakar', 'Fast but clumsy'), desc:L('%30 hızlı hazırlar ama arada bir ürünü yakar', 'Prepares 30% faster but sometimes burns an item'), spd:1.3, burn:0.08},
+  usta:   {role:'cirak',  emoji:'🎓', name:L('Tecrübeli', 'Experienced'), desc:L('%15 hızlı ve hiç hata yapmaz ama geliştirmesi %60 pahalı', '15% faster and never slips up, but training costs 60% more'), spd:1.15, cost:1.6},
+  ogrenci:{role:'garson', emoji:'🎒', name:L('Öğrenci', 'Student'), desc:L('Geliştirmesi %40 ucuz ama %20 yavaş yürür', 'Training costs 40% less, but walks 20% slower'), spd:0.8, cost:0.6},
+  pro:    {role:'garson', emoji:'🎩', name:L('Profesyonel', 'Professional'), desc:L('Bahşişlere +%4 ekler ama geliştirmesi %60 pahalı', 'Adds +4% to tips, but training costs 60% more'), tip:0.04, cost:1.6},
+  normal: {emoji:'🙂', name:L('Dengeli', 'Balanced'), desc:L('Ne artısı ne eksisi var', 'No pros, no cons')},
+};
+const trOf = p => TRAITS[(p && p.tr) || 'normal'] || TRAITS.normal;
+const crewP = (role, i) => crewOf(branch().city, role)[i];
+const crewSpd = (role, i) => trOf(crewP(role, i)).spd || 1;
+const proTip = () => 1 + crewOf(branch().city, 'garson').reduce((a, p) => a + (trOf(p).tip || 0), 0);
+// Mağaza'dan çırak ya da garson alınınca iki aday çıkar: adı ve kişiliği farklı, oyuncu birini seçer
+function hireChoice(role){
+  ensureStaff();
+  const p = crewOf(branch().city, role).slice(-1)[0];
+  if (!p || p.tr || modalOpen()) return;
+  const kinds = Object.keys(TRAITS).filter(k => TRAITS[k].role === role || k === 'normal').sort(() => Math.random() - 0.5).slice(0, 2);
+  const other = newPerson(role, p.city, p.lv);
+  const cands = [{name:p.name, look:p.look, tr:kinds[0]}, {name:other.name, look:other.look, tr:kinds[1]}];
+  showChoice(L(`🤝 Yeni ${ROLE[role].toLowerCase()} adayları`, `🤝 New ${ROLE[role].toLowerCase()} candidates`), L('İki kişi başvurdu. Hangisini işe alırsın?', 'Two people applied. Who do you hire?'),
+    cands.map((c, i) => ({k:String(i), html:`${TRAITS[c.tr].emoji} <b>${esc(c.name)}</b> · ${TRAITS[c.tr].name}<br><small>${TRAITS[c.tr].desc}</small>`})),
+    k => { const c = cands[+k] || cands[0]; Object.assign(p, {name:c.name, look:c.look, tr:c.tr}); save(); toast(L(`🤝 ${c.name} işe başladı!`, `🤝 ${c.name} started work!`)); });
+}
+
 function ensureStaff(){
   S.staff = S.staff || [];
   let changed = false;
@@ -3947,7 +3978,7 @@ function staffCost(p){
     const b = S.branches.find(x => x.city === p.city);
     return Math.round((b && b.city !== 'ana' ? Math.max(1500, paidOf(b) * 0.08) : 1500) * Math.pow(1.9, p.lv - 1) / 10) * 10;
   }
-  return Math.round((p.role === 'cirak' ? 450 : 600) * Math.pow(2, p.lv - 1) / 10) * 10;   // bot denemesi: 1,8 ile ekip 40 günde tavan yaptı
+  return Math.round((p.role === 'cirak' ? 450 : 600) * Math.pow(2, p.lv - 1) * (trOf(p).cost || 1) / 10) * 10;   // bot denemesi: 1,8 ile ekip 40 günde tavan yaptı
 }
 const staffEffect = p => p.lv <= 1 ? L('temel seviye', 'base level') : p.role === 'cirak' ? L(`%${20 * (p.lv - 1)} hızlı hazırlar`, `prepares ${20 * (p.lv - 1)}% faster`)
   : p.role === 'garson' ? L(`%${20 * (p.lv - 1)} hızlı taşır`, `carries ${20 * (p.lv - 1)}% faster`) : L(`bahşiş +%${5 * (p.lv - 1)}, sen yokken gelir +%${6 * (p.lv - 1)}`, `tips +${5 * (p.lv - 1)}%, income while away +${6 * (p.lv - 1)}%`);
@@ -3994,7 +4025,7 @@ function staffTreeHTML(){
   const heads = S.branches.map(b => {
     const h = S.staff.find(p => p.city === b.city && p.role === 'head'), c = crew(b);
     return `<li>${tnode(h.id, 'head' + upCls(h), h.lv, h.name, CITY[b.city].name, staffIncome(h))}`
-      + (c.length ? '<ul>' + c.map(p => `<li>${tnode(p.id, p.role + upCls(p), p.lv, p.name, ROLE[p.role], staffIncome(p))}</li>`).join('') + '</ul>' : '') + '</li>';
+      + (c.length ? '<ul>' + c.map(p => `<li>${tnode(p.id, p.role + upCls(p), p.lv, p.name, ROLE[p.role] + (p.tr && p.tr !== 'normal' ? ' ' + trOf(p).emoji : ''), staffIncome(p))}</li>`).join('') + '</ul>' : '') + '</li>';
   }).join('');
   return `<p class="hint">${L('Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.', 'Your crew: each shop has a foreman, apprentices and waiters. Tap a person to see details.')}</p>
     <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, L('Usta · sen', 'Master · you'), total)}
@@ -4031,7 +4062,8 @@ function showStaff(sid){
   const job = L({head:'Dükkânın başında durur, müşteriyle ve kasayla ilgilenir.', cirak:'Eksik siparişleri kendisi hazırlar.', garson:'Hazır ürünleri masalara taşır.'},
     {head:'Runs the shop and looks after customers and the till.', cirak:'Makes missing orders by themselves.', garson:'Carries ready products to the tables.'})[p.role];
   showModal(`<h2>${esc(p.name)} · ${ROLE[p.role]}</h2>
-    <table><tr><td>${L('Dükkân', 'Shop')}</td><td>${where}</td></tr><tr><td>${L('Seviye', 'Level')}</td><td>${p.lv}</td></tr><tr><td>${L('Günlük katkısı', 'Daily earnings')}</td><td style="color:var(--good)">₺${fmt(staffIncome(p))}</td></tr></table>
+    <table><tr><td>${L('Dükkân', 'Shop')}</td><td>${where}</td></tr><tr><td>${L('Seviye', 'Level')}</td><td>${p.lv}</td></tr>${p.role !== 'head' ? `<tr><td>${L('Kişilik', 'Trait')}</td><td>${trOf(p).emoji} ${trOf(p).name}</td></tr>` : ''}<tr><td>${L('Günlük katkısı', 'Daily earnings')}</td><td style="color:var(--good)">₺${fmt(staffIncome(p))}</td></tr></table>
+    ${p.role !== 'head' ? `<p class="hint">${trOf(p).emoji} ${trOf(p).desc}</p>` : ''}
     <p class="hint">${job}${b === branch() && !b.lastEarn ? L(' Katkısı dükkânı bir gün açınca hesaplanır.', ' Earnings show after you open the shop for a day.') : ''}</p>
     ${p.lv >= STAFF_MAX ? `<p class="banner">${L('🏅 En üst seviyede!', '🏅 Top level!')}</p><button class="big" id="modalOk">${L('Tamam', 'OK')}</button>`
       : `<p class="hint">${L('Şu an', 'Now')}: ${staffEffect(p)} → ${L('sonraki', 'next')}: <b>${staffEffect({...p, lv:p.lv + 1})}</b></p>
@@ -4389,7 +4421,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.40.0';
+const APP_VERSION = '2.41.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -5125,6 +5157,7 @@ document.addEventListener('click', e => {
       else if (u.id === 'garson'){ R.garsons.push(newGarson(R.garsons.length)); SFX.buy(); }
       else SFX.buy();
       toast(L(`${u.emoji} ${u.name} seviye ${lv(u.id)}!`, `${u.emoji} ${u.name} level ${lv(u.id)}!`)); save();
+      if (u.id === 'cirak' || u.id === 'garson') hireChoice(u.id);   // R-4: aday seçimi
     }
   }
   renderUI();
