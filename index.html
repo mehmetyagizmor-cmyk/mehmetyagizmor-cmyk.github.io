@@ -1765,6 +1765,80 @@ function patienceFor(count){
     * (1 + colBonus('pat')) * hoodPat() * (1 + cardBonus('pat'));
 }
 
+// ---------- Çay ocağı ruhu (R-1): müşteri tipleri, laf atmalar, veresiye ----------
+// Sıradan müşterilerin bir kısmı tiplidir: öğrenci ucuz ister ve sabırsızdır, emekli az ister ama bekler, esnaf aceleci ama cömerttir
+const CTYPES = {
+  mahalleli:{w:4, emoji:'🙂', pat:1,    tip:1},
+  ogrenci:  {w:2, emoji:'🎒', pat:0.85, tip:0.7, cheap:true, look:{glasses:true}},
+  emekli:   {w:2, emoji:'👴', pat:1.35, tip:1,   few:true,   look:{hair:'#9b9b9b', hat:'kasket'}},
+  esnaf:    {w:2, emoji:'🧔', pat:0.75, tip:1.5,              look:{shirt:'#5a4632'}},
+};
+function pickType(){
+  let r = Math.random() * Object.values(CTYPES).reduce((a, t) => a + t.w, 0);
+  for (const [id, t] of Object.entries(CTYPES)) if ((r -= t.w) < 0) return id;
+  return 'mahalleli';
+}
+// Laf atmalar: [Türkçe, İngilizce]
+const SAY = {
+  mahalleli:[['Bir çay, demli olsun!', 'A strong tea, please!'], ['Açık çay var mı?', 'Got any weak tea?'], ['Yanına bir simit at.', 'Throw in a simit too.'], ['Çaylar koyu olsun usta!', 'Make it dark, master!']],
+  ogrenci:  [['Sınav var, çabuk olsun!', 'Exam soon, quick please!'], ['Öğrenci indirimi var mı?', 'Any student discount?'], ['Wi-fi şifresi neydi?', "What's the wi-fi password?"]],
+  emekli:   [['Gazeteyi getirir misin evladım?', 'Got a newspaper, son?'], ['Acelem yok, otururum.', "No rush, I'll sit a while."], ['Bizim zamanımızda çay 1 kuruştu.', 'Tea was a penny in my day.']],
+  esnaf:    [['Dükkân açık kaldı, çabuk!', 'My shop is open, hurry!'], ['Maç kaç kaç oldu?', "What's the score?"], ['Bereketli olsun usta!', 'May business be good!']],
+  happy:    [['Eline sağlık!', 'Well done!'], ['Çayın bir numara!', 'Your tea is top notch!'], ['Afiyet bal şeker!', 'Delicious!']],
+  angry:    [['Bu ne bekleyiş ya!', 'What a wait!'], ['Karşıdaki ocağa gidiyorum!', "I'm going across the street!"], ['Çay soğudu, ben de!', 'The tea went cold, and so did I!']],
+};
+const sayPick = k => { const x = pick(SAY[k]); return L(x[0], x[1]); };
+// Konuşma yazısı: küçük ve biraz uzun kalır, sahnenin kenarından taşmaz
+function say(x, y, text){
+  particles.push({type:'text', small:true, x:Math.max(120, Math.min(W - 120, x)), y, vy:-16, life:2.6, max:2.6, text:'💬 ' + text, color:'#fff6e6', delay:0});
+}
+function custGreet(c){
+  if (!c.ct || Math.random() > 0.45) return;
+  const s = SLOTS[c.seat];
+  say(s.x, s.y - 150, CTYPES[c.ct].emoji + ' ' + sayPick(c.ct));
+}
+// "Veresiye yaz abi!": 3. günden sonra günde en çok bir kez, emekli ya da esnaf parasız çıkar
+let verC = null;
+function maybeVeresiye(c){
+  if (c.payMul != null || c.reg || c.special || !(c.ct === 'emekli' || c.ct === 'esnaf') || S.day < 3 || R.verToday || Math.random() > 0.12) return false;
+  R.verToday = true; verC = c;
+  c.vName = pick(NAMES[Math.random() < 0.5 ? 'e' : 'k']);
+  c.vAmt = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
+  showModal(`<h2>${L('📒 "Veresiye yaz abi!"', '📒 "Put it on my tab!"')}</h2>
+    <p>${CTYPES[c.ct].emoji} <b>${c.vName}</b>: ${L(`"Cüzdanı evde unuttum. ₺${fmt(c.vAmt)} deftere yazar mısın? Yarın getiririm, söz!"`, `"I left my wallet at home. Can you put ₺${fmt(c.vAmt)} on my tab? I'll bring it tomorrow, promise!"`)}</p>
+    <button class="ans" data-ver="yaz">${L('📒 <b>Deftere yaz</b><br><small>Çoğu kişi birkaç gün içinde öder, üstüne hayır duası da ekler</small>', '📒 <b>Put it on the tab</b><br><small>Most people pay within a few days, with a little extra for your kindness</small>')}</button>
+    <button class="ans" data-ver="ikram">${L('🎁 <b>İkram et</b><br><small>Para yok ama mahalle duyar: +3⭐</small>', '🎁 <b>On the house</b><br><small>No money, but the neighbourhood hears about it: +3⭐</small>')}</button>
+    <button class="ans" data-ver="hayir">${L('🙅 <b>Olmaz</b><br><small>Cebindekini verir (yarısı), -2⭐</small>', '🙅 <b>No way</b><br><small>They pay what they have (half), -2⭐</small>')}</button>`);
+  return true;
+}
+function answerVeresiye(k){
+  const c = verC; verC = null;
+  hideModal();
+  if (!c) return;
+  if (k === 'yaz'){
+    c.payMul = 0;
+    S.veresiye = S.veresiye || [];
+    S.veresiye.push({n:c.vName, amt:c.vAmt, due:S.day + 1 + Math.floor(Math.random() * 3)});
+  } else if (k === 'ikram'){ c.payMul = 0; S.rep = Math.min(100, S.rep + 3); }
+  else { c.payMul = 0.5; S.rep = Math.max(0, S.rep - 2); }
+  pay(c);
+}
+// Gün sonu: vadesi gelen veresiyeler: çoğu %25 fazlasıyla öder, bazıları unutur
+function veresiyeDay(){
+  if (!S.veresiye || !S.veresiye.length) return '';
+  const out = [];
+  S.veresiye = S.veresiye.filter(v => {
+    if (v.due > S.day) return true;
+    if (Math.random() < 0.8){
+      const m = Math.round(v.amt * 1.25);
+      S.money += m; S.total += m; S.rep = Math.min(100, S.rep + 2);
+      out.push(L(`📒 ${v.n} veresiyeyi ödedi: +₺${fmt(m)} (hayır duasıyla) · +2⭐`, `📒 ${v.n} paid off the tab: +₺${fmt(m)} (with thanks) · +2⭐`));
+    } else out.push(L(`📒 ${v.n} borcunu unuttu: ₺${fmt(v.amt)} defterde kaldı`, `📒 ${v.n} forgot the tab: ₺${fmt(v.amt)} stays in the book`));
+    return false;
+  });
+  return out.map(t => `<p class="hint">${t}</p>`).join('');
+}
+
 // special: 'vip' | 'influencer' | 'turist' | undefined
 function spawnCustomer(special, delayPx = 0){
   const free = freeSeats();
@@ -1773,14 +1847,17 @@ function spawnCustomer(special, delayPx = 0){
   // Tanışma günü: yeni müdavim 3. müşteriden sonra kesin gelir
   const meet = R.regs.length && !(S.regs[R.regs[0]] || {}).met;
   const reg = !special && R.regs.length && R.t < DAY_LEN * 0.8 && (meet ? R.nextId >= 3 : Math.random() < 0.3) ? REG[R.regs.shift()] : null;
-  const maxItems = Math.min(4, 2 + Math.floor(S.day / 4));
+  const ct = !special && !reg ? pickType() : null, CT = ct && CTYPES[ct];
+  const maxItems = Math.min(CT && CT.few ? 2 : 4, 2 + Math.floor(S.day / 4));
   let count = 1 + Math.floor(Math.random() * maxItems);
+  // Öğrenci menünün ucuz yarısından ister
+  const pool = CT && CT.cheap ? [...sellable()].sort((a, b) => P[a].price - P[b].price).slice(0, Math.max(1, Math.ceil(sellable().length / 2))) : sellable();
   if (special === 'vip') count = Math.min(4, Math.max(3, sellable().length));
   const fav = (DE().fav || []).filter(p => sellable().includes(p));
   const evp = evProduct(), cw = contractWant();
   let order = [];
   for (let i = 0; i < count; i++){
-    const p = cw && Math.random() < 0.25 ? pick(cw) : evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(sellable());
+    const p = cw && Math.random() < 0.25 ? pick(cw) : evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(pool);
     order.push({p, done:false});
   }
   // Eleştirmen menünün en pahalı 5 ürününden 3-4 parça ister
@@ -1793,13 +1870,14 @@ function spawnCustomer(special, delayPx = 0){
   if (special === 'vip') max *= 0.9;
   if (special === 'elestirmen') max *= 0.8;
   if (reg) max *= 1 + 0.08 * regLv(reg.id);   // eski dost biraz daha sabırlıdır
-  const look = reg ? {...reg.look} : randomLook();
+  if (CT) max *= CT.pat;
+  const look = reg ? {...reg.look} : {...randomLook(), ...(CT && CT.look || {})};
   if (special === 'vip'){ look.shirt = '#1d1d2b'; look.suit = true; look.hat = 'crown'; }
   if (special === 'influencer'){ look.shirt = '#ff6fae'; look.prop = 'phone'; }
   if (special === 'turist'){ look.shirt = '#21b3a5'; look.hat = 'sun'; look.prop = 'camera'; }
   if (special === 'elestirmen'){ look.shirt = '#3d3d46'; look.glasses = true; look.hat = 'bere'; look.prop = 'note'; }
   const seat = pick(free);
-  const c = {id:R.nextId++, seat, look, order, patience:max, max, special, reg:reg && reg.id,
+  const c = {id:R.nextId++, seat, look, order, patience:max, max, special, reg:reg && reg.id, ct,
              state:'in', x:rightWall() + 40 + delayPx, y:aisleY(), path:pathIn(seat), walk:0};
   R.customers.push(c);
   SFX.arrive();
@@ -1836,14 +1914,16 @@ function serve(c, silent){
 }
 
 function pay(c){
+  if (maybeVeresiye(c)) return;   // R-1: müşteri parasız çıktı, karar bekleniyor
   const ratio = c.patience / c.max;
   let base = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
+  if (c.payMul != null) base = Math.round(base * c.payMul);
   if (c.special === 'vip') base *= 3;
   if (R.focus) base = Math.round(base * 1.2);   // röportajı reddedip dükkâna odaklanılan gün
   R.combo++; R.comboT = COMBO_TIME;
   if (dirt() >= 4 && Math.random() < 0.3){
     S.rep = Math.max(0, S.rep - 1);
-    floatText(SLOTS[c.seat].x, SLOTS[c.seat].y - 185, '🤢 Burası kirli! -1⭐', '#c9e06a', 0.3);
+    floatText(SLOTS[c.seat].x, SLOTS[c.seat].y - 185, L('🤢 Burası kirli! -1⭐', '🤢 This place is dirty! -1⭐'), '#c9e06a', 0.3);
     R.voice.dirty++;
   }
   R.stats.bestCombo = Math.max(R.stats.bestCombo, R.combo);
@@ -1851,7 +1931,7 @@ function pay(c){
   const cm = comboMult(R.combo);
   const tipMult = (1 + 0.1 * lv('dekor')) * (DE().tip || 1) * (CM().tip || 1) * (effect('happy') ? 3 : 1) * cm * (1 + 0.05 * fameTier()) * headTip() * sagTip() * hoodTip()
     * (c.reg ? 1 + 0.1 * regLv(c.reg) : 1)    // müdavim: her kalp +%10 bahşiş
-    * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip;
+    * ((EV() || {}).tip || 1) * (1 + colBonus('tip')) * (WD().tip || 1) * Q().tip * (c.ct ? CTYPES[c.ct].tip : 1);
   let tip = Math.round(base * (0.05 + 0.35 * ratio) * tipMult);
   // Ünlüysen bazı müşteriler imza ister ve fazladan bahşiş bırakır
   const autograph = fameLv() >= 1 && Math.random() < 0.06 * fameTier();
@@ -1879,7 +1959,8 @@ function pay(c){
   if (cm > comboMult(R.combo - 1)){ floatText(s.x, s.y - 160, `🔥 KOMBO x${cm}!`, '#ff9d3a', 0.15); SFX.combo(); }
   floatText(s.x, s.y - 100, `+₺${base + tip - mat}`, '#ffc94a');
   if (c.special === 'influencer') floatText(s.x, s.y - 130, '📸 +10⭐', '#e08bff', 0.3);
-  else if (autograph) floatText(s.x, s.y - 130, '✍️ İmza istedi!', '#e08bff', 0.3);
+  else if (autograph) floatText(s.x, s.y - 130, L('✍️ İmza istedi!', '✍️ Asked for an autograph!'), '#e08bff', 0.3);
+  else if (c.ct && c.payMul == null && Math.random() < 0.15) say(s.x, s.y - 150, sayPick('happy'));
   coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
   bump('#money', 'bump');
   SFX.pay();
@@ -2414,7 +2495,7 @@ function tick(dt){
   // Müşteriler
   for (const c of [...R.customers]){
     if (c.state === 'in'){
-      if (moveAlong(c, dt, 150)){ c.state = 'seated'; c.flip = false; if (c.reg) regGreet(c); }
+      if (moveAlong(c, dt, 150)){ c.state = 'seated'; c.flip = false; if (c.reg) regGreet(c); else custGreet(c); }
     } else if (c.state === 'out'){
       if (moveAlong(c, dt, 150)) R.customers = R.customers.filter(x => x !== c);
     } else {
@@ -2428,7 +2509,8 @@ function tick(dt){
         const penalty = c.special === 'vip' || c.special === 'influencer' || c.special === 'elestirmen' ? 10 : 4;
         const s = SLOTS[c.seat];
         floatText(s.x, s.y - 100, `💢 -${penalty}⭐`, '#ff6b5e');
-        if (R.combo >= 3) floatText(s.x, s.y - 130, `Kombo bitti (${R.combo})`, '#c9b39a', 0.2);
+        if (R.combo >= 3) floatText(s.x, s.y - 130, L(`Kombo bitti (${R.combo})`, `Combo over (${R.combo})`), '#c9b39a', 0.2);
+        if (c.ct && Math.random() < 0.5) say(s.x, s.y - 160, sayPick('angry'));
         R.combo = 0;
         S.rep = Math.max(0, S.rep - penalty);
         R.stats.lost++; R.voice.lost++;
@@ -2482,7 +2564,7 @@ function endDay(){
   // Yarın eleştirmen gelecek mi? (5. günden sonra %30)
   // Haber verilip masa boş olmadığı için gelemeyen eleştirmen yarın gelir
   S.critic = R.criticAt != null || (S.day + 1 >= 5 && Math.random() < 0.3) ? S.day + 1 : null;
-  const ctLine = contractDay(), lgLine = leagueDay(st.earned + st.tips), awLine = awardDay(st, perfect);
+  const ctLine = contractDay(), lgLine = leagueDay(st.earned + st.tips), awLine = awardDay(st, perfect), vLine = veresiyeDay();
   const askRate = stars === 3 && rateReady();
   if (stars === 3) appReview();   // uygulamada Apple'ın puan penceresi
   gcScore();
@@ -2520,6 +2602,7 @@ function endDay(){
     ${lgLine}
     ${awLine}
     ${ctLine}
+    ${vLine}
     ${S.critic ? `<p class="banner">${L('🧐 Yarın bir yemek eleştirmeni gelecek! En pahalı ürünlerini isteyecek: tariflerini geliştir, salonda kimseyi kızdırma.', '🧐 A food critic is coming tomorrow! They will order your most expensive items: improve your recipes and keep everyone happy.')}</p>` : ''}
     ${S.day % 3 === 0 ? `<p class="banner">${L('📦 Bedava usta paketi kazandın! Ekip ekranında aç.', '📦 You earned a free master pack! Open it on the Crew screen.')}</p>` : ''}
     ${buyNow ? `<p class="hint">${L('🛒 Şimdi alabilirsin', '🛒 You can buy now')}: <b>${buyNow.t}</b> · ₺${fmt(buyNow.c)}</p>` : ''}
@@ -3124,7 +3207,7 @@ function drawParticles(map){
     const a = Math.min(1, p.life / p.max * 1.6), [x, y] = map ? map(p) : [p.x, p.y];
     g.globalAlpha = a;
     if (p.type === 'text'){
-      g.font = `900 22px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `900 ${p.small ? 20 : 22}px system-ui, ${EMOJI}`; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.7)'; g.strokeText(p.text, x, y);
       g.fillStyle = p.color; g.fillText(p.text, x, y);
     } else if (p.type === 'emoji'){
@@ -4225,7 +4308,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.37.0';
+const APP_VERSION = '2.38.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4564,6 +4647,7 @@ $('#modal').addEventListener('click', e => {
   if (id === 'howto'){ showWelcome(); return; }
   if (id === 'resetAsk'){ showResetConfirm(); return; }
   if (id === 'staffUp'){ upgradeStaff(staffSel); return; }
+  if (btn && btn.dataset.ver){ answerVeresiye(btn.dataset.ver); return; }
   if (btn && btn.dataset.sagcard){ S.sagCard = btn.dataset.sagcard; save(); hideModal(); renderUI(); toast(L(`🤝 ${sagCard().name} artık sağ kolun!`, `🤝 ${sagCard().name} is now your right hand!`)); SFX.buy(); return; }
   if (btn && btn.dataset.sag){ S.sagkol = btn.dataset.sag; save(); hideModal(); renderUI(); toast(L(`🤝 ${REGULARS.find(r => r.id === S.sagkol).name} artık sağ kolun!`, `🤝 ${REGULARS.find(r => r.id === S.sagkol).name} is now your right hand!`)); SFX.buy(); return; }
   if (id === 'codeOut'){ showCodeOut(); return; }
