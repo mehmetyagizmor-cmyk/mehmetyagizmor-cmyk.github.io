@@ -42,7 +42,7 @@ Mağaza sayfası metinleri (İngilizce ve Türkçe): [store/APP-STORE-EN.md](../
 7. Xcode → Signing & Capabilities: **Game Center** yeteneğini ekle.
 8. Game Center (App Store Connect → uygulama → Game Center). Kimlikler oyundakiyle birebir aynı olmalı:
    - Sıralama: `cayocagi.toplam`, adı "Toplam Kazanç", tamsayı, büyük olan iyi.
-   - Başarımlar: aşağıdaki 27 kimlik, her biri tek seferlik (100%).
+   - Başarımlar: aşağıdaki 34 kimlik, her biri tek seferlik (100%).
 
    | Kimlik | Ad |
    |---|---|
@@ -73,6 +73,13 @@ Mağaza sayfası metinleri (İngilizce ve Türkçe): [store/APP-STORE-EN.md](../
    | `cayocagi.etkinlik` | 🎉 Bayram Coşkusu |
    | `cayocagi.koleksiyon` | 🏺 Koleksiyoncu |
    | `cayocagi.seri` | 📅 Sadık Esnaf |
+   | `cayocagi.cay10k` | 🫖 Çay Fabrikası |
+   | `cayocagi.m10000` | 🏟️ Mahallenin Efsanesi |
+   | `cayocagi.vip100` | 👑 VIP Dostu |
+   | `cayocagi.k250000` | 🏦 Büyük Sermaye |
+   | `cayocagi.milyon` | 💸 Milyoner |
+   | `cayocagi.kusursuz30` | 🌟 Kusursuz Usta |
+   | `cayocagi.kombo30` | 🔥 Kombo Kralı |
 
 9. Oyundaki iPhone özellikleri (eklenti yoksa sessizce hiçbir şey yapmaz):
    - **Titreşim:** Haptics; ayarlardaki titreşim düğmesiyle kapanır.

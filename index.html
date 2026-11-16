@@ -46,6 +46,15 @@ button{touch-action:manipulation;font:inherit;color:inherit}
 .stat.bump{animation:bumpA .4s}
 @keyframes bumpA{40%{transform:scale(1.2);color:#fff}}
 .stat.shake{animation:shakeA .4s}
+/* R-3: büyük kombo yazısı ve sahne sarsıntısı */
+#comboPop{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(.4);pointer-events:none;z-index:6;opacity:0;white-space:nowrap;text-align:center;
+  font:700 clamp(34px,10vw,68px)/1 Fredoka,system-ui,sans-serif;color:#ffd36b;-webkit-text-stroke:3px #3a2214;paint-order:stroke fill;text-shadow:0 5px 0 #3a2214}
+#comboPop small{display:block;margin-top:4px;font-size:.38em;color:#fff6e6;-webkit-text-stroke:2px #3a2214}
+#comboPop.go{animation:comboA 1.15s ease-out}
+@keyframes comboA{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}30%{transform:translate(-50%,-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+.scene.quake{animation:quakeA .35s}
+@keyframes quakeA{20%{transform:translate(-6px,2px)}40%{transform:translate(6px,-2px)}60%{transform:translate(-3px,1px)}80%{transform:translate(3px,0)}}
+@media (prefers-reduced-motion:reduce){.scene.quake{animation:none}}
 @keyframes shakeA{25%{transform:translateX(-4px);color:var(--bad)}75%{transform:translateX(4px);color:var(--bad)}}
 
 /* ---------- Yerleşim (telefon: tek sütun, sahne sabit, alt menü) ---------- */
@@ -694,6 +703,7 @@ h3{color:var(--muted)}
         <canvas id="scene3d" hidden></canvas>
         <canvas id="scene"></canvas>
         <div id="events"></div>
+        <div id="comboPop" aria-hidden="true"></div>
         <!-- Sahnenin köşelerinde yüzen düğmeler -->
         <div class="fabs">
           <button class="fab" id="settingsBtn" aria-label="Ayarlar" data-en-label="Settings"><svg class="ic"><use href="#i-gear"/></svg></button>
@@ -1486,7 +1496,7 @@ const mainLv = () => S.branches[0].lv.dukkan || 0;   // günlük ödül/görev �
 // Ana dükkân Ünlü Mekân olunca (15. günden sonra) dükkân çırağa devredilir: her şey baştan başlar,
 // her miras puanı kalıcı +%5 satış getirir. Sahip, ünlülük, başarımlar ve koleksiyon kalır
 const LEGACY_DAY = 25;
-const LEGACY_KEEP = ['owner', 'ach', 'col', 'fame', 'interviews', 'lastCover', 'streak', 'lastDate', 'evp', 'rated', 'rateAsks', 'rateNext'];
+const LEGACY_KEEP = ['owner', 'ach', 'col', 'fame', 'interviews', 'lastCover', 'streak', 'lastDate', 'evp', 'rated', 'cayN', 'vipN', 'rateAsks', 'rateNext'];
 const LEGACY_TITLES = ['Usta', 'Pir', 'Çay Efsanesi'];
 const legacy = () => S.legacy || {n:0, pts:0};
 const legacyMult = () => 1 + 0.05 * legacy().pts;
@@ -1739,6 +1749,17 @@ function needed(){
 
 // Art arda mutlu müşteri: bahşiş çarpanı büyür, biri kızarsa sıfırlanır
 const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2 : 1;
+// R-3: kombo kademesinde sahnenin ortasında büyük yazı, kısa sarsıntı ve titreşim
+function comboPop(n, cm){
+  const el = $('#comboPop');
+  if (!el) return;
+  el.innerHTML = `🔥 ${n}x ${L('KOMBO', 'COMBO')}!<small>${L('bahşiş', 'tips')} x${String(cm).replace('.', L(',', '.'))}</small>`;
+  const sc = el.parentElement;
+  el.style.fontSize = Math.max(24, Math.min(68, sc.clientWidth / 9)) + 'px';   // sahne darsa (yatay ekran, masaüstü) taşmasın
+  el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+  sc.classList.remove('quake'); void sc.offsetWidth; sc.classList.add('quake');
+  buzz([30, 40, 30]);
+}
 
 function spawnInterval(){
   const base = Math.max(1.5, (7 - lv('tabela') * 0.8) * (1.4 - S.rep / 100 * 0.6));
@@ -1943,6 +1964,8 @@ function pay(c){
   const ep = evProg();
   if (ep && !ep.done && ++ep.n >= EV().goal) evReward(ep);
   c.order.forEach(o => R.sold[o.p] = (R.sold[o.p] || 0) + 1);
+  S.cayN = (S.cayN || 0) + c.order.filter(o => o.p === 'cay' || o.p === 'rizecay').length;
+  if (c.special === 'vip') S.vipN = (S.vipN || 0) + 1;
   contractSold(c.order);
   S.rep = Math.min(100, S.rep + (ratio > 0.5 ? 2 : 1) + (c.special === 'influencer' ? 10 : 0));
   const s = SLOTS[c.seat];
@@ -1956,7 +1979,7 @@ function pay(c){
     floatText(s.x, s.y - 215, `${pick(REVIEWS[rv])} ${good ? '+1' : '-2'}⭐`, good ? '#8fe08f' : '#ff8a7a', 0.45);
   }
   // Yeni kombo kademesine geçildiyse kutla
-  if (cm > comboMult(R.combo - 1)){ floatText(s.x, s.y - 160, `🔥 KOMBO x${cm}!`, '#ff9d3a', 0.15); SFX.combo(); }
+  if (cm > comboMult(R.combo - 1) || (R.combo >= 20 && R.combo % 5 === 0)){ comboPop(R.combo, cm); SFX.combo(); }
   floatText(s.x, s.y - 100, `+₺${base + tip - mat}`, '#ffc94a');
   if (c.special === 'influencer'){
     floatText(s.x, s.y - 130, c.infl === 'ikram' ? '📸 +15⭐ · +5 🌟' : '📸 +10⭐', '#e08bff', 0.3);
@@ -1964,7 +1987,7 @@ function pay(c){
   }
   else if (autograph) floatText(s.x, s.y - 130, L('✍️ İmza istedi!', '✍️ Asked for an autograph!'), '#e08bff', 0.3);
   else if (c.ct && c.payMul == null && Math.random() < 0.15) say(s.x, s.y - 150, sayPick('happy'));
-  coins(s.x, s.y - 40, Math.min(8, 2 + Math.floor((base + tip) / 20)));
+  coins(s.x, s.y - 40, Math.min(14, 2 + Math.floor((base + tip) / 20) + Math.floor(R.combo / 3)));   // kombo büyüdükçe daha çok para saçılır
   bump('#money', 'bump');
   SFX.pay();
   if (c.reg) regHappy(c, ratio);
@@ -2122,6 +2145,14 @@ const ACH = [
   {id:'etkinlik', emoji:'🎉', name:'Bayram Coşkusu',     desc:'Bir etkinlik görevini tamamla',            goal:1,     val:() => Object.values(S.evp || {}).filter(e => e.done).length, reward:1000},
   {id:'koleksiyon', emoji:'🏺', name:'Koleksiyoncu',     desc:'Bir koleksiyon setini tamamla',            goal:1,     val:() => COL_SETS.filter(setDone).length, reward:5000},
   {id:'seri',     emoji:'📅', name:'Sadık Esnaf',        desc:'7 gün üst üste oyuna gir',                 goal:7,     val:() => S.streak,                reward:700},
+  // R-3: uzun vadeli hedefler (metinler burada iki dilli)
+  {id:'cay10k',     emoji:'🫖', name:L('Çay Fabrikası', 'Tea Factory'),           desc:L('10.000 bardak çay sat', 'Sell 10,000 glasses of tea'),             goal:10000,  val:() => S.cayN || 0,      reward:25000},
+  {id:'m10000',     emoji:'🏟️', name:L('Mahallenin Efsanesi', 'Neighbourhood Legend'), desc:L('10.000 müşteriye servis yap', 'Serve 10,000 customers'),     goal:10000,  val:() => S.served,         reward:30000},
+  {id:'vip100',     emoji:'👑', name:L('VIP Dostu', 'VIP Friend'),                desc:L('100 VIP müşteriye hizmet ver', 'Serve 100 VIP customers'),         goal:100,    val:() => S.vipN || 0,      reward:20000},
+  {id:'k250000',    emoji:'🏦', name:L('Büyük Sermaye', 'Big Capital'),           desc:L('Toplam ₺250.000 kazan', 'Earn ₺250,000 in total'),                 goal:250000, val:() => S.total,          reward:10000},
+  {id:'milyon',     emoji:'💸', name:L('Milyoner', 'Millionaire'),                desc:L('Toplam ₺1.000.000 kazan', 'Earn ₺1,000,000 in total'),             goal:1e6,    val:() => S.total,          reward:50000},
+  {id:'kusursuz30', emoji:'🌟', name:L('Kusursuz Usta', 'Flawless Master'),       desc:L('30 kusursuz gün yaşa', 'Have 30 perfect days'),                   goal:30,     val:() => S.perfect,        reward:15000},
+  {id:'kombo30',    emoji:'🔥', name:L('Kombo Kralı', 'Combo King'),              desc:L('30 kombo yap', 'Reach a 30 combo'),                               goal:30,     val:() => S.bestCombo || 0, reward:5000},
 ];
 function checkAch(){
   if (!S.owner) return;
@@ -3290,9 +3321,9 @@ function drawCombo(){
   g.strokeStyle = cm > 1 ? '#ff9d3a' : 'rgba(255,255,255,.25)'; g.lineWidth = 2; rr(g, x, y, w, h, 12); g.stroke();
   emoji(g, '🔥', x + 24, y + 22, cm >= 2 ? 26 : 20);
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.fillStyle = '#fff'; g.font = '900 19px system-ui'; g.fillText(`${n} KOMBO`, x + 44, y + 17);
+  g.fillStyle = '#fff'; g.font = '900 19px system-ui'; g.fillText(`${n} ${L('KOMBO', 'COMBO')}`, x + 44, y + 17);
   g.fillStyle = cm > 1 ? '#ffc94a' : '#c9b39a'; g.font = '700 13px system-ui';
-  g.fillText(cm > 1 ? `bahşiş x${cm}` : `${next} kombo: bahşiş x${comboMult(next)}`, x + 44, y + 34);
+  g.fillText(cm > 1 ? `${L('bahşiş', 'tips')} x${cm}` : L(`${next} kombo: bahşiş x${comboMult(next)}`, `${next} combo: tips x${comboMult(next)}`), x + 44, y + 34);
   const tf = Math.max(0, (R.comboT || 0) / COMBO_TIME);   // kalan kombo süresi
   g.fillStyle = tf < 0.3 ? '#ff6b5e' : '#ffc94a'; rr(g, x + 10, y + 3, (w - 20) * tf, 3, 1.5); g.fill();
   if (next){ // ilerleme çubuğu
@@ -4358,7 +4389,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.39.0';
+const APP_VERSION = '2.40.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
