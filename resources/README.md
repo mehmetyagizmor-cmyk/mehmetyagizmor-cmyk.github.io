@@ -17,6 +17,8 @@ chrome --headless=new --hide-scrollbars --force-device-scale-factor=1 --allow-fi
 
 Chrome'un PNG'si şeffaflık kanalı içerir. App Store bunu kabul etmez, bu yüzden PowerShell'de System.Drawing ile `Format24bppRgb` olarak yeniden kaydet.
 
+Mağaza sayfası metinleri (İngilizce ve Türkçe): [store/APP-STORE-EN.md](../store/APP-STORE-EN.md)
+
 ## Mac'te Capacitor kurulumu (Apple geliştirici hesabı açılınca)
 
 1. Bir klasöre oyunun dosyalarını `www/` olarak koy: index.html, privacy.html, manifest.webmanifest, icons, fonts, scene3d.js, people3d.js, mahalle3d.js, vendor.

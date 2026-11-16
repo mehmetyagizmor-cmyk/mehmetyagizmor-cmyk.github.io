@@ -774,7 +774,7 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 // ---------- Dil (EN) ----------
 // Metinler yerinde iki dilli yazılır: L('Türkçe', 'English'). Sabit HTML'de data-en / data-en-label.
 // Çeviri bölüm bölüm ilerliyor: EN_READY true olana kadar oyun herkese Türkçe açılır, İngilizce yalnızca Ayarlar'dan seçilir
-const EN_READY = false;
+const EN_READY = true;
 const LANG = (() => {
   try { const s = localStorage.getItem('cayocagi-dil'); if (s === 'tr' || s === 'en') return s; } catch(e) {}
   return EN_READY && !/^tr/i.test(navigator.language || 'tr') ? 'en' : 'tr';
@@ -963,6 +963,24 @@ const IV_QS = [
     esprili:'Bardağın ince belli olanı.'}},
 ];
 
+// İngilizce röportaj metinleri (EN-5b): yayınlar, ödüller, manşetler, sorular ve cevaplar
+if (LANG === 'en'){
+  Object.assign(IV_REWARD, {samimi:'Readers loved you: customers are 20% more patient today',
+    iddiali:'A sponsor called: ₺{m} in ad money', esprili:'Your interview went viral: customers come 25% more often today'});
+  ['Neighbourhood Post', 'City Gazette', 'Taste Magazine', 'Türkiye Today', 'World Tea Times'].forEach((n, i) => OUTLETS[i] && (OUTLETS[i].name = n));
+  Object.assign(HEADLINES, {samimi:'"My customers are my family"', iddiali:'"I make the best tea in Türkiye!"', esprili:'"I brew my tea with a smile!"'});
+  const QA = [
+    ['How did you start your tea house?', "With my grandfather's samovar and a big dream.", 'I brew the best tea in this city, everyone knows it!', 'First I brewed for myself, then the neighbours started knocking.'],
+    ['What is the secret of your success?', 'A smile for the customer, patience for the tea.', 'My rivals look like beginners next to me.', 'If I told you, it would not be a secret!'],
+    ['How do you brew good tea?', 'Warm the pot, then wait patiently. No rushing.', 'Nobody brews like me, and it cannot be taught.', 'Until it is the colour of rabbit blood… just keep the rabbit out of it!'],
+    ['What are your plans for the future?', 'To never forget my neighbourhood as I grow.', 'There will be a {shop} in every city!', 'Let me have one more tea first, then I will think about it.'],
+    ['Is there a customer you will never forget?', 'Our retired teacher who comes first every morning.', 'A celebrity came in and asked me for an autograph!', 'The uncle who drank 9 glasses in one sitting. He still holds the record.'],
+    ['What do you think of your rivals?', 'May everyone do well.', 'Rivals? What rivals?', 'Let them come have a tea, then we can talk.'],
+    ['What advice would you give young people?', 'Respect your own work and the rest will follow.', 'They will not find a better example than me.', 'Do not let your tea go cold, or your dreams.'],
+    ['What makes you happiest?', 'When a customer says "well done".', 'A full till, I will not lie!', 'A tea glass with a slim waist.'],
+  ];
+  IV_QS.forEach((x, i) => { const t = QA[i]; if (t){ x.q = t[0]; x.a = {samimi:t[1], iddiali:t[2], esprili:t[3]}; } });
+}
 const UPGRADES = [
   {id:'masa',    grp:'esya', emoji:'🪑', name:'Yeni Masa',     desc:'Dükkâna bir masa daha koy',          base:160,  mult:1.8},
   {id:'tepsi',   grp:'esya', emoji:'🍽️', name:'Büyük Tepsi',   desc:'Tepsi kapasitesi +1',                base:120, mult:1.75, max:8},
@@ -1207,7 +1225,7 @@ function review(score){
   addFame(fm);
   S.rep = Math.max(0, Math.min(100, S.rep + (score - 3) * 4));
   const rp = (score - 3) * 4;
-  announce({emoji:'📰', name:`Lezzet Rehberi: ${starStr(score)}`, desc:`"${REVIEW_QUOTES[score]}"${fm ? ` · 🌟 +${fm}` : ''}${rp ? ` · ${rp > 0 ? '+' : ''}${rp}⭐` : ''}`, ach:score >= 4});
+  announce({emoji:'📰', name:`${L('Lezzet Rehberi', 'Taste Guide')}: ${starStr(score)}`, desc:`"${REVIEW_QUOTES[score]}"${fm ? ` · 🌟 +${fm}` : ''}${rp ? ` · ${rp > 0 ? '+' : ''}${rp}⭐` : ''}`, ach:score >= 4});
 }
 const DEFAULT_OWNER = {g:'e', name:'Usta', shopName:'Çay Ocağı', skin:SKINS[1], hair:HAIRS[0], style:0, shirt:SHIRTS[0], beard:true};
 const CIRAK_LOOKS = [
@@ -1387,8 +1405,8 @@ async function appNotify(){
   try {
     if ((await p.checkPermissions()).display !== 'granted') return;
     await p.cancel({notifications:[{id:NOTE_ID}]});
-    await p.schedule({notifications:[{id:NOTE_ID, title:'🍵 Kasan doldu!',
-      body:`${owner().shopName} seni bekliyor: ${OFF.cap} saatlik kazanç toplandı.`, schedule:{at:new Date(Date.now() + OFF.cap * 3600000)}}]});
+    await p.schedule({notifications:[{id:NOTE_ID, title:L('🍵 Kasan doldu!', '🍵 Your till is full!'),
+      body:L(`${owner().shopName} seni bekliyor: ${OFF.cap} saatlik kazanç toplandı.`, `${owner().shopName} is waiting: ${OFF.cap} hours of earnings collected.`), schedule:{at:new Date(Date.now() + OFF.cap * 3600000)}}]});
   } catch(e) {}
 }
 const appNotifyCancel = () => appCall('LocalNotifications', 'cancel', {notifications:[{id:NOTE_ID}]});
@@ -1482,14 +1500,14 @@ function passLegacy(){
   S = link(Object.assign(fresh(), keep)); save(); newDay(); status = 'closed'; particles = [];
 }
 function showLegacy(){
-  const g = legacyGain(), L = legacy();
+  const g = legacyGain(), LG = legacy();
   showModal(`
-    <h2>🎖️ Usta Mirası</h2>
-    <p><b>${esc(owner().shopName)}</b> artık bir efsane! Dükkânı çırağına devredip yeni bir mahallede sıfırdan başlayabilirsin.</p>
-    <p class="banner">+${g} miras puanı → kalıcı <b>+%${5 * (L.pts + g)} satış</b> · unvanın: <b>${legacyTitle(L.n + 1)}</b></p>
-    <p class="hint">✅ Kalanlar: karakterin, ünlülüğün, başarımların, koleksiyonun<br>🔄 Baştan başlayanlar: para, dükkân, menü, tarifler, şubeler, müdavimler</p>
-    <button class="big" id="legacyYes">🎖️ Devret ve baştan başla</button>
-    <div class="btns"><button class="btn2" id="modalOk">Vazgeç</button></div>`);
+    <h2>${L('🎖️ Usta Mirası', "🎖️ Master's Legacy")}</h2>
+    <p>${L(`<b>${esc(owner().shopName)}</b> artık bir efsane! Dükkânı çırağına devredip yeni bir mahallede sıfırdan başlayabilirsin.`, `<b>${esc(owner().shopName)}</b> is a legend now! Hand the shop to your apprentice and start fresh in a new neighbourhood.`)}</p>
+    <p class="banner">${L(`+${g} miras puanı → kalıcı <b>+%${5 * (LG.pts + g)} satış</b> · unvanın: <b>${legacyTitle(LG.n + 1)}</b>`, `+${g} legacy points → permanent <b>+${5 * (LG.pts + g)}% sales</b> · your title: <b>${legacyTitle(LG.n + 1)}</b>`)}</p>
+    <p class="hint">${L('✅ Kalanlar: karakterin, ünlülüğün, başarımların, koleksiyonun<br>🔄 Baştan başlayanlar: para, dükkân, menü, tarifler, şubeler, müdavimler', '✅ You keep: your character, fame, achievements and collection<br>🔄 Starts over: money, shop, menu, recipes, branches and regulars')}</p>
+    <button class="big" id="legacyYes">${L('🎖️ Devret ve baştan başla', '🎖️ Hand over and start over')}</button>
+    <div class="btns"><button class="btn2" id="modalOk">${L('Vazgeç', 'Cancel')}</button></div>`);
 }
 const hasCity = id => S.branches.some(b => b.city === id);
 const countIn = r => S.branches.filter(b => regionOf(b.city) === r).length;
@@ -1604,7 +1622,7 @@ function addFame(n){
   const after = fameLv();
   if (after > before){
     const F = FAME_LEVELS[after], pk = FAME_PERKS.find(p => p.lv === after);
-    announce({emoji:F.emoji, name:F.name, desc:pk ? `Yeni ayrıcalık: ${pk.emoji} ${pk.name}` : 'Artık daha çok kişi seni tanıyor!', ach:true}, L('🌟 Ünlülük', '🌟 Fame'));
+    announce({emoji:F.emoji, name:F.name, desc:pk ? `${L('Yeni ayrıcalık', 'New perk')}: ${pk.emoji} ${pk.name}` : L('Artık daha çok kişi seni tanıyor!', 'More people know you now!'), ach:true}, L('🌟 Ünlülük', '🌟 Fame'));
     confetti();
   }
 }
@@ -1798,7 +1816,7 @@ function leave(c, mood){
   if (c.seat != null && R.stains.length < MAX_STAINS && Math.random() < 0.3){
     const sl = SLOTS[c.seat];
     R.stains.push({x:sl.x + rand(-50, 50), y:Math.min(sl.y + rand(44, 56), viewH() - 18), r:Math.random()});
-    if (!S.stainTip){ S.stainTip = 1; announce({emoji:'🧽', name:'Dükkân kirleniyor', desc:'Müşteriler kalkınca masaların önü kirlenir. Kire dokunup temizle ya da Mağaza’dan temizlikçi tut. Kirli dükkânda müşteri çabuk sabırsızlanır ve daha az gelir.'}); }
+    if (!S.stainTip){ S.stainTip = 1; announce({emoji:'🧽', name:L('Dükkân kirleniyor', 'The shop is getting dirty'), desc:L('Müşteriler kalkınca masaların önü kirlenir. Kire dokunup temizle ya da Mağaza’dan temizlikçi tut. Kirli dükkânda müşteri çabuk sabırsızlanır ve daha az gelir.', 'When customers leave, the floor by the tables gets dirty. Tap the dirt to clean it or hire a cleaner in the Shop. In a dirty shop customers lose patience fast and come less often.')}); }
   }
   c.state = 'out';
   c.path = pathOut(c.seat);
@@ -2262,7 +2280,7 @@ function checkQuests(){
     S.quests.bonus = true;
     const bonus = Math.round(S.quests.list[0].reward * 1.5);
     S.money += bonus; S.rep = Math.min(100, S.rep + 5);
-    announce({emoji:'📋', name:'Bugünün tüm görevleri tamam!', desc:`Bonus +₺${fmt(bonus)} · +5⭐`, ach:true});
+    announce({emoji:'📋', name:L('Bugünün tüm görevleri tamam!', "All of today's quests are done!"), desc:`Bonus +₺${fmt(bonus)} · +5⭐`, ach:true});
     confetti(); save();
   }
 }
@@ -2321,7 +2339,7 @@ function tick(dt){
   if (R.arson){
     R.arson.t -= dt;
     const gl = lv('guvenlik');
-    if (gl && ARSON_T - R.arson.t >= 3.5 - 0.8 * gl) catchArson('💂 Güvenlik yakaladı!');
+    if (gl && ARSON_T - R.arson.t >= 3.5 - 0.8 * gl) catchArson(L('💂 Güvenlik yakaladı!', '💂 Security caught them!'));
     else if (R.arson.t <= 0){
       const loss = Math.min(S.money, 40 * S.day), a = R.arson;
       S.money -= loss; R.stats.loss += loss; S.rep = Math.max(0, S.rep - 5); R.arson = null;
@@ -3236,7 +3254,7 @@ function set3D(on, remember = true){
     $('#scene3d').hidden = !want3d; sahne3d.resize();
   }).catch(err => {
     console.error(err); drop3D();
-    announce({emoji:'⚠️', name:'3D sahne açılamadı, 2D kullanılıyor', desc:note3d(err)});
+    announce({emoji:'⚠️', name:L('3D sahne açılamadı, 2D kullanılıyor', 'The 3D scene could not start, using 2D'), desc:note3d(err)});
   }).finally(() => { loading3d = false; });
 }
 // Hata yüzünden 2D'ye dönüş bu oturumluk: oyuncunun tercihi silinmez, sonraki açılışta 3D yine denenir
@@ -3715,7 +3733,7 @@ function worldMapSVG(){
   const trBad = S.branches.some(b => regionOf(b.city) === 'tr' && (b.issue || b.crisis));
   pins += `<g class="pin own home${trBad ? ' bad' : ''}" data-pin="tr"><circle cx="${tx}" cy="${ty}" r="9" class="hit"/><circle cx="${tx}" cy="${ty}" r="5"/>
     ${mapLabel('tr', tx, ty, `Türkiye ${trCount()}/${TR_GOAL}`)}</g>`;
-  return `<svg class="wmap" viewBox="0 0 360 136" role="img" aria-label="Şube haritası"><g class="land">${land}</g>${arcs}${pins}</svg>`;
+  return `<svg class="wmap" viewBox="0 0 360 136" role="img" aria-label="${L('Şube haritası', 'Branch map')}"><g class="land">${land}</g>${arcs}${pins}</svg>`;
 }
 
 // ---------- Ekip: isimli ustabaşı, çırak ve garsonlar ----------
@@ -3800,7 +3818,7 @@ function sagHTML(){
   return `<h2>${L('🤝 Sağ kol', '🤝 Right hand')}</h2><p class="hint">${L('Bir usta kartını sağ kolun yap: bonusu bütün dükkânlarında geçerli.', 'Make a master card your right hand: its bonus works in all your shops.')}</p>`
     + (own.length ? own.map(c => `<button class="ans" data-sagcard="${c.id}">${c.emoji} <b>${c.name}</b> · ${'★'.repeat(cardLv(c.id))} · ${cardFxTxt(c, cardLv(c.id))}${cur === c ? ' ✓' : ''}</button>`).join('')
       : `<p>${L('Henüz usta kartın yok. Ekip ekranında paket aç.', 'You have no master cards yet. Open a pack on the Crew screen.')}</p>`)
-    + '<button class="big" id="modalOk">Kapat</button>';
+    + `<button class="big" id="modalOk">${L('Kapat', 'Close')}</button>`;
 }
 const bestFriend = () => REGULARS.filter(r => (S.regs[r.id] || {}).met).sort((a, b) => regLv(b.id) - regLv(a.id))[0];
 const tnode = (sid, cls, lv, name, sub, inc) => `<div class="tn ${cls}" data-sid="${sid}">${lv ? `<span class="tlv">${lv}</span>` : ''}<canvas class="sport" data-sid="${sid}"></canvas>
@@ -4207,7 +4225,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.36.0';
+const APP_VERSION = '2.37.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4249,11 +4267,11 @@ async function readCode(code){
 }
 async function showCodeOut(){
   const code = await saveCode();
-  showModal(`<h2>💾 Kayıt kodu</h2>
-    <p class="hint">Bu kod bütün ilerlemeni taşır. Not defterine ya da kendine mesaj olarak kaydet; başka tarayıcıda, telefonda ya da adreste Ayarlar → <b>Kayıt kodu ile yükle</b>'ye yapıştır.</p>
+  showModal(`<h2>${L('💾 Kayıt kodu', '💾 Save code')}</h2>
+    <p class="hint">${L("Bu kod bütün ilerlemeni taşır. Not defterine ya da kendine mesaj olarak kaydet; başka tarayıcıda, telefonda ya da adreste Ayarlar → <b>Kayıt kodu ile yükle</b>'ye yapıştır.", 'This code carries all your progress. Keep it in a note or message it to yourself; on another browser, phone or address, paste it into Settings → <b>Load from save code</b>.')}</p>
     <textarea id="codeBox" readonly style="width:100%;height:110px;font:12px monospace;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px">${code}</textarea>
-    <button class="big" id="codeCopy">📋 Kopyala</button>
-    <div class="btns"><button class="btn2" id="openSettings">Geri</button></div>`);
+    <button class="big" id="codeCopy">${L('📋 Kopyala', '📋 Copy')}</button>
+    <div class="btns"><button class="btn2" id="openSettings">${L('Geri', 'Back')}</button></div>`);
 }
 function copyCode(){
   const box = $('#codeBox');
@@ -4262,23 +4280,23 @@ function copyCode(){
   else { box.select(); document.execCommand('copy') && done(); }
 }
 function showCodeIn(){
-  showModal(`<h2>📥 Kayıt kodu ile yükle</h2>
-    <p class="hint">Daha önce aldığın kayıt kodunu yapıştır. Bu cihazdaki ilerlemenin yerine geçer.</p>
+  showModal(`<h2>${L('📥 Kayıt kodu ile yükle', '📥 Load from save code')}</h2>
+    <p class="hint">${L('Daha önce aldığın kayıt kodunu yapıştır. Bu cihazdaki ilerlemenin yerine geçer.', 'Paste a save code you made before. It replaces the progress on this device.')}</p>
     <textarea id="codeBox" style="width:100%;height:110px;font:12px monospace;border-radius:8px;background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:8px" placeholder="CO1…"></textarea>
-    <button class="big" id="codeLoad">Kodu kontrol et</button>
-    <div class="btns"><button class="btn2" id="openSettings">Geri</button></div>`);
+    <button class="big" id="codeLoad">${L('Kodu kontrol et', 'Check code')}</button>
+    <div class="btns"><button class="btn2" id="openSettings">${L('Geri', 'Back')}</button></div>`);
 }
 let pendingImport = null;
 async function loadCodeText(code){
   try { pendingImport = await readCode(code); }
   catch(e) { toast(L('⚠️ Kod okunamadı: eksik ya da hatalı kopyalanmış olabilir', '⚠️ Could not read the code: it may be incomplete or mistyped')); SFX.error(); return; }
-  const d = pendingImport, now = S.owner ? `${esc(owner().name)} · ${S.day}. gün · ₺${fmt(S.money)}` : 'kayıt yok';
-  showModal(`<h2>📥 Bu kayıt yüklensin mi?</h2>
-    <table><tr><td>Gelen kayıt</td><td>${esc((d.owner || {}).name || 'Usta')} · ${d.day || 1}. gün · ₺${fmt(d.money || 0)}</td></tr>
-      <tr><td>Bu cihazdaki</td><td>${now}</td></tr></table>
-    <p class="hint">Bu cihazdaki ilerleme gelen kayıtla değiştirilir.</p>
-    <button class="big" id="importYes">📥 Kaydı yükle</button>
-    <div class="btns"><button class="btn2" id="modalOk">Vazgeç</button></div>`);
+  const d = pendingImport, now = S.owner ? `${esc(owner().name)} · ${L(`${S.day}. gün`, `day ${S.day}`)} · ₺${fmt(S.money)}` : L('kayıt yok', 'no save');
+  showModal(`<h2>${L('📥 Bu kayıt yüklensin mi?', '📥 Load this save?')}</h2>
+    <table><tr><td>${L('Gelen kayıt', 'Incoming save')}</td><td>${esc((d.owner || {}).name || 'Usta')} · ${L(`${d.day || 1}. gün`, `day ${d.day || 1}`)} · ₺${fmt(d.money || 0)}</td></tr>
+      <tr><td>${L('Bu cihazdaki', 'On this device')}</td><td>${now}</td></tr></table>
+    <p class="hint">${L('Bu cihazdaki ilerleme gelen kayıtla değiştirilir.', 'The progress on this device will be replaced by the incoming save.')}</p>
+    <button class="big" id="importYes">${L('📥 Kaydı yükle', '📥 Load save')}</button>
+    <div class="btns"><button class="btn2" id="modalOk">${L('Vazgeç', 'Cancel')}</button></div>`);
 }
 function applySave(d){
   if (!d) return;
@@ -4295,11 +4313,11 @@ function goHome(){
   saveCode().then(c => { homeCode = c; });   // sonraki tıklama için güncel kod
 }
 function showFrameWarn(){
-  showModal(`<h2>💾 Kaydın burada kaybolabilir</h2>
-    <p>Bu tarayıcı, sitelerin içine gömülü oyunların kaydını kalıcı tutmuyor. Sekmeyi kapatınca ya da birkaç gün sonra ilerlemen silinebilir.</p>
-    <p class="hint">Oyunu kalıcı adresinde aç: kaydın da yanında gelir. Sonra orada oynamaya devam et.</p>
-    <button class="big" id="goHome">🔒 Kalıcı adreste aç (kaydınla)</button>
-    <div class="btns"><button class="btn2" id="frameStay">Burada devam et</button></div>`);
+  showModal(`<h2>${L('💾 Kaydın burada kaybolabilir', '💾 Your save may be lost here')}</h2>
+    <p>${L('Bu tarayıcı, sitelerin içine gömülü oyunların kaydını kalıcı tutmuyor. Sekmeyi kapatınca ya da birkaç gün sonra ilerlemen silinebilir.', 'This browser does not keep saves of games embedded in other sites. Your progress may be deleted when you close the tab or after a few days.')}</p>
+    <p class="hint">${L('Oyunu kalıcı adresinde aç: kaydın da yanında gelir. Sonra orada oynamaya devam et.', 'Open the game at its permanent address: your save comes with it. Then keep playing there.')}</p>
+    <button class="big" id="goHome">${L('🔒 Kalıcı adreste aç (kaydınla)', '🔒 Open the safe address (with your save)')}</button>
+    <div class="btns"><button class="btn2" id="frameStay">${L('Burada devam et', 'Keep playing here')}</button></div>`);
 }
 // Açılışta: adreste kayıt geldiyse onu sor; çerçevede riskliyse uyar; iPhone'da ana ekrana eklemeyi hatırlat
 function startSaveGuard(){
@@ -4312,7 +4330,7 @@ function startSaveGuard(){
   if (frameRisk && S.owner){ homeCode ? showFrameWarn() : saveCode().then(c => { homeCode = c; showFrameWarn(); }); return; }
   if (isIOS && !inFrame && !standalone() && !isApp() && S.owner && S.day >= 3 && (S.iosHint || 0) + 3 <= S.day){
     S.iosHint = S.day; save();
-    announce({emoji:'📲', name:'Kaydın kaybolmasın', desc:'Safari, 7 gün girilmeyen sitenin kaydını silebilir. Paylaş → Ana Ekrana Ekle'});
+    announce({emoji:'📲', name:L('Kaydın kaybolmasın', 'Keep your save safe'), desc:L('Safari, 7 gün girilmeyen sitenin kaydını silebilir. Paylaş → Ana Ekrana Ekle', 'Safari may delete the save of a site you have not opened for 7 days. Share → Add to Home Screen')});
   }
   // Android Chrome: kaydı kolay silmemesini iste (Firefox izin penceresi açtığı için orada sorulmaz)
   if (!inFrame && !/firefox/i.test(ua) && navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
@@ -4320,8 +4338,8 @@ function startSaveGuard(){
 
 function installRow(){
   if (standalone() || inFrame || isApp()) return '';   // App Store uygulaması zaten yüklü
-  if (installEvt) return '<div class="set-row"><span>📲 Ana ekrana ekle</span><button class="btn2" id="installBtn">Yükle</button></div>';
-  if (isIOS) return '<div class="set-row"><span>📲 Ana ekrana eklemek için Safari\'de <b>Paylaş</b> → <b>Ana Ekrana Ekle</b></span></div>';
+  if (installEvt) return `<div class="set-row"><span>${L('📲 Ana ekrana ekle', '📲 Add to home screen')}</span><button class="btn2" id="installBtn">${L('Yükle', 'Install')}</button></div>`;
+  if (isIOS) return `<div class="set-row"><span>${L("📲 Ana ekrana eklemek için Safari'de <b>Paylaş</b> → <b>Ana Ekrana Ekle</b>", '📲 To add it to your home screen, tap <b>Share</b> → <b>Add to Home Screen</b> in Safari')}</span></div>`;
   return '';
 }
 if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
@@ -4372,15 +4390,15 @@ function showDaily(){
   let cells = '';
   for (let i = 0; i < 7; i++){
     const cls = i < pos ? 'got' : i === pos ? 'today' : '';
-    cells += `<div class="${cls}">${i < pos ? '✓' : i === 6 ? '🎁' : 'Gün ' + (i + 1)}<b>${i === 6 ? '💰' : '🪙'}</b>₺${fmt(dailyAmount(st - pos + i))}</div>`;
+    cells += `<div class="${cls}">${i < pos ? '✓' : i === 6 ? '🎁' : L('Gün ', 'Day ') + (i + 1)}<b>${i === 6 ? '💰' : '🪙'}</b>₺${fmt(dailyAmount(st - pos + i))}</div>`;
   }
   showModal(`
-    <h2>🎁 Günlük Ödül</h2>
-    <p>${st > 1 ? `🔥 <b>${st} gündür</b> üst üste geliyorsun, ${esc(owner().name)}!` : `Tekrar hoş geldin, ${esc(owner().name)}! Her gün gel, ödülün büyüsün.`}</p>
+    <h2>${L('🎁 Günlük Ödül', '🎁 Daily Reward')}</h2>
+    <p>${st > 1 ? L(`🔥 <b>${st} gündür</b> üst üste geliyorsun, ${esc(owner().name)}!`, `🔥 You have come <b>${st} days</b> in a row, ${esc(owner().name)}!`) : L(`Tekrar hoş geldin, ${esc(owner().name)}! Her gün gel, ödülün büyüsün.`, `Welcome back, ${esc(owner().name)}! Come every day and your reward grows.`)}</p>
     <div class="streak">${cells}</div>
     <div class="reward">+₺${fmt(amt)}</div>
-    <p class="hint">Bir gün kaçırırsan seri baştan başlar.</p>
-    <button class="big" id="claimDaily">Ödülü al</button>`);
+    <p class="hint">${L('Bir gün kaçırırsan seri baştan başlar.', 'Miss a day and the streak starts over.')}</p>
+    <button class="big" id="claimDaily">${L('Ödülü al', 'Claim reward')}</button>`);
 }
 function claimDaily(){
   if (!dailyPending()) return hideModal();
@@ -4397,7 +4415,7 @@ function claimDaily(){
 const OFF = {min:10, cap:8, share:0.5};               // dakika, saat, saatlik pay
 const shopDaily = () => Math.max(30, Math.round(S.bestDay * (0.15 + 0.05 * (lv('cirak') + lv('garson')))));
 const branchDaily = () => S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
-const hm = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} sa ${m % 60} dk` : `${m} dk`; };
+const hm = h => { const m = Math.round(h * 60); return m >= 60 ? `${Math.floor(m / 60)} ${L('sa', 'h')} ${m % 60} ${L('dk', 'min')}` : `${m} ${L('dk', 'min')}`; };
 // Kasa kayıtta durur: toplanmadan çıkılsa da kaybolmaz, sonraki yokluk üstüne eklenir (tavan aynı)
 function checkOffline(ms){
   if (stale || !S.owner) return false;
@@ -4418,19 +4436,19 @@ function showOffline(){
   const {ms, h, shop, br, full} = S.pendingOff;
   const others = S.branches.length - 1;
   showModal(`
-    <h2>👋 Tekrar hoş geldin, ${esc(owner().name)}!</h2>
-    <p>Sen yokken <b>${hm(ms / 3600000)}</b> geçti. Dükkân boş durmadı!</p>
+    <h2>${L('👋 Tekrar hoş geldin', '👋 Welcome back')}, ${esc(owner().name)}!</h2>
+    <p>${L(`Sen yokken <b>${hm(ms / 3600000)}</b> geçti. Dükkân boş durmadı!`, `You were away for <b>${hm(ms / 3600000)}</b>. The shop kept busy!`)}</p>
     <div style="height:8px;border-radius:4px;background:rgba(0,0,0,.35);overflow:hidden;margin:10px 0 4px">
       <div style="height:100%;width:${Math.round(h / OFF.cap * 100)}%;background:linear-gradient(90deg,#e8a33a,#ffc94a)"></div></div>
-    <p class="hint">💰 Kasa: ${hm(h)} / ${OFF.cap} saat${full ? ' · <b>doldu!</b>' : ''}</p>
+    <p class="hint">💰 ${L('Kasa', 'Till')}: ${hm(h)} / ${OFF.cap} ${L('saat', 'h')}${full ? L(' · <b>doldu!</b>', ' · <b>full!</b>') : ''}</p>
     <table>
-      <tr><td>🏪 ${esc(owner().shopName)}${S.cur ? ` (${city().name})` : ''} · ${lv('cirak') + lv('garson') ? 'çırakların idare etti' : 'kapıdaki semaver sattı'}</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(shop)}</td></tr>
-      ${others ? `<tr><td>🏙️ Şube müdürleri (${others} şube)</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(br)}</td></tr>` : ''}
+      <tr><td>🏪 ${esc(owner().shopName)}${S.cur ? ` (${city().name})` : ''} · ${lv('cirak') + lv('garson') ? L('çırakların idare etti', 'your apprentices ran it') : L('kapıdaki semaver sattı', 'the samovar at the door sold tea')}</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(shop)}</td></tr>
+      ${others ? `<tr><td>🏙️ ${L(`Şube müdürleri (${others} şube)`, `Branch managers (${others} branches)`)}</td><td style="color:var(--good);white-space:nowrap">+₺${fmt(br)}</td></tr>` : ''}
     </table>
     <div class="reward">+₺${fmt(shop + br)}</div>
-    ${full ? '<p class="hint">💡 Kasa 8 saatte dolar, fazlası birikmez. Sık uğra!</p>'
-      : !(lv('cirak') + lv('garson')) ? '<p class="hint">💡 Çırak ve garson tuttukça yokken daha çok kazanırsın.</p>' : ''}
-    <button class="big" id="claimOffline">Kasayı topla</button>`);
+    ${full ? `<p class="hint">${L('💡 Kasa 8 saatte dolar, fazlası birikmez. Sık uğra!', '💡 The till fills in 8 hours and nothing more is kept. Drop by often!')}</p>`
+      : !(lv('cirak') + lv('garson')) ? `<p class="hint">${L('💡 Çırak ve garson tuttukça yokken daha çok kazanırsın.', '💡 Hire apprentices and waiters to earn more while you are away.')}</p>` : ''}
+    <button class="big" id="claimOffline">${L('Kasayı topla', 'Collect')}</button>`);
 }
 function claimOffline(){
   if (S.pendingOff){
@@ -4568,10 +4586,10 @@ $('#modal').addEventListener('click', e => {
   if (id === 'coverShare'){ shareCover(); return; }
   if (id === 'legacyYes'){
     passLegacy(); setTab('mutfak'); renderUI(); confetti(); SFX.levelUp();
-    showModal(`<h2>🎖️ Yeni bir başlangıç!</h2>
-      <p>${esc(displayName())} artık bir <b>${legacyTitle()}</b>. Eski dükkânı çırağı işletiyor; sen yeni bir mahallede sıfırdan başlıyorsun.</p>
-      <p class="banner">Satışların kalıcı olarak <b>+%${5 * legacy().pts}</b> fazla!</p>
-      <button class="big" id="modalOk">☀️ Hadi başlayalım</button>`);
+    showModal(`<h2>${L('🎖️ Yeni bir başlangıç!', '🎖️ A fresh start!')}</h2>
+      <p>${L(`${esc(displayName())} artık bir <b>${legacyTitle()}</b>. Eski dükkânı çırağı işletiyor; sen yeni bir mahallede sıfırdan başlıyorsun.`, `${esc(displayName())} is now a <b>${legacyTitle()}</b>. Your apprentice runs the old shop; you start from scratch in a new neighbourhood.`)}</p>
+      <p class="banner">${L(`Satışların kalıcı olarak <b>+%${5 * legacy().pts}</b> fazla!`, `Your sales are permanently <b>+${5 * legacy().pts}%</b> higher!`)}</p>
+      <button class="big" id="modalOk">${L('☀️ Hadi başlayalım', "☀️ Let's go")}</button>`);
     return;
   }
   if (id === 'rateYes' || id === 'rateLater'){
@@ -4649,12 +4667,12 @@ let IV = null;
 function showInvite(){
   const o = OUTLETS[S.offer.tier];
   showModal(`
-    <h2>📞 Telefon çalıyor!</h2>
-    <p><b>${o.name}</b> seninle röportaj yapmak istiyor, ${esc(owner().name)}!</p>
-    <div class="choice">🎤 <b>Kabul edersen</b><small>Ünlülüğün artar ve ${o.kind} kapağı olursun. Ama röportaj sabahını alır: dükkân 10:00'da açılır.</small></div>
-    <div class="choice">🧹 <b>Reddedersen</b><small>Bugün dükkâna odaklanırsın: satışlar %20 fazla, +5⭐ itibar.</small></div>
-    <button class="big" id="ivYes">🎤 Kabul et</button>
-    <div class="btns"><button class="btn2" id="ivNo">🧹 Reddet, dükkâna odaklan</button></div>`);
+    <h2>${L('📞 Telefon çalıyor!', '📞 The phone is ringing!')}</h2>
+    <p>${L(`<b>${o.name}</b> seninle röportaj yapmak istiyor, ${esc(owner().name)}!`, `<b>${o.name}</b> wants to interview you, ${esc(owner().name)}!`)}</p>
+    <div class="choice">🎤 <b>${L('Kabul edersen', 'If you accept')}</b><small>${L(`Ünlülüğün artar ve ${o.kind} kapağı olursun. Ama röportaj sabahını alır: dükkân 10:00'da açılır.`, `Your fame grows and you make the ${o.kind === 'dergi' ? 'magazine' : 'newspaper'} cover. But it takes your morning: the shop opens at 10:00.`)}</small></div>
+    <div class="choice">🧹 <b>${L('Reddedersen', 'If you decline')}</b><small>${L('Bugün dükkâna odaklanırsın: satışlar %20 fazla, +5⭐ itibar.', 'You focus on the shop today: sales +20%, +5⭐ reputation.')}</small></div>
+    <button class="big" id="ivYes">${L('🎤 Kabul et', '🎤 Accept')}</button>
+    <div class="btns"><button class="btn2" id="ivNo">${L('🧹 Reddet, dükkâna odaklan', '🧹 Decline and focus on the shop')}</button></div>`);
 }
 function startInterview(){
   IV = {tier:S.offer.tier, i:0, picks:[], qs:[...IV_QS].sort(() => Math.random() - 0.5).slice(0, 3)};
@@ -4663,10 +4681,10 @@ function startInterview(){
 function showQuestion(){
   const q = IV.qs[IV.i], order = Object.keys(q.a).sort(() => Math.random() - 0.5);
   showModal(`
-    <h2>🎤 ${OUTLETS[IV.tier].name} <small>· Soru ${IV.i + 1}/3</small></h2>
+    <h2>🎤 ${OUTLETS[IV.tier].name} <small>· ${L('Soru', 'Question')} ${IV.i + 1}/3</small></h2>
     <p class="iv-q">“${q.q}”</p>
     ${order.map(t => `<button class="ans" data-ans="${t}">${esc(q.a[t].replace('{shop}', owner().shopName))}</button>`).join('')}
-    <p class="hint" style="margin-top:8px">Samimi: itibar ve sabırlı müşteri · İddialı: ünlülük ve sponsor parası · Esprili: kalabalık. Hep aynı tarz: bonus!</p>`);
+    <p class="hint" style="margin-top:8px">${L('Samimi: itibar ve sabırlı müşteri · İddialı: ünlülük ve sponsor parası · Esprili: kalabalık. Hep aynı tarz: bonus!', 'Warm: reputation and patient customers · Bold: fame and sponsor money · Witty: crowds. Stick to one style for a bonus!')}</p>`);
 }
 function answer(t){
   IV.picks.push(t); IV.i++;
@@ -4681,7 +4699,7 @@ function answer(t){
   S.rep = Math.max(0, Math.min(100, S.rep + rp));
   S.interviews = (S.interviews || 0) + 1;
   S.offer.ans = 'yes';
-  S.lastCover = {tier:IV.tier, quote:HEADLINES[top], day:S.day};
+  S.lastCover = {tier:IV.tier, quote:HEADLINES[top], t:top, day:S.day};
   // Baskın tarz ödül verir; üç cevap da aynı tarzdaysa tutarlılık bonusu (+%50 ünlülük)
   const same = cnt[top] === IV.picks.length;
   const bonus = same ? Math.round(gain * 0.5) : 0;
@@ -4689,19 +4707,19 @@ function answer(t){
   if (top === 'iddiali'){ money = Math.round(o.fame * 40 * (same ? 1.5 : 1)); S.money += money; S.total += money; }
   S.ivBuff = {day:S.day, t:top};
   addFame(gain + bonus);
-  const rewardNote = IV_REWARD[top].replace('{m}', fmt(money)) + (same ? ` · 🎯 Tutarlı duruş: +${bonus} 🌟` : '');
+  const rewardNote = IV_REWARD[top].replace('{m}', fmt(money)) + (same ? L(` · 🎯 Tutarlı duruş: +${bonus} 🌟`, ` · 🎯 Consistent style: +${bonus} 🌟`) : '');
   IV = null;
   save();
   SFX.levelUp();
-  showCover(true, `+${gain + bonus} 🌟 ünlülük · ${rp >= 0 ? '+' : ''}${rp}⭐ itibar<br>🎁 ${rewardNote}`);
+  showCover(true, `+${gain + bonus} 🌟 ${L('ünlülük', 'fame')} · ${rp >= 0 ? '+' : ''}${rp}⭐ ${L('itibar', 'reputation')}<br>🎁 ${rewardNote}`);
 }
 function showCover(fromInterview, note){
   showModal(`
-    <h2>📰 ${fromInterview ? 'Kapak oldun!' : 'Son kapağın'}</h2>
+    <h2>📰 ${fromInterview ? L('Kapak oldun!', 'You made the cover!') : L('Son kapağın', 'Your latest cover')}</h2>
     <canvas id="coverCv" class="cover" width="600" height="800"></canvas>
     ${note ? `<p class="hint" style="text-align:center">${note}</p>` : ''}
-    <button class="big" id="${fromInterview ? 'ivOpen' : 'modalOk'}">${fromInterview ? '☀️ Dükkânı aç (10:00)' : 'Kapat'}</button>
-    <div class="btns"><button class="btn2" id="coverShare">📤 Paylaş</button></div>`);
+    <button class="big" id="${fromInterview ? 'ivOpen' : 'modalOk'}">${fromInterview ? L('☀️ Dükkânı aç (10:00)', '☀️ Open the shop (10:00)') : L('Kapat', 'Close')}</button>
+    <div class="btns"><button class="btn2" id="coverShare">${L('📤 Paylaş', '📤 Share')}</button></div>`);
   drawCover($('#coverCv').getContext('2d'), S.lastCover);
   // Resim önceden hazırlanır: Safari paylaşımı dokunuşa bağlı olmalı, beklemeden çağrılmalı
   coverBlob = null;
@@ -4734,8 +4752,8 @@ function drawCover(c, cv){
   c.fillText(o.name.toLocaleUpperCase('tr-TR'), 300, 98);
   c.fillRect(30, 118, 540, 3);
   c.font = 'bold 18px system-ui, sans-serif'; c.textAlign = 'left';
-  c.fillText(`SAYI ${cv.day}`, 32, 146);
-  c.textAlign = 'right'; c.fillText(o.kind === 'dergi' ? 'AYLIK DERGİ' : 'GÜNLÜK GAZETE', 568, 146);
+  c.fillText(`${L('SAYI', 'ISSUE')} ${cv.day}`, 32, 146);
+  c.textAlign = 'right'; c.fillText(o.kind === 'dergi' ? L('AYLIK DERGİ', 'MONTHLY MAGAZINE') : L('GÜNLÜK GAZETE', 'DAILY NEWSPAPER'), 568, 146);
   // Kapak yıldızı
   drawPerson(c, {x:300, y:790, look:owner(), apron:true, mood:'happy', scale:6.6});
   const bg = c.createLinearGradient(0, 470, 0, 800);
@@ -4743,7 +4761,7 @@ function drawCover(c, cv){
   c.fillStyle = bg; c.fillRect(0, 470, W2, 330);
   // Etiket + isim + söz
   c.textAlign = 'center';
-  const tag = cv.tier >= 3 ? 'ÖZEL RÖPORTAJ' : 'RÖPORTAJ';
+  const tag = cv.tier >= 3 ? L('ÖZEL RÖPORTAJ', 'EXCLUSIVE INTERVIEW') : L('RÖPORTAJ', 'INTERVIEW');
   c.font = '900 20px system-ui, sans-serif';
   const tw = c.measureText(tag).width + 28;
   c.fillStyle = '#ffc94a'; c.fillRect(300 - tw / 2, 568, tw, 34);
@@ -4754,15 +4772,15 @@ function drawCover(c, cv){
   while (c.measureText(nm).width > 550 && size > 26){ size--; c.font = `900 ${size}px Georgia, serif`; }
   c.fillText(nm, 300, 656);
   c.font = 'italic 28px Georgia, serif'; c.fillStyle = '#ffe7b0';
-  wrapText(c, cv.quote, 300, 700, 540, 34);
+  wrapText(c, cv.t ? HEADLINES[cv.t] : cv.quote, 300, 700, 540, 34);
   c.font = 'bold 17px system-ui, sans-serif'; c.fillStyle = '#ffffffcc';
-  c.fillText(`${owner().shopName} · ${S.branches.length} dükkân · ${fmt(S.served)} mutlu müşteri`, 300, 778);
+  c.fillText(L(`${owner().shopName} · ${S.branches.length} dükkân · ${fmt(S.served)} mutlu müşteri`, `${owner().shopName} · ${S.branches.length} shops · ${fmt(S.served)} happy customers`), 300, 778);
 }
 async function shareCover(){
   const b = coverBlob;
   if (!b){ toast(L('Kapak hazırlanıyor, bir saniye…', 'Preparing the cover, one second…')); return; }
   const file = new File([b], 'cay-ocagi-kapak.png', {type:'image/png'});
-  const text = `${OUTLETS[S.lastCover.tier].name} kapağındayım! ☕ Çay Ocağı Tycoon`;
+  const text = L(`${OUTLETS[S.lastCover.tier].name} kapağındayım! ☕ Çay Ocağı Tycoon`, `I made the cover of ${OUTLETS[S.lastCover.tier].name}! ☕ Çay Ocağı Tycoon`);
   try {
     if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text}); return; }
   } catch(e){ if (e.name === 'AbortError') return; }
@@ -4840,13 +4858,13 @@ scene.addEventListener('pointerdown', e => {
   let x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * viewH();
   if (use3d()){
     const h = sahne3d.hit(e.clientX, e.clientY);
-    if (h.arson && R.arson){ catchArson('🏃 Kundakçıyı kovdun!'); return; }
+    if (h.arson && R.arson){ catchArson(L('🏃 Kundakçıyı kovdun!', '🏃 You chased off the arsonist!')); return; }
     const hc = h.cust && R.customers.find(c => c.id === h.cust && seated(c));
     if (hc){ serve(hc); return; }
     if (!h.ground) return;
     ({x, y} = h.ground);
   }
-  if (R.arson && Math.abs(x - R.arson.x) < 50 && y > R.arson.y - 110 && y < R.arson.y + 20){ catchArson('🏃 Kundakçıyı kovdun!'); return; }
+  if (R.arson && Math.abs(x - R.arson.x) < 50 && y > R.arson.y - 110 && y < R.arson.y + 20){ catchArson(L('🏃 Kundakçıyı kovdun!', '🏃 You chased off the arsonist!')); return; }
   const st = R.stains.find(st => Math.abs(x - st.x) < 32 && Math.abs(y - st.y) < 22);
   if (st){ R.stains = R.stains.filter(o => o !== st); floatText(st.x, st.y - 20, '✨', '#fff'); SFX.trash(); return; }
   // Telefonda parmak küçük kalmasın: geniş alan, en yakın müşteri
@@ -4969,11 +4987,11 @@ $('#lgBadge').addEventListener('click', () => {
   const st = standings();
   if (!st || modalOpen()) return;
   const left = 7 - (S.day - 1) % 7;
-  showModal(`<h2>🏆 Mahalle ligi · ${S.league.week}. hafta</h2>
-    <p class="hint">Bu hafta satış ve bahşiş toplamı. Pazar günü birinciye para, ünlülük ve kupa. ${left > 1 ? `Pazara ${left - 1} gün var.` : 'Bugün son gün!'}</p>
-    <table>${st.map((x, i) => `<tr><td>${['🥇', '🥈', '🥉'][i] || (i + 1) + '.'} ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name}</td><td>₺${fmt(x.score)}</td></tr>`).join('')}</table>
-    <p class="hint">🏆 Toplam kupa: ${S.lgWins || 0}</p>
-    <button class="big" id="modalOk">Tamam</button>`);
+  showModal(`<h2>${L(`🏆 Mahalle ligi · ${S.league.week}. hafta`, `🏆 Neighbourhood league · week ${S.league.week}`)}</h2>
+    <p class="hint">${L('Bu hafta satış ve bahşiş toplamı. Pazar günü birinciye para, ünlülük ve kupa.', "This week's sales plus tips. On Sunday the winner gets cash, fame and a trophy.")} ${left > 1 ? L(`Pazara ${left - 1} gün var.`, `${left - 1} days to Sunday.`) : L('Bugün son gün!', 'Today is the last day!')}</p>
+    <table>${st.map((x, i) => `<tr><td>${['🥇', '🥈', '🥉'][i] || (i + 1) + '.'} ${x.emoji} ${x.id === 'me' ? `<b>${x.name}</b>` : x.name}</td><td>₺${fmt(x.score)}</td></tr>`).join('')}</table>
+    <p class="hint">${L('🏆 Toplam kupa', '🏆 Total trophies')}: ${S.lgWins || 0}</p>
+    <button class="big" id="modalOk">${L('Tamam', 'OK')}</button>`);
 });
 // Telefon kilitlenince / başka uygulamaya geçince: duraklat ve kaydet
 document.addEventListener('visibilitychange', () => {
@@ -4994,9 +5012,9 @@ try {
   tabs.onmessage = () => {
     if (stale) return;
     stale = true; status = 'closed';
-    showModal(`<h2>🍵 Oyun başka pencerede açık</h2>
-      <p>İlerlemen karışmasın diye bu pencere durduruldu.</p>
-      <button class="big" onclick="location.reload()">Yeniden yükle</button>`);
+    showModal(`<h2>${L('🍵 Oyun başka pencerede açık', '🍵 The game is open in another window')}</h2>
+      <p>${L('İlerlemen karışmasın diye bu pencere durduruldu.', 'This window was paused so your progress does not get mixed up.')}</p>
+      <button class="big" onclick="location.reload()">${L('Yeniden yükle', 'Reload')}</button>`);
   };
   tabs.postMessage('acildi');
 } catch(e) {}
@@ -5016,7 +5034,7 @@ function frame(ts){
   catch (err){
     console.error(err);
     const msg = String(err && err.message || err);
-    if (msg !== frameErr){ frameErr = msg; announce({emoji:'⚠️', name:'Bir hata oluştu', desc:msg.slice(0, 140)}); }
+    if (msg !== frameErr){ frameErr = msg; announce({emoji:'⚠️', name:L('Bir hata oluştu', 'Something went wrong'), desc:msg.slice(0, 140)}); }
   }
   requestAnimationFrame(frame);
 }
@@ -5042,7 +5060,7 @@ function step(ts){
   if (use3d()){
     // 3D'de bir hata çizim döngüsünü durdurmasın: 2D'ye dön ve sebebini göster
     try { drawScene3D(); }
-    catch (err){ console.error(err); drop3D(); announce({emoji:'⚠️', name:'3D sahne hatası, 2D\'ye dönüldü', desc:note3d(err)}); drawScene(); }
+    catch (err){ console.error(err); drop3D(); announce({emoji:'⚠️', name:L("3D sahne hatası, 2D'ye dönüldü", '3D scene error, switched to 2D'), desc:note3d(err)}); drawScene(); }
   } else drawScene();
   drawPreview();
   drawAvatar();
