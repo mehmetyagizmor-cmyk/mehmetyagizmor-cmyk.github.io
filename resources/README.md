@@ -36,7 +36,47 @@ Chrome'un PNG'si şeffaflık kanalı içerir. App Store bunu kabul etmez, bu yü
 5. Durum çubuğu: üst şerit turuncu, bu yüzden saat ve pil simgesi koyu renk olmalı. `capacitor.config` içine şunu yaz:
    `plugins: { StatusBar: { style: 'LIGHT', overlaysWebView: true }, SplashScreen: { backgroundColor: '#fbecd3' } }`
 6. Telefonun çentik ve alt çubuk boşlukları oyunda zaten ayarlı (`viewport-fit=cover` ve `env(safe-area-inset-*)`).
-7. Gerçek iPhone'da şunları dene:
+7. Xcode → Signing & Capabilities: **Game Center** yeteneğini ekle.
+8. Game Center (App Store Connect → uygulama → Game Center). Kimlikler oyundakiyle birebir aynı olmalı:
+   - Sıralama: `cayocagi.toplam`, adı "Toplam Kazanç", tamsayı, büyük olan iyi.
+   - Başarımlar: aşağıdaki 27 kimlik, her biri tek seferlik (100%).
+
+   | Kimlik | Ad |
+   |---|---|
+   | `cayocagi.ilk` | 🤝 İlk Müşteri |
+   | `cayocagi.m50` | 🍵 Mahallenin Çaycısı |
+   | `cayocagi.m250` | 🫖 Usta Çaycı |
+   | `cayocagi.m1000` | 👑 Efsane Çaycı |
+   | `cayocagi.k1000` | 💰 İlk Bin |
+   | `cayocagi.k25000` | 💎 Sermayedar |
+   | `cayocagi.menu` | 📋 Tam Menü |
+   | `cayocagi.gorev` | 📋 Görev Adamı |
+   | `cayocagi.kombo` | 🔥 Kombo Ustası |
+   | `cayocagi.tarif` | 📈 Usta Tarif |
+   | `cayocagi.kiraat` | 🏪 Kıraathane Sahibi |
+   | `cayocagi.unlu` | 🏆 Ünlü Mekân |
+   | `cayocagi.miras` | 🎖️ Usta Mirası |
+   | `cayocagi.kusursuz` | ✨ Kusursuz Gün |
+   | `cayocagi.yildiz` | ⭐ Mahallenin Gözdesi |
+   | `cayocagi.ekip` | 👥 Kalabalık Ekip |
+   | `cayocagi.sube1` | 🏙️ İlk Şube |
+   | `cayocagi.dunya1` | 🌍 Dünyaya Açıldın |
+   | `cayocagi.dunya5` | ✈️ Dünya Markası |
+   | `cayocagi.kurtar` | 🛟 Kriz Yöneticisi |
+   | `cayocagi.roportaj` | 🎤 Basın Sever |
+   | `cayocagi.sohret` | 🌟 Ünlü Girişimci |
+   | `cayocagi.mudavim` | 💛 Mahallenin Sevgilisi |
+   | `cayocagi.elest` | 📰 Beş Yıldız |
+   | `cayocagi.etkinlik` | 🎉 Bayram Coşkusu |
+   | `cayocagi.koleksiyon` | 🏺 Koleksiyoncu |
+   | `cayocagi.seri` | 📅 Sadık Esnaf |
+
+9. Oyundaki iPhone özellikleri (eklenti yoksa sessizce hiçbir şey yapmaz):
+   - **Titreşim:** Haptics; ayarlardaki titreşim düğmesiyle kapanır.
+   - **"Kasan doldu" bildirimi:** Uygulama arka plana geçince 8 saat sonrasına kurulur, dönünce iptal olur. İzin, oyuncu çevrimdışı kasayı ilk gördüğünde bir kez sorulur.
+   - **Puan penceresi:** 5. günden sonra, 3 yıldızlı günün sonunda, en az 10 gün arayla. Kaç kez gösterileceğine Apple karar verir.
+   - **Game Center:** Açılışta giriş yapılır. Gün sonunda toplam kazanç gönderilir, başarım açılınca Game Center'a da işlenir. Ayarlar'da "🏆 Game Center → Sıralama" düğmesi var.
+10. Gerçek iPhone'da şunları dene:
    - açılış ekranı;
    - ilk gün;
    - uygulamayı kapatıp açınca kaydın durması;

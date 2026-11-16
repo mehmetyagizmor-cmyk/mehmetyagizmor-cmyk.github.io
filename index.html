@@ -1317,6 +1317,61 @@ async function nativeRestore(){
   } catch(e) { console.error(e); }
 }
 
+// ---------- iPhone özellikleri (A-2) ----------
+// Titreşim, "kasan doldu" bildirimi, Apple'ın puan penceresi ve Game Center. Eklenti yoksa (tarayıcı) hiçbir şey yapmaz.
+const plug = name => isApp() && Capacitor.Plugins && Capacitor.Plugins[name];
+function appCall(name, fn, arg){
+  const p = plug(name);
+  try { if (p && p[fn]) return Promise.resolve(p[fn](arg)).catch(() => {}); } catch(e) {}
+  return Promise.resolve();
+}
+// Tarayıcıdaki titreşim deseni uzunluğuna göre hafif / orta / güçlü dokunuş; uzun kutlama deseni "başarı" titreşimi olur
+function appHaptic(pattern){
+  if (Array.isArray(pattern) && pattern.length >= 5) return appCall('Haptics', 'notification', {type:'SUCCESS'});
+  const n = Array.isArray(pattern) ? pattern.reduce((a, b) => a + b, 0) : pattern;
+  return appCall('Haptics', 'impact', {style:n >= 150 ? 'HEAVY' : n >= 40 ? 'MEDIUM' : 'LIGHT'});
+}
+// Arka plana geçince: kasa dolduğunda (OFF.cap saat sonra) haber ver; geri gelince iptal
+const NOTE_ID = 7;
+async function appNotify(){
+  const p = plug('LocalNotifications');
+  if (!p || stale || !S.owner || S.day < 2) return;
+  try {
+    if ((await p.checkPermissions()).display !== 'granted') return;
+    await p.cancel({notifications:[{id:NOTE_ID}]});
+    await p.schedule({notifications:[{id:NOTE_ID, title:'🍵 Kasan doldu!',
+      body:`${owner().shopName} seni bekliyor: ${OFF.cap} saatlik kazanç toplandı.`, schedule:{at:new Date(Date.now() + OFF.cap * 3600000)}}]});
+  } catch(e) {}
+}
+const appNotifyCancel = () => appCall('LocalNotifications', 'cancel', {notifications:[{id:NOTE_ID}]});
+// İzin bir kez, oyuncu kasayı ilk gördüğünde sorulur: bildirimin ne işe yaradığını o an anlar
+function appAskNotify(){
+  if (S.noteAsked || !plug('LocalNotifications')) return;
+  S.noteAsked = true; save();
+  appCall('LocalNotifications', 'requestPermissions');
+}
+// Puan: Apple'ın kendi penceresi (Apple yılda en çok 3 kez gösterir); 5. günden sonra, 3 yıldızlı günün sonunda, en az 10 gün arayla
+function appReview(){
+  if (!plug('InAppReview') || S.day < 5 || (S.revDay && S.day < S.revDay + 10)) return;
+  S.revDay = S.day; save();
+  setTimeout(() => appCall('InAppReview', 'requestReview'), 1500);
+}
+// Game Center: toplam kazanç sıralaması ve başarımlar (kimlikler App Store Connect'te aynı adla açılmalı: resources/README.md)
+const GC = 'CapacitorGameConnect', GC_BOARD = 'cayocagi.toplam';
+let gcIn = false;
+function gcSignIn(){
+  if (gcIn || !plug(GC)) return Promise.resolve();
+  return appCall(GC, 'signIn').then(r => {
+    if (!r) return;
+    gcIn = true;
+    gcScore();
+    Object.keys(S.ach || {}).forEach(gcAch);   // oyuna Game Center'dan önce açılmış başarımlar
+  });
+}
+const gcScore = () => gcIn && appCall(GC, 'submitScore', {leaderboardID:GC_BOARD, totalScoreAmount:Math.floor(S.total || 0)});
+const gcAch = id => gcIn && appCall(GC, 'unlockAchievement', {achievementID:'cayocagi.' + id});
+window.addEventListener('load', () => gcSignIn());
+
 let S = load();
 nativeRestore();
 // Oyundan uzak kalınan süre (ms): ilk kayıttan önce okunmalı, save() lastSeen'i yeniler
@@ -1873,7 +1928,7 @@ function checkAch(){
   if (!S.owner) return;
   for (const a of ACH){
     if (S.ach[a.id] || a.val() < a.goal) continue;
-    S.ach[a.id] = Date.now();
+    S.ach[a.id] = Date.now(); gcAch(a.id);
     S.money += a.reward;
     announce({emoji:a.emoji, name:a.name, desc:`${a.desc} · +₺${fmt(a.reward)}`, ach:true}, '🏅 Başarım');
     if (status === 'running') confetti();
@@ -2323,6 +2378,8 @@ function endDay(){
   S.critic = R.criticAt != null || (S.day + 1 >= 5 && Math.random() < 0.3) ? S.day + 1 : null;
   const ctLine = contractDay(), lgLine = leagueDay(st.earned + st.tips), awLine = awardDay(st, perfect);
   const askRate = stars === 3 && rateReady();
+  if (stars === 3) appReview();   // uygulamada Apple'ın puan penceresi
+  gcScore();
   if (askRate){ S.rateAsks = (S.rateAsks || 0) + 1; S.rateNext = S.day + 7; }
   showModal(`
     <h2>🌙 ${S.day}. gün bitti!</h2>
@@ -3888,7 +3945,11 @@ try { muted = localStorage.getItem('cayocagi-ses') === 'kapali'; vibOn = localSt
 const canVibrate = 'vibrate' in navigator;
 // Tarayıcılar ilk dokunuştan önce ses/titreşime izin vermez; boşuna denemeyelim
 const userActive = () => !navigator.userActivation || navigator.userActivation.hasBeenActive;
-function buzz(pattern){ if (vibOn && canVibrate && userActive()) try { navigator.vibrate(pattern); } catch(e) {} }
+function buzz(pattern){
+  if (!vibOn) return;
+  if (isApp()){ appHaptic(pattern); return; }   // iPhone'da navigator.vibrate yok: uygulamanın titreşimi
+  if (canVibrate && userActive()) try { navigator.vibrate(pattern); } catch(e) {}
+}
 function tone(freq, dur, {type = 'sine', vol = 0.08, delay = 0, to = null} = {}){
   if (muted || !userActive()) return;
   try {
@@ -3963,7 +4024,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.30.1';
+const APP_VERSION = '2.31.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4098,12 +4159,13 @@ function showSettings(){
     <h2>⚙️ Ayarlar</h2>
     <div class="set-row"><span>🔊 Ses</span><button class="btn2" data-set="sound">${onOff(!muted)}</button></div>
     <div class="set-row"><span>🎵 Müzik</span><button class="btn2" data-set="music">${onOff(musicOn)}</button></div>
-    ${canVibrate ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
+    ${canVibrate || isApp() ? `<div class="set-row"><span>📳 Titreşim</span><button class="btn2" data-set="vib">${onOff(vibOn)}</button></div>` : ''}
     <div class="set-row"><span>🧊 Sahne (3D yavaşsa 2D'yi seç)</span><button class="btn2" data-set="scene">${want3d ? '3D' : '2D'}</button></div>
     ${err3d ? `<p class="hint" style="margin:4px 0 8px;color:#ff9d8a">⚠️ Son 3D hatası: ${esc(err3d)}</p>` : ''}
     <div class="set-row"><span>👤 Dükkân sahibi</span><button class="btn2" id="editOwnerM">Düzenle</button></div>
     <div class="set-row"><span>❓ Nasıl oynanır?</span><button class="btn2" id="howto">Göster</button></div>
     ${installRow()}
+    ${plug(GC) ? '<div class="set-row"><span>🏆 Game Center</span><button class="btn2" id="gcShow">Sıralama</button></div>' : ''}
     ${inFrame ? '<div class="set-row"><span>🔒 Bu sayfada kayıt silinebilir</span><button class="btn2" id="goHome">Kalıcı adreste aç</button></div>' : ''}
     <div class="set-row"><span>💾 Kaydını yedekle ya da taşı</span><button class="btn2" id="codeOut">Kayıt kodu</button></div>
     <div class="set-row"><span>📥 Kayıt kodu ile yükle</span><button class="btn2" id="codeIn">Yükle</button></div>
@@ -4168,6 +4230,7 @@ function checkOffline(ms){
   return true;
 }
 function showOffline(){
+  appAskNotify();
   const {ms, h, shop, br, full} = S.pendingOff;
   const others = S.branches.length - 1;
   showModal(`
@@ -4323,6 +4386,7 @@ $('#modal').addEventListener('click', e => {
     if (id === 'rateYes'){ S.rated = true; save(); window.open(`https://play.google.com/store/apps/details?id=${PLAY_ID}`, '_blank'); }
     $('#rateRow').remove(); SFX.serve(); return;
   }
+  if (id === 'gcShow'){ gcSignIn().then(() => appCall(GC, 'showLeaderboard', {leaderboardID:GC_BOARD})); return; }
   if (id === 'installBtn' && installEvt){ installEvt.prompt(); installEvt = null; hideModal(); return; }
   if (id === 'resetYes'){
     S = link(fresh()); save(); newDay(); status = 'closed'; particles = [];
@@ -4719,7 +4783,8 @@ $('#lgBadge').addEventListener('click', () => {
 });
 // Telefon kilitlenince / başka uygulamaya geçince: duraklat ve kaydet
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden){ pauseGame(); save(); hiddenAt = Date.now(); return; }
+  if (document.hidden){ pauseGame(); save(); hiddenAt = Date.now(); appNotify(); return; }
+  appNotifyCancel();
   const away = hiddenAt ? Date.now() - hiddenAt : 0;
   hiddenAt = 0;
   // Uzun süre arka planda kaldıysa kasayı göster (günlük ödül ondan sonra gelir)
