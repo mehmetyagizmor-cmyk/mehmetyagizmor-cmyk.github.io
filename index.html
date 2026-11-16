@@ -1547,7 +1547,7 @@ function riskDay(interviewDay){
     if (b.city === 'ana') continue;
     const nm = CITY[b.city].name;
     if (b === cur){
-      if (b.issue || b.crisis) out.news.push(`✅ ${nm}: bizzat ilgilendin, sorun çözüldü`);
+      if (b.issue || b.crisis) out.news.push(L(`✅ ${nm}: bizzat ilgilendin, sorun çözüldü`, `✅ ${nm}: you stepped in yourself and fixed it`));
       b.issue = null; b.crisis = false; b.health = Math.min(100, bHealth(b) + RISK.visit);
       continue;
     }
@@ -1561,9 +1561,9 @@ function riskDay(interviewDay){
         out.lost.push({nm, refund});
         continue;
       }
-      if (b.health <= RISK.crisis && !b.crisis){ b.crisis = true; out.news.push(`🚨 ${nm}: KRİZ! Kurtarmazsan batacak`); }
-      else if (b.crisis) out.news.push(`🚨 ${nm}: kriz sürüyor${b.health <= RISK.drain ? ', yarın batabilir!' : ''}`);
-      else out.news.push(`📉 ${nm}: ${ISSUES[b.issue.t].emoji} ${ISSUES[b.issue.t].name} hâlâ çözülmedi`);
+      if (b.health <= RISK.crisis && !b.crisis){ b.crisis = true; out.news.push(L(`🚨 ${nm}: KRİZ! Kurtarmazsan batacak`, `🚨 ${nm}: CRISIS! It will go bust unless you rescue it`)); }
+      else if (b.crisis) out.news.push(L(`🚨 ${nm}: kriz sürüyor${b.health <= RISK.drain ? ', yarın batabilir!' : ''}`, `🚨 ${nm}: the crisis goes on${b.health <= RISK.drain ? ', it may go bust tomorrow!' : ''}`));
+      else out.news.push(L(`📉 ${nm}: ${ISSUES[b.issue.t].emoji} ${ISSUES[b.issue.t].name} hâlâ çözülmedi`, `📉 ${nm}: ${ISSUES[b.issue.t].emoji} ${ISSUES[b.issue.t].name}, still not solved`));
     } else {
       b.health = Math.min(100, bHealth(b) + RISK.heal);
       // Röportaj günü şubeler daha çok ihmal edilir
@@ -3705,8 +3705,8 @@ function staffCost(p){
   }
   return Math.round((p.role === 'cirak' ? 450 : 600) * Math.pow(2, p.lv - 1) / 10) * 10;   // bot denemesi: 1,8 ile ekip 40 günde tavan yaptı
 }
-const staffEffect = p => p.lv <= 1 ? 'temel seviye' : p.role === 'cirak' ? `%${20 * (p.lv - 1)} hızlı hazırlar`
-  : p.role === 'garson' ? `%${20 * (p.lv - 1)} hızlı taşır` : `bahşiş +%${5 * (p.lv - 1)}, sen yokken gelir +%${6 * (p.lv - 1)}`;
+const staffEffect = p => p.lv <= 1 ? L('temel seviye', 'base level') : p.role === 'cirak' ? L(`%${20 * (p.lv - 1)} hızlı hazırlar`, `prepares ${20 * (p.lv - 1)}% faster`)
+  : p.role === 'garson' ? L(`%${20 * (p.lv - 1)} hızlı taşır`, `carries ${20 * (p.lv - 1)}% faster`) : L(`bahşiş +%${5 * (p.lv - 1)}, sen yokken gelir +%${6 * (p.lv - 1)}`, `tips +${5 * (p.lv - 1)}%, income while away +${6 * (p.lv - 1)}%`);
 const upCls = p => p.lv < STAFF_MAX && S.money >= staffCost(p) ? ' can' : '';
 let staffSel = null;
 function upgradeStaff(sid){
@@ -3735,26 +3735,26 @@ const sagKol = () => REGULARS.find(r => r.id === S.sagkol && (S.regs[r.id] || {}
 const sagTip = () => 1 + cardBonus('tip');   // K-1: sağ kol yuvasında usta kartı
 function sagHTML(){
   const own = CARDS.filter(c => cardN(c.id)), cur = sagCard();
-  return '<h2>🤝 Sağ kol</h2><p class="hint">Bir usta kartını sağ kolun yap: bonusu bütün dükkânlarında geçerli.</p>'
+  return `<h2>${L('🤝 Sağ kol', '🤝 Right hand')}</h2><p class="hint">${L('Bir usta kartını sağ kolun yap: bonusu bütün dükkânlarında geçerli.', 'Make a master card your right hand: its bonus works in all your shops.')}</p>`
     + (own.length ? own.map(c => `<button class="ans" data-sagcard="${c.id}">${c.emoji} <b>${c.name}</b> · ${'★'.repeat(cardLv(c.id))} · ${cardFxTxt(c, cardLv(c.id))}${cur === c ? ' ✓' : ''}</button>`).join('')
-      : '<p>Henüz usta kartın yok. Ekip ekranında paket aç.</p>')
+      : `<p>${L('Henüz usta kartın yok. Ekip ekranında paket aç.', 'You have no master cards yet. Open a pack on the Crew screen.')}</p>`)
     + '<button class="big" id="modalOk">Kapat</button>';
 }
 const bestFriend = () => REGULARS.filter(r => (S.regs[r.id] || {}).met).sort((a, b) => regLv(b.id) - regLv(a.id))[0];
 const tnode = (sid, cls, lv, name, sub, inc) => `<div class="tn ${cls}" data-sid="${sid}">${lv ? `<span class="tlv">${lv}</span>` : ''}<canvas class="sport" data-sid="${sid}"></canvas>
-  <b>${esc(name)}</b><small>${sub}</small>${inc != null ? `<i>₺${fmt(inc)}/gün</i>` : ''}</div>`;
+  <b>${esc(name)}</b><small>${sub}</small>${inc != null ? `<i>₺${fmt(inc)}/${L('gün', 'day')}</i>` : ''}</div>`;
 function staffTreeHTML(){
   ensureStaff();
   const total = S.branches.reduce((a, b) => a + shopIncome(b), 0), sc = sagCard();
   const crew = b => S.staff.filter(p => p.city === b.city && p.role !== 'head').sort((x, y) => (x.role > y.role) - (x.role < y.role) || y.lv - x.lv);
   const heads = S.branches.map(b => {
     const h = S.staff.find(p => p.city === b.city && p.role === 'head'), c = crew(b);
-    return `<li>${tnode(h.id, 'head' + upCls(h), h.lv, h.name, b.city === 'ana' ? 'Ana dükkân' : CITY[b.city].name, staffIncome(h))}`
+    return `<li>${tnode(h.id, 'head' + upCls(h), h.lv, h.name, CITY[b.city].name, staffIncome(h))}`
       + (c.length ? '<ul>' + c.map(p => `<li>${tnode(p.id, p.role + upCls(p), p.lv, p.name, ROLE[p.role], staffIncome(p))}</li>`).join('') + '</ul>' : '') + '</li>';
   }).join('');
-  return `<p class="hint">Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.</p>
-    <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, 'Usta · sen', total)}
-      ${tnode('sag', 'sag', sc ? cardLv(sc.id) : 0, sc ? sc.name : 'Kart tak', sc ? `Sağ kol · ${cardFxTxt(sc, cardLv(sc.id))}` : 'Sağ kol · boş', null)}</div><ul>${heads}</ul></li></ul></div></div>`;
+  return `<p class="hint">${L('Ekibin: her dükkânın ustabaşı, çırakları ve garsonları. Bir kişiye dokun, bilgisini gör.', 'Your crew: each shop has a foreman, apprentices and waiters. Tap a person to see details.')}</p>
+    <div class="treewrap"><div class="tree"><ul><li><div class="toprow">${tnode('usta', 'usta', ustaLv(), owner().name, L('Usta · sen', 'Master · you'), total)}
+      ${tnode('sag', 'sag', sc ? cardLv(sc.id) : 0, sc ? sc.name : L('Kart tak', 'Add card'), sc ? `${L('Sağ kol', 'Right hand')} · ${cardFxTxt(sc, cardLv(sc.id))}` : L('Sağ kol · boş', 'Right hand · empty'), null)}</div><ul>${heads}</ul></li></ul></div></div>`;
 }
 // Ağaçtaki portreler: oyunun karakter çizimiyle, bir kez çizilir
 function drawStaffPortraits(){
@@ -3777,21 +3777,22 @@ function showStaff(sid){
   const fr = bestFriend();
   if (sid === 'usta' || sid === 'sag'){
     showModal(sid === 'usta'
-      ? `<h2>👑 ${esc(owner().name)} · Usta</h2><p>Bütün dükkânların sahibi. Ekibinin günlük toplam geliri: <b>₺${fmt(S.branches.reduce((a, b) => a + shopIncome(b), 0))}</b>.</p><p class="hint">Seviyen en kıdemli ustabaşının bir üstüdür; ünlülük basamağın da ekler.</p><button class="big" id="modalOk">Tamam</button>`
+      ? `<h2>👑 ${esc(owner().name)} · ${L('Usta', 'Master')}</h2><p>${L('Bütün dükkânların sahibi. Ekibinin günlük toplam geliri', 'Owner of all the shops. Your crew earns per day')}: <b>₺${fmt(S.branches.reduce((a, b) => a + shopIncome(b), 0))}</b>.</p><p class="hint">${L('Seviyen en kıdemli ustabaşının bir üstüdür; ünlülük basamağın da ekler.', 'Your level is one above your most senior foreman; your fame adds to it.')}</p><button class="big" id="modalOk">${L('Tamam', 'OK')}</button>`
       : sagHTML());
     return;
   }
   const p = S.staff.find(x => x.id === sid);
   if (!p) return;
-  const b = S.branches.find(x => x.city === p.city), where = p.city === 'ana' ? 'Ana dükkân' : CITY[p.city].name;
-  const job = {head:'Dükkânın başında durur, müşteriyle ve kasayla ilgilenir.', cirak:'Eksik siparişleri kendisi hazırlar.', garson:'Hazır ürünleri masalara taşır.'}[p.role];
+  const b = S.branches.find(x => x.city === p.city), where = CITY[p.city].name;
+  const job = L({head:'Dükkânın başında durur, müşteriyle ve kasayla ilgilenir.', cirak:'Eksik siparişleri kendisi hazırlar.', garson:'Hazır ürünleri masalara taşır.'},
+    {head:'Runs the shop and looks after customers and the till.', cirak:'Makes missing orders by themselves.', garson:'Carries ready products to the tables.'})[p.role];
   showModal(`<h2>${esc(p.name)} · ${ROLE[p.role]}</h2>
-    <table><tr><td>Dükkân</td><td>${where}</td></tr><tr><td>Seviye</td><td>${p.lv}</td></tr><tr><td>Günlük katkısı</td><td style="color:var(--good)">₺${fmt(staffIncome(p))}</td></tr></table>
-    <p class="hint">${job}${b === branch() && !b.lastEarn ? ' Katkısı dükkânı bir gün açınca hesaplanır.' : ''}</p>
-    ${p.lv >= STAFF_MAX ? '<p class="banner">🏅 En üst seviyede!</p><button class="big" id="modalOk">Tamam</button>'
-      : `<p class="hint">Şu an: ${staffEffect(p)} → sonraki: <b>${staffEffect({...p, lv:p.lv + 1})}</b></p>
-      <button class="big" id="staffUp" ${S.money < staffCost(p) ? 'disabled' : ''}>⬆️ Seviye ${p.lv + 1} · ₺${fmt(staffCost(p))}</button>
-      <div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
+    <table><tr><td>${L('Dükkân', 'Shop')}</td><td>${where}</td></tr><tr><td>${L('Seviye', 'Level')}</td><td>${p.lv}</td></tr><tr><td>${L('Günlük katkısı', 'Daily earnings')}</td><td style="color:var(--good)">₺${fmt(staffIncome(p))}</td></tr></table>
+    <p class="hint">${job}${b === branch() && !b.lastEarn ? L(' Katkısı dükkânı bir gün açınca hesaplanır.', ' Earnings show after you open the shop for a day.') : ''}</p>
+    ${p.lv >= STAFF_MAX ? `<p class="banner">${L('🏅 En üst seviyede!', '🏅 Top level!')}</p><button class="big" id="modalOk">${L('Tamam', 'OK')}</button>`
+      : `<p class="hint">${L('Şu an', 'Now')}: ${staffEffect(p)} → ${L('sonraki', 'next')}: <b>${staffEffect({...p, lv:p.lv + 1})}</b></p>
+      <button class="big" id="staffUp" ${S.money < staffCost(p) ? 'disabled' : ''}>⬆️ ${L('Seviye', 'Level')} ${p.lv + 1} · ₺${fmt(staffCost(p))}</button>
+      <div class="btns"><button class="btn2" id="modalOk">${L('Kapat', 'Close')}</button></div>`}`);
 }
 
 // ---------- Usta kartları (K-1) ----------
@@ -3817,7 +3818,7 @@ const CARD_MAX = CARD_LV.length;
 const cardN = id => (S.cards || {})[id] || 0;
 const cardLv = id => CARD_LV.filter(n => cardN(id) >= n).length;
 const sagCard = () => CARDS.find(c => c.id === S.sagCard && cardN(c.id));
-const cardFxTxt = (c, l) => Object.entries(c.fx).map(([k, v]) => FX_TXT[k] + v * l).join(', ');
+const cardFxTxt = (c, l) => Object.entries(c.fx).map(([k, v]) => FX_TXT[k] + v * l + L('', '%')).join(', ');
 // Takılı kartın bonusu (oran): bütün dükkânlarda geçerli
 function cardBonus(k){ const c = sagCard(); return c && c.fx[k] ? c.fx[k] * cardLv(c.id) / 100 : 0; }
 const packCost = () => Math.round(400 * Math.pow(2, mainLv()) / 10) * 10;
@@ -3839,13 +3840,13 @@ function openPack(buy){
   const got = [rollCard(), rollCard(), rollCard()].map(c => {
     const before = cardLv(c.id);
     S.cards[c.id] = cardN(c.id) + 1;
-    return {c, tag:!before ? 'YENİ' : cardLv(c.id) > before ? 'SEVİYE!' : ''};
+    return {c, tag:!before ? L('YENİ', 'NEW') : cardLv(c.id) > before ? L('SEVİYE!', 'LEVEL UP!') : ''};
   });
   if (!sagCard()) S.sagCard = [...got].sort((a, b) => 'erc'.indexOf(a.c.rar) - 'erc'.indexOf(b.c.rar))[0].c.id;   // boş yuvaya en iyisi
   save(); SFX.build();
-  showModal(`<h2>📦 Usta paketi</h2><div class="cards pack">${got.map((g, i) => cardHTML(g.c, `style="animation-delay:${i * 0.25}s"`, g.tag)).join('')}</div>
-    <p class="hint">Aynı usta tekrar çıkınca kartı seviye atlar. Sağ kol yuvasına bir kart tak, bonusu bütün dükkânlarında geçerli olsun.</p>
-    <button class="big" id="modalOk">Harika!</button>`, true);
+  showModal(`<h2>${L('📦 Usta paketi', '📦 Master pack')}</h2><div class="cards pack">${got.map((g, i) => cardHTML(g.c, `style="animation-delay:${i * 0.25}s"`, g.tag)).join('')}</div>
+    <p class="hint">${L('Aynı usta tekrar çıkınca kartı seviye atlar. Sağ kol yuvasına bir kart tak, bonusu bütün dükkânlarında geçerli olsun.', 'A duplicate master levels up the card. Put a card in your right-hand slot and its bonus works in all your shops.')}</p>
+    <button class="big" id="modalOk">${L('Harika!', 'Great!')}</button>`, true);
   renderUI();
 }
 function cardHTML(c, attr = '', tag = ''){
@@ -3853,15 +3854,15 @@ function cardHTML(c, attr = '', tag = ''){
   return `<div class="ucard ${c.rar}${own ? '' : ' off'}${own && S.sagCard === c.id ? ' on' : ''}" data-card="${c.id}" ${attr}>
     ${tag ? `<span class="utag">${tag}</span>` : ''}<span class="urar">${RAR[c.rar].name}</span><span class="uem">${own ? c.emoji : '❔'}</span>
     <b>${own ? c.name : '???'}</b><span class="ust">${'★'.repeat(l)}<i>${'★'.repeat(CARD_MAX - l)}</i></span>
-    <small>${own ? cardFxTxt(c, l) : 'Paketten çıkabilir'}</small></div>`;
+    <small>${own ? cardFxTxt(c, l) : L('Paketten çıkabilir', 'Can drop from a pack')}</small></div>`;
 }
 function cardsHTML(){
   if (S.packs == null) S.packs = 1;   // tanışma hediyesi: herkese bir bedava paket
   const own = CARDS.filter(c => cardN(c.id)).length, c = packCost();
-  return `<h3>🃏 Usta Kartları (${own}/${CARDS.length})</h3>
-    <p class="hint">Her 3 günde bir bedava paket gelir. Sağ kola takılan kartın bonusu bütün dükkânlarında geçerli.</p>
-    <div class="packrow"><button class="big" data-pack="free" ${S.packs > 0 ? '' : 'disabled'}>📦 Paket aç${S.packs > 0 ? ` (${S.packs})` : ''}</button>
-      <button class="btn2" data-pack="buy" ${S.money < c ? 'disabled' : ''}>🛒 Paket al ₺${fmt(c)}</button></div>
+  return `<h3>${L('🃏 Usta Kartları', '🃏 Master Cards')} (${own}/${CARDS.length})</h3>
+    <p class="hint">${L('Her 3 günde bir bedava paket gelir. Sağ kola takılan kartın bonusu bütün dükkânlarında geçerli.', 'A free pack arrives every 3 days. The card in your right-hand slot boosts all your shops.')}</p>
+    <div class="packrow"><button class="big" data-pack="free" ${S.packs > 0 ? '' : 'disabled'}>${L('📦 Paket aç', '📦 Open pack')}${S.packs > 0 ? ` (${S.packs})` : ''}</button>
+      <button class="btn2" data-pack="buy" ${S.money < c ? 'disabled' : ''}>${L('🛒 Paket al', '🛒 Buy pack')} ₺${fmt(c)}</button></div>
     <div class="cards">${CARDS.map(x => cardHTML(x)).join('')}</div>`;
 }
 function showCard(id){
@@ -3869,9 +3870,9 @@ function showCard(id){
   if (!c || !cardN(id) || modalOpen()) return;
   const l = cardLv(id);
   showModal(`<div class="cards one">${cardHTML(c)}</div>
-    <p class="hint">${l >= CARD_MAX ? '🏅 En üst seviyede!' : `Kopya: ${cardN(id)}/${CARD_LV[l]} · sonraki seviye: <b>${cardFxTxt(c, l + 1)}</b>`}</p>
-    ${S.sagCard === id ? '<p class="banner">🤝 Şu an sağ kolun</p><button class="big" id="modalOk">Tamam</button>'
-      : `<button class="big" data-sagcard="${id}">🤝 Sağ kola tak</button><div class="btns"><button class="btn2" id="modalOk">Kapat</button></div>`}`);
+    <p class="hint">${l >= CARD_MAX ? L('🏅 En üst seviyede!', '🏅 Top level!') : `${L('Kopya', 'Copies')}: ${cardN(id)}/${CARD_LV[l]} · ${L('sonraki seviye', 'next level')}: <b>${cardFxTxt(c, l + 1)}</b>`}</p>
+    ${S.sagCard === id ? `<p class="banner">${L('🤝 Şu an sağ kolun', '🤝 Currently your right hand')}</p><button class="big" id="modalOk">${L('Tamam', 'OK')}</button>`
+      : `<button class="big" data-sagcard="${id}">${L('🤝 Sağ kola tak', '🤝 Make right hand')}</button><div class="btns"><button class="btn2" id="modalOk">${L('Kapat', 'Close')}</button></div>`}`);
 }
 
 // ---------- Kişili harita (H-1) ----------
@@ -3883,10 +3884,10 @@ const TR_CITY = {ana:[32.5, 37.9], istanbul:[28.9, 41.5], ankara:[32.85, 39.93],
 const trXY = ([lon, lat]) => [(lon - 25.5) * 18, (42.6 - lat) * 23];
 function mapBubble(b, x, y, W, H){
   const h = headOf(b), here = b === branch(), bad = riskActive() && (b.issue || b.crisis);
-  const c = CITY[b.city], name = b.city === 'ana' ? 'Ana Dükkân' : c.name;
+  const c = CITY[b.city], name = c.name;
   return `<button class="mb${bad ? ' bad' : ''}${here ? ' here' : ''}" data-pin="${b.city}" style="left:${(x / W * 100).toFixed(2)}%;top:${(y / H * 100).toFixed(2)}%"
     title="${esc(h ? h.name : '')} · ${name}"><span class="mbp"><canvas class="sport" data-sid="${h ? h.id : ''}"></canvas>${h ? `<span class="tlv">${h.lv}</span>` : ''}${bad ? '<i class="mba">!</i>' : ''}</span>
-    <span class="mbt">${here ? '📍 ' : ''}${name}</span><span class="mbi">₺${fmt(shopIncome(b))}/gün</span></button>`;
+    <span class="mbt">${here ? '📍 ' : ''}${name}</span><span class="mbi">₺${fmt(shopIncome(b))}/${L('gün', 'day')}</span></button>`;
 }
 function trMapHTML(){
   ensureStaff();
@@ -3899,7 +3900,7 @@ function trMapHTML(){
     else pins += `<g class="pin ${canBranch('tr') ? 'can' : 'lock'}" data-pin="${c.id}"><circle cx="${x}" cy="${y}" r="10" class="hit"/><circle cx="${x}" cy="${y}" r="4"/>
       <text x="${x}" y="${y + 13}">${c.name}</text></g>`;
   });
-  return `<div class="mapw"><svg class="wmap trmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Türkiye şube haritası"><g class="land">${land}</g>${pins}</svg>${bubbles}</div>`;
+  return `<div class="mapw"><svg class="wmap trmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="${L('Türkiye şube haritası', 'Branch map of Türkiye')}"><g class="land">${land}</g>${pins}</svg>${bubbles}</div>`;
 }
 function worldMapHTML(){
   const bubbles = S.branches.filter(b => regionOf(b.city) === 'world').map(b => {
@@ -3920,6 +3921,37 @@ const HOODS = [
   {id:'sinema', emoji:'🎭', name:'Sinema', need:3, base:20000, fx:l => `hafta sonu bahşişi +%${8 * l}`},
 ];
 const HOOD_MAX = 5;
+// İngilizce adlar (EN-4): şehirler, şube sorunları, roller, usta kartları, mahalle binaları
+if (LANG === 'en'){
+  const put = (list, map) => list.forEach(o => map[o.id] && Object.assign(o, map[o.id]));
+  const cty = (name, desc) => ({name, desc, in:'in ' + name, to:'to ' + name});
+  put(CITIES, {ana:{name:'Main Shop', desc:'Where it all began'},
+    istanbul:cty('Istanbul', 'Busy city: customers come often but are in a hurry'),
+    ankara:cty('Ankara', 'City of civil servants: customers are more patient'),
+    izmir:cty('Izmir', 'Easygoing city: tips are 30% higher'),
+    rize:cty('Rize', 'Capital of tea: tea costs 50% more'),
+    antep:cty('Gaziantep', 'Dessert heaven: baklava costs 40% more'),
+    berlin:cty('Berlin', 'Expat neighbourhood: tea and simit cost 40% more'),
+    londra:cty('London', 'The rain never stops: hot drinks cost 30% more, customers are patient'),
+    newyork:cty('New York', 'The city that never sleeps: very crowded, tips +50%, but everyone is in a hurry'),
+    tokyo:cty('Tokyo', 'Fast but impatient customers; quick service earns big tips'),
+    dubai:cty('Dubai', 'Luxury city: VIP customers come very often, tips +20%')});
+  Object.assign(ISSUES.hijyen, {name:'Hygiene inspection', desc:'An inspector is at the door; a cleaning crew is needed'});
+  Object.assign(ISSUES.maas, {name:'Staff want a raise', desc:'The staff are unhappy and have slowed down'});
+  Object.assign(ISSUES.malzeme, {name:'Supply problem', desc:'Quality ingredients cannot be found'});
+  Object.assign(ISSUES.rakip, {name:'A rival shop opened', desc:'A new café opened on the opposite corner'});
+  Object.assign(ISSUES.sikayet, {name:'Complaints are rising', desc:'Customers are unhappy with the service'});
+  Object.assign(ROLE, {head:'Foreman', cirak:'Apprentice', garson:'Waiter'});
+  put(CARDS, {demci:{name:'Hüsnü the Brewer'}, simitci:{name:'Nuri the Simit Seller'}, hamal:{name:'Rıza the Porter'},
+    tavlaci:{name:'Cemil the Backgammon Ace'}, postaci:{name:'Ayten the Postwoman'}, pazarci:{name:'Gülsüm the Grocer'},
+    rizeli:{name:'Fadime from Rize'}, kahveci:{name:'Zeki the Coffee Maker'}, muhtar:{name:'Headman Şevket'},
+    reis:{name:'Kadir, Head of Traders'}, nine:{name:'Wise Grandma'}, semaver:{name:'Hayri the Samovar Master'}});
+  RAR.c.name = 'Common'; RAR.r.name = 'Rare'; RAR.e.name = 'Legendary';
+  Object.assign(FX_TXT, {tip:'tips +', price:'prices +', branch:'branch income +', pat:'patience +', spawn:'customers +', mat:'ingredients -'});
+  put(HOODS, {firin:{name:'Bakery', fx:l => `ingredient costs -${3 * l}%`}, manav:{name:'Greengrocer', fx:l => `sale prices +${2 * l}%`},
+    durak:{name:'Bus Stop', fx:l => `customers come ${3 * l}% more often`}, berber:{name:'Barber', fx:l => `customers are ${4 * l}% more patient`},
+    banka:{name:'Bank', fx:l => `${(0.4 * l).toFixed(1)}% nightly interest on your cash`}, sinema:{name:'Cinema', fx:l => `weekend tips +${8 * l}%`}});
+}
 const hoodLv = id => (S.hood || {})[id] || 0;
 const hoodCost = h => Math.round(h.base * Math.pow(2.2, hoodLv(h.id)) / 10) * 10;
 const hoodOpen = h => mainLv() >= h.need;
@@ -3939,13 +3971,13 @@ function buyHood(id){
   toast(`${h.emoji} ${h.name} ${S.hood[id] === 1 ? L('açıldı', 'opened') : L('seviye ', 'level ') + S.hood[id]}: ${h.fx(S.hood[id])}`); SFX.build(); save();
 }
 function hoodHTML(){
-  return '<p class="hint">Mahalle esnafına yatırım yap: her bina kalıcı bonus verir, 5 seviyeye kadar büyür.</p><div class="hood">' + HOODS.map(h => {
+  return `<p class="hint">${L('Mahalle esnafına yatırım yap: her bina kalıcı bonus verir, 5 seviyeye kadar büyür.', 'Invest in local businesses: each building gives a permanent bonus and grows up to level 5.')}</p><div class="hood">` + HOODS.map(h => {
     const l = hoodLv(h.id), open = hoodOpen(h), c = hoodCost(h);
-    const btn = !open ? `<span class="lockb">🔒 Gereken: ${SHOP_LEVELS[h.need].name}</span>`
-      : l >= HOOD_MAX ? '<span class="lockb max">🏅 En üst seviye</span>'
-      : `<button data-hood="${h.id}" ${S.money < c ? 'disabled' : ''}>${l ? '⬆️ Büyüt' : '🔨 Kur'} ₺${fmt(c)}</button>`;
+    const btn = !open ? `<span class="lockb">🔒 ${L('Gereken', 'Needs')}: ${SHOP_LEVELS[h.need].name}</span>`
+      : l >= HOOD_MAX ? `<span class="lockb max">${L('🏅 En üst seviye', '🏅 Top level')}</span>`
+      : `<button data-hood="${h.id}" ${S.money < c ? 'disabled' : ''}>${l ? L('⬆️ Büyüt', '⬆️ Upgrade') : L('🔨 Kur', '🔨 Build')} ₺${fmt(c)}</button>`;
     return `<div data-hid="${h.id}" class="hb${open ? '' : ' locked'}${l ? ' built' : ''}"><span class="he">${l || !open ? h.emoji : '🚧'}</span><span class="rib">${h.name}</span>
-      <span class="hstars">${'★'.repeat(l)}<i>${'★'.repeat(HOOD_MAX - l)}</i></span><small>${l ? h.fx(l) : 'Kurunca: ' + h.fx(1)}</small>${btn}</div>`;
+      <span class="hstars">${'★'.repeat(l)}<i>${'★'.repeat(HOOD_MAX - l)}</i></span><small>${l ? h.fx(l) : L('Kurunca: ', 'When built: ') + h.fx(1)}</small>${btn}</div>`;
   }).join('') + '</div>';
 }
 
@@ -3975,56 +4007,56 @@ $('#hood3d').addEventListener('click', e => {
 function branchesHTML(){
   const n = trCount(), w = worldCount(), wo = worldOpen();
   let h = wo
-    ? `<div class="net">🌍 Dünya şubeleri: <b>${w}/${WORLD_GOAL}</b>
-      <small style="display:block;color:var(--muted)">${w >= WORLD_GOAL ? 'Çayın artık dünyanın her yerinde!' : 'Türk çayını dünyaya taşı!'}</small>
+    ? `<div class="net">${L('🌍 Dünya şubeleri', '🌍 World branches')}: <b>${w}/${WORLD_GOAL}</b>
+      <small style="display:block;color:var(--muted)">${w >= WORLD_GOAL ? L('Çayın artık dünyanın her yerinde!', 'Your tea is now all over the world!') : L('Türk çayını dünyaya taşı!', 'Take Turkish tea to the world!')}</small>
       <div class="pbar"><div style="width:${w / WORLD_GOAL * 100}%"></div></div></div>`
-    : `<div class="net">🗺️ Türkiye şubeleri: <b>${n}/${TR_GOAL}</b>
-      <small style="display:block;color:var(--muted)">${TR_GOAL} şube açınca yurt dışına açılabilirsin.</small>
+    : `<div class="net">${L('🗺️ Türkiye şubeleri', '🗺️ Branches in Türkiye')}: <b>${n}/${TR_GOAL}</b>
+      <small style="display:block;color:var(--muted)">${L(`${TR_GOAL} şube açınca yurt dışına açılabilirsin.`, `Open ${TR_GOAL} branches to expand abroad.`)}</small>
       <div class="pbar"><div style="width:${n / TR_GOAL * 100}%"></div></div></div>`;
   h += trMapHTML();
   h += worldMapHTML();
-  h += '<h3>Şubelerim</h3>';
+  h += `<h3>${L('Şubelerim', 'My branches')}</h3>`;
   S.branches.forEach((b, i) => {
-    const c = CITY[b.city], here = i === S.cur, L = SHOP_LEVELS[b.lv.dukkan || 0];
+    const c = CITY[b.city], here = i === S.cur, LV = SHOP_LEVELS[b.lv.dukkan || 0];
     const rep = Math.round(here ? S.rep : b.rep);
     const risky = riskActive() && b.city !== 'ana', hp = bHealth(b);
     const cls = here ? ' cur' : b.crisis ? ' crisis' : b.issue ? ' warn' : '';
     let trouble = '';
     if (risky && (b.issue || b.crisis)){
       const iss = b.issue && ISSUES[b.issue.t];
-      trouble = `<div class="trouble"><span>${b.crisis ? '🚨 <b>KRİZ!</b><small>Kurtarmazsan batacak</small>' : `${iss.emoji} <b>${iss.name}</b><small>${iss.desc}</small>`}</span>
-        <button class="fix" data-fix="${i}" ${S.money < (b.crisis ? rescueCost(b) : fixCost(b)) ? 'disabled' : ''}>${b.crisis ? '🛟 Kurtar' : '🔧 Çöz'} ₺${fmt(b.crisis ? rescueCost(b) : fixCost(b))}</button></div>`;
+      trouble = `<div class="trouble"><span>${b.crisis ? L('🚨 <b>KRİZ!</b><small>Kurtarmazsan batacak</small>', '🚨 <b>CRISIS!</b><small>It will go bust unless you rescue it</small>') : `${iss.emoji} <b>${iss.name}</b><small>${iss.desc}</small>`}</span>
+        <button class="fix" data-fix="${i}" ${S.money < (b.crisis ? rescueCost(b) : fixCost(b)) ? 'disabled' : ''}>${b.crisis ? L('🛟 Kurtar', '🛟 Rescue') : L('🔧 Çöz', '🔧 Fix')} ₺${fmt(b.crisis ? rescueCost(b) : fixCost(b))}</button></div>`;
     }
     h += `<div class="shop-item${cls}" id="br-${c.id}"><div class="em">${c.emoji}</div>
-      <div class="info"><b>${c.name}</b><small>${conceptOf(b).emoji} ${conceptOf(b).name} · ${L.name} · ⭐ ${rep}</small>
-      <small>${here ? '<span class="loc">📍 Buradasın</span>' : `🧑‍💼 Müdür yönetiyor · günde ~₺${fmt(managedIncome(Object.assign({}, b, {rep})))}${b.issue && !b.crisis ? ' 📉' : ''}`}</small>
-      ${risky ? `<span class="hbar${hp <= RISK.crisis ? ' low' : hp < 70 ? ' mid' : ''}" title="Şube sağlığı"><i style="width:${hp}%"></i></span>` : ''}
+      <div class="info"><b>${c.name}</b><small>${conceptOf(b).emoji} ${conceptOf(b).name} · ${LV.name} · ⭐ ${rep}</small>
+      <small>${here ? `<span class="loc">${L('📍 Buradasın', '📍 You are here')}</span>` : `${L('🧑‍💼 Müdür yönetiyor · günde', '🧑‍💼 Run by a manager · per day')} ~₺${fmt(managedIncome(Object.assign({}, b, {rep})))}${b.issue && !b.crisis ? ' 📉' : ''}`}</small>
+      ${risky ? `<span class="hbar${hp <= RISK.crisis ? ' low' : hp < 70 ? ' mid' : ''}" title="${L('Şube sağlığı', 'Branch health')}"><i style="width:${hp}%"></i></span>` : ''}
 </div>
-      ${here ? '' : `<button data-switch="${i}" ${status === 'running' ? 'disabled' : ''}>${status === 'running' ? '🔒 Gün sonu' : 'Buraya geç'}</button>`}${trouble}</div>`;
+      ${here ? '' : `<button data-switch="${i}" ${status === 'running' ? 'disabled' : ''}>${status === 'running' ? L('🔒 Gün sonu', '🔒 After today') : L('Buraya geç', 'Go here')}</button>`}${trouble}</div>`;
   });
   const row = (c, ok, cost) => {
     const p = PRODUCTS.find(p => p.city === c.id);
     return `<div class="shop-item" id="br-${c.id}"><div class="em">${c.emoji}</div>
-      <div class="info"><b>${c.name}</b><small>${c.desc}</small><small>Yerel ürün: ${p.emoji} ${p.name} (₺${p.price})</small></div>
+      <div class="info"><b>${c.name}</b><small>${c.desc}</small><small>${L('Yerel ürün', 'Local product')}: ${p.emoji} ${p.name} (₺${p.price})</small></div>
       <button data-branch="${c.id}" ${!ok || S.money < cost ? 'disabled' : ''}>${ok ? '₺' + fmt(cost) : '🔒'}</button></div>`;
   };
   const leftTr = CITIES.filter(c => regionOf(c.id) === 'tr' && !hasCity(c.id));
   if (leftTr.length){
     const ok = canBranch('tr');
-    h += "<h3>🏙️ Türkiye'de Şube Aç</h3>";
-    if (!ok) h += `<p class="hint">🔒 Ana dükkânın <b>${SHOP_LEVELS[BRANCH_NEED].name}</b> olunca şube açabilirsin.</p>`;
-    else h += '<p class="hint">Her şehir kendi ürününü getirir; o ürün bütün şubelerde satılır.</p>';
+    h += `<h3>${L("🏙️ Türkiye'de Şube Aç", '🏙️ Open a Branch in Türkiye')}</h3>`;
+    if (!ok) h += `<p class="hint">${L(`🔒 Ana dükkânın <b>${SHOP_LEVELS[BRANCH_NEED].name}</b> olunca şube açabilirsin.`, `🔒 You can open branches once your main shop is a <b>${SHOP_LEVELS[BRANCH_NEED].name}</b>.`)}</p>`;
+    else h += `<p class="hint">${L('Her şehir kendi ürününü getirir; o ürün bütün şubelerde satılır.', 'Every city brings its own product, sold in all your branches.')}</p>`;
     leftTr.forEach(c => h += row(c, ok, branchCost('tr')));
   }
   const leftW = CITIES.filter(c => c.region === 'world' && !hasCity(c.id));
   if (leftW.length){
-    h += '<h3>🌍 Yurt Dışında Şube Aç</h3>';
-    h += wo ? '<p class="hint">Yurt dışı şubeleri pahalıdır ama müdürleri çok daha fazla kazandırır.</p>'
-            : `<p class="hint">🔒 Türkiye'de ${TR_GOAL} şube açınca dünya kapısı açılır (${n}/${TR_GOAL}).</p>`;
+    h += `<h3>${L('🌍 Yurt Dışında Şube Aç', '🌍 Open a Branch Abroad')}</h3>`;
+    h += wo ? `<p class="hint">${L('Yurt dışı şubeleri pahalıdır ama müdürleri çok daha fazla kazandırır.', 'Branches abroad are expensive, but their managers earn much more.')}</p>`
+            : `<p class="hint">${L(`🔒 Türkiye'de ${TR_GOAL} şube açınca dünya kapısı açılır (${n}/${TR_GOAL}).`, `🔒 Open ${TR_GOAL} branches in Türkiye to unlock the world (${n}/${TR_GOAL}).`)}</p>`;
     leftW.forEach(c => h += row(c, wo, branchCost('world')));
   }
-  h += '<p class="hint" style="margin-top:10px">Bulunduğun şubeyi sen işletirsin; diğerlerini müdürler yönetir ve her gün sonunda gelir getirir. Şubeler arası geçiş dükkân kapalıyken yapılır.' +
-    (riskActive() ? ' Sorunlu bir şubeye gidip bir gün bizzat çalışırsan sorun kendiliğinden çözülür.' : '') + '</p>';
+  h += '<p class="hint" style="margin-top:10px">' + L('Bulunduğun şubeyi sen işletirsin; diğerlerini müdürler yönetir ve her gün sonunda gelir getirir. Şubeler arası geçiş dükkân kapalıyken yapılır.', 'You run the branch you are in; managers run the others and bring income at the end of each day. You can switch branches while the shop is closed.') +
+    (riskActive() ? L(' Sorunlu bir şubeye gidip bir gün bizzat çalışırsan sorun kendiliğinden çözülür.', ' Work a day at a troubled branch yourself and the problem goes away.') : '') + '</p>';
   return h;
 }
 
@@ -4113,7 +4145,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.34.0';
+const APP_VERSION = '2.35.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4684,44 +4716,45 @@ async function shareCover(){
 // Yeni şube: önce konsept sorulur
 function showConcepts(cid){
   const c = CITY[cid];
-  showModal(`<h2>${c.emoji} ${c.name}: Konsept ne olsun?</h2>
-    <p class="hint">Konseptli şubede yalnızca o ürünler satılır ama %30 pahalıdır; müdür geliri %15 fazla olur.</p>` +
+  showModal(`<h2>${c.emoji} ${c.name}: ${L('Konsept ne olsun?', 'Pick a concept')}</h2>
+    <p class="hint">${L('Konseptli şubede yalnızca o ürünler satılır ama %30 pahalıdır; müdür geliri %15 fazla olur.', 'A themed branch sells only those products, but 30% pricier; manager income is 15% higher.')}</p>` +
     Object.entries(CONCEPTS).map(([k, o]) => {
       const n = o.items ? o.items.filter(id => S.unlocked.includes(id)).length : 0;
-      return `<button class="ans" data-concept="${cid}:${k}">${o.emoji} <b>${o.name}</b> · ${o.desc}<br><small>${o.items ? `${n}/${o.items.length} ürünü açık` : 'Bütün menü, fiyat farkı yok'}</small></button>`;
-    }).join('') + '<div class="btns"><button class="btn2" id="modalOk">Vazgeç</button></div>');
+      return `<button class="ans" data-concept="${cid}:${k}">${o.emoji} <b>${o.name}</b> · ${o.desc}<br><small>${o.items ? L(`${n}/${o.items.length} ürünü açık`, `${n}/${o.items.length} products unlocked`) : L('Bütün menü, fiyat farkı yok', 'Full menu, normal prices')}</small></button>`;
+    }).join('') + `<div class="btns"><button class="btn2" id="modalOk">${L('Vazgeç', 'Cancel')}</button></div>`);
 }
 function branchOpened(cid, k){
   const c = CITY[cid], p = PRODUCTS.find(p => p.city === c.id);
   if (openBranch(c.id, k)){
     confetti(); SFX.build(); setTimeout(SFX.levelUp, 450);
     showModal(`
-      <h2>${c.emoji} ${c.name} şubesi açıldı!</h2>
-      <p><b>${esc(owner().shopName)}</b> yeni şubesiyle artık ${c.in}! ${c.desc}.</p>
-      ${regionOf(c.id) === 'world' && worldCount() === 1 ? '<p class="banner">🌍 Dünyaya açıldın! Türk çayı artık yurt dışında!</p><p class="banner bad">⚠️ Artık büyük bir işletmesin: şubelerde sorun çıkabilir. Çözmezsen batabilirler! Ana dükkânın her zaman güvende.</p>' : ''}
-      <p class="banner">${p.emoji} <b>${p.name}</b> bütün şubelerin menüsüne eklendi!</p>
-      <p class="banner">${CONCEPTS[k].emoji} Konsept: <b>${CONCEPTS[k].name}</b></p>
-      <p class="hint">Şube küçük bir çay ocağı olarak başlar. Oraya geçip büyütebilir ya da müdüre bırakıp gelir toplayabilirsin.</p>
-      ${status === 'running' ? '<button class="big" id="modalOk">Tamam</button>' :
-        `<button class="big" data-switch="${S.branches.length - 1}">📍 ${c.to} geç</button>
-        <div class="btns"><button class="btn2" id="modalOk">Burada kal</button></div>`}`);
+      <h2>${L(`${c.emoji} ${c.name} şubesi açıldı!`, `${c.emoji} The ${c.name} branch is open!`)}</h2>
+      <p>${L(`<b>${esc(owner().shopName)}</b> yeni şubesiyle artık ${c.in}!`, `<b>${esc(owner().shopName)}</b> is now ${c.in} with a new branch!`)} ${c.desc}.</p>
+      ${regionOf(c.id) === 'world' && worldCount() === 1 ? L('<p class="banner">🌍 Dünyaya açıldın! Türk çayı artık yurt dışında!</p><p class="banner bad">⚠️ Artık büyük bir işletmesin: şubelerde sorun çıkabilir. Çözmezsen batabilirler! Ana dükkânın her zaman güvende.</p>',
+        '<p class="banner">🌍 You went global! Turkish tea is now abroad!</p><p class="banner bad">⚠️ You are a big business now: branches can run into trouble and go bust if you ignore it. Your main shop is always safe.</p>') : ''}
+      <p class="banner">${p.emoji} <b>${p.name}</b> ${L('bütün şubelerin menüsüne eklendi!', 'was added to the menu of all your branches!')}</p>
+      <p class="banner">${CONCEPTS[k].emoji} ${L('Konsept', 'Concept')}: <b>${CONCEPTS[k].name}</b></p>
+      <p class="hint">${L('Şube küçük bir çay ocağı olarak başlar. Oraya geçip büyütebilir ya da müdüre bırakıp gelir toplayabilirsin.', 'The branch starts as a small tea stand. Go there and grow it, or leave it to a manager and collect the income.')}</p>
+      ${status === 'running' ? `<button class="big" id="modalOk">${L('Tamam', 'OK')}</button>` :
+        `<button class="big" data-switch="${S.branches.length - 1}">📍 ${L(`${c.to} geç`, `Go ${c.to}`)}</button>
+        <div class="btns"><button class="btn2" id="modalOk">${L('Burada kal', 'Stay here')}</button></div>`}`);
   }
 }
 // Üst çubuktaki dükkân düğmesi: bütün dükkânların durumu, istenene geçiş
 function showShops(){
   const rows = S.branches.map((b, i) => {
-    const c = CITY[b.city], here = i === S.cur, L = SHOP_LEVELS[b.lv.dukkan || 0], k = conceptOf(b);
+    const c = CITY[b.city], here = i === S.cur, LV = SHOP_LEVELS[b.lv.dukkan || 0], k = conceptOf(b);
     const rep = Math.round(here ? S.rep : b.rep), gone = S.day - (b.seen ?? b.day ?? S.day);
-    const st = b.city === 'ana' ? '🏠 Asla batmaz' : b.crisis ? '🚨 Kriz! Batmak üzere' : b.issue ? `${ISSUES[b.issue.t].emoji} ${ISSUES[b.issue.t].name}` : '✅ İşler yolunda';
+    const st = b.city === 'ana' ? L('🏠 Asla batmaz', '🏠 Never goes bust') : b.crisis ? L('🚨 Kriz! Batmak üzere', '🚨 Crisis! About to go bust') : b.issue ? `${ISSUES[b.issue.t].emoji} ${ISSUES[b.issue.t].name}` : L('✅ İşler yolunda', '✅ All good');
     return `<div class="shop-item${here ? ' cur' : b.crisis ? ' crisis' : b.issue ? ' warn' : ''}"><div class="em">${c.emoji}</div>
       <div class="info"><b>${c.name} <span class="lvl">${k.emoji} ${k.name}</span></b>
-      <small>${L.name} · ⭐ ${rep}${here ? '' : ` · günde ~₺${fmt(managedIncome(Object.assign({}, b, {rep})))}`}</small>
-      <small>${st}${here ? ' · 📍 Buradasın' : gone > 0 ? ` · ${gone} gündür uğramadın` : ''}</small></div>
-      ${here ? '' : `<button data-switch="${i}">Git</button>`}</div>`;
+      <small>${LV.name} · ⭐ ${rep}${here ? '' : ` · ${L('günde', 'per day')} ~₺${fmt(managedIncome(Object.assign({}, b, {rep})))}`}</small>
+      <small>${st}${here ? L(' · 📍 Buradasın', ' · 📍 You are here') : gone > 0 ? L(` · ${gone} gündür uğramadın`, ` · not visited for ${gone} days`) : ''}</small></div>
+      ${here ? '' : `<button data-switch="${i}">${L('Git', 'Go')}</button>`}</div>`;
   }).join('');
-  showModal(`<h2>🏪 Dükkânlarım</h2>${rows}
-    <p class="hint">Uzun süre uğramadığın şubelerde sorun çıkma ihtimali artar. Sorunlu şubeye gidip bir gün çalışırsan düzelir.</p>
-    <button class="big" id="modalOk">Kapat</button>`);
+  showModal(`<h2>${L('🏪 Dükkânlarım', '🏪 My Shops')}</h2>${rows}
+    <p class="hint">${L('Uzun süre uğramadığın şubelerde sorun çıkma ihtimali artar. Sorunlu şubeye gidip bir gün çalışırsan düzelir.', 'Branches you have not visited for a while are more likely to run into trouble. Work a day at a troubled branch to fix it.')}</p>
+    <button class="big" id="modalOk">${L('Kapat', 'Close')}</button>`);
 }
 $('#shopsBtn').addEventListener('click', () => { if (status !== 'running' && !modalOpen()){ showShops(); SFX.serve(); } });
 function goBranch(i){
