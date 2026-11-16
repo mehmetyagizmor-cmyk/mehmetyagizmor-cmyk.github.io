@@ -1887,7 +1887,7 @@ function regHappy(c, ratio){
     d.got = l;
     const gift = regGift(l);
     S.money += gift; S.total += gift;
-    announce({emoji:r.emoji, name:`${r.name} ${hearts(l)}`, desc:`"${r.lines[l]}" · Hediye +₺${fmt(gift)}`, ach:true}, L('💛 Müdavim', '💛 Regular'));
+    announce({emoji:r.emoji, name:`${r.name} ${hearts(l)}`, desc:`"${r.lines[l]}" · ${L('Hediye', 'Gift')} +₺${fmt(gift)}`, ach:true}, L('💛 Müdavim', '💛 Regular'));
   }
 }
 function regAngry(c){
@@ -1900,7 +1900,7 @@ function regGreet(c){
   const r = REG[c.reg], d = regData(r.id), s = SLOTS[c.seat];
   if (!d.met){
     d.met = true;
-    announce({emoji:r.emoji, name:r.name, desc:`"${r.lines[0]}" · Her zamanki: ${regOrder(r).map(p => P[p].emoji).join('')}`}, L('💛 Yeni müdavim', '💛 New regular'));
+    announce({emoji:r.emoji, name:r.name, desc:`"${r.lines[0]}" · ${L('Her zamanki', 'The usual')}: ${regOrder(r).map(p => P[p].emoji).join('')}`}, L('💛 Yeni müdavim', '💛 New regular'));
   } else floatText(s.x, s.y - 150, regLv(r.id) ? '💬 Her zamankinden!' : '💬 Merhaba usta!', '#fff3d6');
 }
 
@@ -2031,21 +2031,21 @@ function contractSold(order){
   S.money += c.reward; S.total += c.reward; S.contracts = (S.contracts || 0) + 1; period().ct++;
   S.contract = null;
   addFame(10);
-  announce({emoji:c.emoji, name:`${c.name} siparişi tamam!`, desc:`+₺${fmt(c.reward)} · 🌟 +10`, ach:true}, L('📦 Toplu sipariş', '📦 Bulk order'));
+  announce({emoji:c.emoji, name:L(`${c.name} siparişi tamam!`, `${c.name} order complete!`), desc:`+₺${fmt(c.reward)} · 🌟 +10`, ach:true}, L('📦 Toplu sipariş', '📦 Bulk order'));
   confetti(); SFX.pay(); save();
 }
 // Gün sonu: süresi biten sipariş başarısız olur, bekleyen teklif düşer, yarına yeni teklif gelebilir. Karne satırını döndürür
 function contractDay(){
   const c = S.contract;
   if (c && c.st === 'active'){
-    if (S.day < c.until) return `<p class="hint">📦 ${c.emoji} ${c.name} siparişi: ${c.until - S.day} gün daha var</p>`;
+    if (S.day < c.until) return `<p class="hint">📦 ${c.emoji} ${L(`${c.name} siparişi: ${c.until - S.day} gün daha var`, `${c.name} order: ${c.until - S.day} more days`)}</p>`;
     S.rep = Math.max(0, S.rep - CT_FAIL_REP); S.contract = null;
-    return `<p class="banner bad">📦 ${c.emoji} ${c.name} siparişi yetişmedi: -${CT_FAIL_REP}⭐</p>`;
+    return `<p class="banner bad">📦 ${c.emoji} ${L(`${c.name} siparişi yetişmedi`, `${c.name} order missed`)}: -${CT_FAIL_REP}⭐</p>`;
   }
   S.contract = null;
   if (S.day + 1 < 4 || Math.random() > 0.25) return '';
   S.contract = makeContract(S.day + 1, Object.values(R.sold).reduce((a, b) => a + b, 0));
-  return `<p class="banner">📦 Yarın ${S.contract.emoji} ${S.contract.name} toplu sipariş teklifi getirecek!</p>`;
+  return `<p class="banner">📦 ${L(`Yarın ${S.contract.emoji} ${S.contract.name} toplu sipariş teklifi getirecek!`, `Tomorrow ${S.contract.emoji} ${S.contract.name} will bring a bulk order offer!`)}</p>`;
 }
 function answerContract(yes){
   const c = S.contract;
@@ -2061,11 +2061,11 @@ function contractHTML(){
   const list = ids.map(id => `${P[id].emoji} ${c.st === 'active' ? Math.min(c.got[id] || 0, c.need[id]) + '/' : ''}${c.need[id]} ${P[id].name}`).join(' · ');
   if (c.st === 'offer'){
     if (c.day !== S.day || status === 'running') return '';
-    return `<b>📦 Teklif: ${c.emoji} ${c.name}</b><small>${c.days} günde ${list} sat → +₺${fmt(c.reward)} · yetişmezse -${CT_FAIL_REP}⭐ · dükkânı açmadan karar ver</small>
-      <div class="btns"><button class="btn2" data-ct="yes">✅ Kabul et</button><button class="btn2" data-ct="no">Reddet</button></div>`;
+    return `<b>📦 ${L('Teklif', 'Offer')}: ${c.emoji} ${c.name}</b><small>${L(`${c.days} günde ${list} sat → +₺${fmt(c.reward)} · yetişmezse -${CT_FAIL_REP}⭐ · dükkânı açmadan karar ver`, `Sell ${list} in ${c.days} days → +₺${fmt(c.reward)} · miss it and lose ${CT_FAIL_REP}⭐ · decide before opening`)}</small>
+      <div class="btns"><button class="btn2" data-ct="yes">${L('✅ Kabul et', '✅ Accept')}</button><button class="btn2" data-ct="no">${L('Reddet', 'Decline')}</button></div>`;
   }
   const tot = ids.reduce((s, id) => s + c.need[id], 0), got = ids.reduce((s, id) => s + Math.min(c.got[id] || 0, c.need[id]), 0);
-  return `<b>📦 ${c.emoji} ${c.name}</b> · ${c.until > S.day ? `${c.until - S.day + 1} gün kaldı` : 'son gün!'}<small>${list} · ödül ₺${fmt(c.reward)}</small><i style="width:${got / tot * 100}%"></i>`;
+  return `<b>📦 ${c.emoji} ${c.name}</b> · ${c.until > S.day ? L(`${c.until - S.day + 1} gün kaldı`, `${c.until - S.day + 1} days left`) : L('son gün!', 'last day!')}<small>${list} · ${L('ödül', 'reward')} ₺${fmt(c.reward)}</small><i style="width:${got / tot * 100}%"></i>`;
 }
 
 // ---------- Mahalle ligi ----------
@@ -2089,50 +2089,50 @@ function league(){
 }
 // Bugün dahil sıralama; oyuncunun açık günü de anlık sayılır
 function standings(){
-  const L = league();
-  if (!L) return null;
+  const LG = league();
+  if (!LG) return null;
   const live = status === 'running' ? R.stats.earned + R.stats.tips : 0;
-  return [{id:'me', emoji:'🍵', name:'Sen', score:L.me + live}, ...RIVALS.map(r => ({...r, score:L.sc[r.id]}))].sort((a, b) => b.score - a.score);
+  return [{id:'me', emoji:'🍵', name:L('Sen', 'You'), score:LG.me + live}, ...RIVALS.map(r => ({...r, score:LG.sc[r.id]}))].sort((a, b) => b.score - a.score);
 }
 // Gün sonu: puanları ekler, pazar günü ödülleri dağıtıp ligi kapatır. Karne satırını döndürür
 function leagueDay(earned){
-  const L = league();
-  if (!L) return '';
-  L.me += earned;
+  const LG = league();
+  if (!LG) return '';
+  LG.me += earned;
   // Rakipler yarı yarıya geçen haftanın ortalamasına ve senin bugününe bakar: erken oyunda gelir hızla büyürken geride kalmasınlar
-  RIVALS.forEach(r => L.sc[r.id] += Math.round((L.base + earned) / 2 * S.lgK[r.id] * rand(0.85, 1.15)));
+  RIVALS.forEach(r => LG.sc[r.id] += Math.round((LG.base + earned) / 2 * S.lgK[r.id] * rand(0.85, 1.15)));
   const st = standings(), rank = st.findIndex(x => x.id === 'me') + 1, left = 7 - (S.day - 1) % 7 - 1;
-  if (left > 0) return `<p class="hint">🏆 Mahalle ligi: <b>${rank}. sıradasın</b> · lider ${st[0].emoji} ${st[0].id === 'me' ? 'sensin' : st[0].name} · pazara ${left} gün</p>`;
+  if (left > 0) return `<p class="hint">${L(`🏆 Mahalle ligi: <b>${rank}. sıradasın</b> · lider ${st[0].emoji} ${st[0].id === 'me' ? 'sensin' : st[0].name} · pazara ${left} gün`, `🏆 Neighbourhood league: <b>you are #${rank}</b> · leader ${st[0].emoji} ${st[0].id === 'me' ? 'is you' : st[0].name} · ${left} days to Sunday`)}</p>`;
   // Hafta bitti
   let prize = '';
   if (rank === 1){
-    const m = Math.round(L.base * 2 / 10) * 10;
+    const m = Math.round(LG.base * 2 / 10) * 10;
     S.money += m; S.total += m; addFame(15); S.lgWins = (S.lgWins || 0) + 1; period().lg++;
-    prize = `🥇 Haftanın birincisi sensin! +₺${fmt(m)} · 🌟 +15 · 🏆 ${S.lgWins}. kupa`;
+    prize = L(`🥇 Haftanın birincisi sensin! +₺${fmt(m)} · 🌟 +15 · 🏆 ${S.lgWins}. kupa`, `🥇 You won the week! +₺${fmt(m)} · 🌟 +15 · 🏆 trophy #${S.lgWins}`);
   } else if (rank === 2){
-    const m = Math.round(L.base * 0.7 / 10) * 10;
+    const m = Math.round(LG.base * 0.7 / 10) * 10;
     S.money += m; S.total += m; addFame(5);
-    prize = `🥈 Haftayı ikinci bitirdin: +₺${fmt(m)} · 🌟 +5`;
-  } else prize = `${rank}. oldun. Haftanın lideri ${st[0].emoji} ${st[0].name} oldu, gelecek hafta yakala!`;
+    prize = L(`🥈 Haftayı ikinci bitirdin: +₺${fmt(m)} · 🌟 +5`, `🥈 You finished the week second: +₺${fmt(m)} · 🌟 +5`);
+  } else prize = L(`${rank}. oldun. Haftanın lideri ${st[0].emoji} ${st[0].name} oldu, gelecek hafta yakala!`, `You came #${rank}. ${st[0].emoji} ${st[0].name} won the week, catch them next week!`);
   // Kazandıkça rakipler biraz güçlenir, kaybettikçe biraz zayıflar
   RIVALS.forEach(r => S.lgK[r.id] = Math.max(0.5, Math.min(1.6, S.lgK[r.id] * (rank === 1 ? 1.04 : rank > 2 ? 0.97 : 1))));
-  S.lgBase = Math.max(100, Math.round(L.me / 7));
+  S.lgBase = Math.max(100, Math.round(LG.me / 7));
   S.league = null;
-  return `<div class="banner">🏆 Mahalle ligi ${L.week}. hafta bitti · ${prize}
-    <div class="news" style="text-align:left">${st.map((x, i) => `<div>${i + 1}. ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name} · ₺${fmt(x.score)}</div>`).join('')}</div></div>`;
+  return `<div class="banner">${L(`🏆 Mahalle ligi ${LG.week}. hafta bitti`, `🏆 Neighbourhood league week ${LG.week} is over`)} · ${prize}
+    <div class="news" style="text-align:left">${st.map((x, i) => `<div>${i + 1}. ${x.emoji} ${x.id === 'me' ? `<b>${x.name}</b>` : x.name} · ₺${fmt(x.score)}</div>`).join('')}</div></div>`;
 }
 function leagueHTML(){
   const st = standings();
-  if (!st) return S.day >= LEAGUE_FROM - 3 && S.day < LEAGUE_FROM ? `🏆 <b>Mahalle ligi</b> ${LEAGUE_FROM}. günde başlıyor<small>Her hafta dört rakip çay ocağıyla satış yarışı: birinciye para, ünlülük ve kupa.</small>` : '';
+  if (!st) return S.day >= LEAGUE_FROM - 3 && S.day < LEAGUE_FROM ? L(`🏆 <b>Mahalle ligi</b> ${LEAGUE_FROM}. günde başlıyor<small>Her hafta dört rakip çay ocağıyla satış yarışı: birinciye para, ünlülük ve kupa.</small>`, `🏆 <b>Neighbourhood league</b> starts on day ${LEAGUE_FROM}<small>A weekly sales race against four rival tea houses: the winner gets cash, fame and a trophy.</small>`) : '';
   const rank = st.findIndex(x => x.id === 'me') + 1, left = 7 - (S.day - 1) % 7;
-  const row = st.map((x, i) => `${i + 1}. ${x.emoji} ${x.id === 'me' ? '<b>Sen</b>' : x.name} ₺${fmt(x.score)}`).join(' · ');
-  return `<b>🏆 Mahalle ligi · ${rank}. sıradasın</b> · ${left > 1 ? `pazara ${left - 1} gün` : 'son gün!'}<small>${row}</small>`;
+  const row = st.map((x, i) => `${i + 1}. ${x.emoji} ${x.id === 'me' ? `<b>${x.name}</b>` : x.name} ₺${fmt(x.score)}`).join(' · ');
+  return `<b>${L(`🏆 Mahalle ligi · ${rank}. sıradasın`, `🏆 Neighbourhood league · you are #${rank}`)}</b> · ${left > 1 ? L(`pazara ${left - 1} gün`, `${left - 1} days to Sunday`) : L('son gün!', 'last day!')}<small>${row}</small>`;
 }
 
 // ---------- Esnaf Ödülleri ----------
 // Her 28 günde (4 hafta) bir tören: lig satışı ödüllendirir, tören hizmet kalitesini. Şartı tutan her kategori ödül ve kupa verir
 const AWARD_EVERY = 28;
-const pctTxt = x => '%' + (x * 100).toLocaleString('tr-TR', {maximumFractionDigits:1});
+const pctTxt = x => L('%' + (x * 100).toLocaleString('tr-TR', {maximumFractionDigits:1}), (x * 100).toLocaleString('en-US', {maximumFractionDigits:1}) + '%');
 const AWARDS = [
   {id:'hiz',      emoji:'⚡', name:'En Hızlı Servis',  need:'Kızıp giden müşteri %3\'ten az',
    ok:y => y.served >= 50 && y.lost / (y.served + y.lost) < 0.03, val:y => pctTxt(y.lost / Math.max(1, y.served + y.lost))},
@@ -2156,7 +2156,7 @@ function awardDay(st, perfect){
   y.dirty += R.voice.dirty; y.perfect += perfect ? 1 : 0; y.earn += st.earned + st.tips;
   const left = nextCeremony() - S.day;
   if (S.day % AWARD_EVERY){
-    return left <= 3 ? `<p class="hint">🎖️ Esnaf Ödülleri töreni ${left} gün sonra · Eşyalarım'dan şartlara bak</p>` : '';
+    return left <= 3 ? `<p class="hint">${L(`🎖️ Esnaf Ödülleri töreni ${left} gün sonra · Eşyalarım'dan şartlara bak`, `🎖️ Shopkeeper Awards in ${left} days · check the rules in My Stuff`)}</p>` : '';
   }
   if (S.day - y.from < 14) return '';   // eski kayıtta dönem yarıda başladıysa bu tören atlanır, sayılar sürer
   const days = S.day - y.from + 1, won = AWARDS.filter(a => a.ok(y));
@@ -2165,16 +2165,16 @@ function awardDay(st, perfect){
   won.forEach(a => S.awards[a.id] = (S.awards[a.id] || 0) + 1);
   if (won.length){ S.money += m * won.length; S.total += m * won.length; addFame(10 * won.length + (won.length >= 5 ? 25 : 0)); }
   S.yr = null;
-  return `<div class="banner">🎖️ Esnaf Ödülleri töreni · ${won.length ? `${won.length} ödül kazandın! +₺${fmt(m * won.length)} · 🌟 +${10 * won.length + (won.length >= 5 ? 25 : 0)}` : 'bu dönem ödül çıkmadı'}
+  return `<div class="banner">${L('🎖️ Esnaf Ödülleri töreni', '🎖️ Shopkeeper Awards')} · ${won.length ? `${L(`${won.length} ödül kazandın!`, `you won ${won.length} award${won.length > 1 ? 's' : ''}!`)} +₺${fmt(m * won.length)} · 🌟 +${10 * won.length + (won.length >= 5 ? 25 : 0)}` : L('bu dönem ödül çıkmadı', 'no awards this time')}
     <div class="news" style="text-align:left">${AWARDS.map(a => `<div>${a.ok(y) ? '✅' : '▫️'} ${a.emoji} ${a.name} <small style="color:var(--muted)">· ${a.ok(y) ? a.val(y) : a.need + ' (' + a.val(y) + ')'}</small></div>`).join('')}</div></div>`;
 }
 function awardsHTML(){
   if (S.day < 2) return '';
   const y = period(), left = nextCeremony() - S.day + 1;
-  return `<h3>🎖️ Esnaf Ödülleri</h3><p class="hint">Her 4 haftada bir tören: şartı tutan her ödül para, ünlülük ve kupa getirir. Sonraki tören ${left > 1 ? `${left} gün sonra` : 'bugün, gün sonunda'}.</p>`
+  return `<h3>${L('🎖️ Esnaf Ödülleri', '🎖️ Shopkeeper Awards')}</h3><p class="hint">${L(`Her 4 haftada bir tören: şartı tutan her ödül para, ünlülük ve kupa getirir. Sonraki tören ${left > 1 ? `${left} gün sonra` : 'bugün, gün sonunda'}.`, `A ceremony every 4 weeks: each award you qualify for brings cash, fame and a trophy. Next ceremony ${left > 1 ? `in ${left} days` : 'today, at day end'}.`)}</p>`
     + AWARDS.map(a => {
       const ok = a.ok(y), n = (S.awards || {})[a.id] || 0;
-      return `<div class="ach${ok ? ' done' : ''}"><div class="em">${a.emoji}</div><div class="info"><b>${a.name}${n ? ` · 🏆×${n}` : ''}</b><small>${a.need} · şu an ${a.val(y)}</small></div><span class="rw">${ok ? '✓' : ''}</span></div>`;
+      return `<div class="ach${ok ? ' done' : ''}"><div class="em">${a.emoji}</div><div class="info"><b>${a.name}${n ? ` · 🏆×${n}` : ''}</b><small>${a.need} · ${L('şu an', 'now')} ${a.val(y)}</small></div><span class="rw">${ok ? '✓' : ''}</span></div>`;
     }).join('');
 }
 
@@ -2268,7 +2268,7 @@ function checkQuests(){
 }
 function questsHTML(){
   if (!S.quests || S.quests.day !== S.day) return '';
-  const head = status === 'running' ? '' : `<div class="qhead">📋 Bugünün görevleri · her biri +₺${fmt(S.quests.list[0].reward)}</div>`;
+  const head = status === 'running' ? '' : `<div class="qhead">${L(`📋 Bugünün görevleri · her biri +₺${fmt(S.quests.list[0].reward)}`, `📋 Today's quests · +₺${fmt(S.quests.list[0].reward)} each`)}</div>`;
   return head + S.quests.list.map(q => {
     const p = questProg(q), failed = p < 0;
     const cls = q.done ? ' done' : failed ? ' fail' : '';
@@ -3507,7 +3507,7 @@ function renderMenu(menu){
 // Eşyalarım: sahip olunan her şey
 // Eşyalarım alt sekmeleri: profil, albüm, müdavimler, ödüller
 let invTab = 'profil', albumSet = null;
-const INV_TABS = [['profil', 'chart', 'Profil'], ['album', 'album', 'Albüm'], ['mudavim', 'person', 'Müdavimler'], ['odul', 'medal', 'Ödüller']];
+const INV_TABS = [['profil', 'chart', L('Profil', 'Profile')], ['album', 'album', L('Albüm', 'Album')], ['mudavim', 'person', L('Müdavimler', 'Regulars')], ['odul', 'medal', L('Ödüller', 'Awards')]];
 const invCard = (em, name, sub, dots, off) => `<div class="inv-card${off ? ' off' : ''}"><div class="em">${em}</div><b>${name}</b>${dots ? `<div class="dots">${dots}</div>` : ''}<small>${sub}</small></div>`;
 const invDots = (l, mx) => '●'.repeat(l) + '○'.repeat(Math.max(0, mx - l));
 const pbar = (n, of, txt) => `<span class="pb"><i style="width:${Math.round(Math.min(1, n / Math.max(1, of)) * 100)}%"></i><em>${txt || `${n}/${of}`}</em></span>`;
@@ -3519,32 +3519,32 @@ function renderInventory(){
 }
 function profileHTML(){
   let v = `<div class="kv">
-    <div><small>Gün</small><b>${S.day}</b></div><div><small>Toplam kazanç</small><b>₺${fmt(S.total)}</b></div>
-    <div><small>Mutlu müşteri</small><b>${fmt(S.served)}</b></div><div><small>En kârlı gün</small><b>₺${fmt(S.bestDay)}</b></div>
-    <div><small>Kusursuz gün</small><b>${S.perfect}</b></div><div><small>Giriş serisi</small><b>📅 ${S.streak} gün</b></div>
-    <div><small>En uzun kombo</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>Tamamlanan görev</small><b>📋 ${S.questsDone || 0}</b></div>
-    <div><small>Ünlülük</small><b>🌟 ${fmt(S.fame)}</b></div><div><small>Röportaj</small><b>🎤 ${S.interviews || 0}</b></div></div>
-    ${S.lastCover ? '<button class="btn2" data-cover style="width:100%;margin-top:8px">📰 Son kapağını gör ve paylaş</button>' : ''}`;
-  v += '<h3>Dükkân</h3><div class="inv">' + SHOP_LEVELS.map((L, i) => invCard(i === 3 ? '🏆' : '🏪', L.name,
-    i < lv('dukkan') ? 'Geride kaldı' : i === lv('dukkan') ? 'Şu anki dükkânın' : `Gün ${L.day}+ · ₺${fmt(L.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
+    <div><small>${L('Gün', 'Day')}</small><b>${S.day}</b></div><div><small>${L('Toplam kazanç', 'Total earned')}</small><b>₺${fmt(S.total)}</b></div>
+    <div><small>${L('Mutlu müşteri', 'Happy customers')}</small><b>${fmt(S.served)}</b></div><div><small>${L('En kârlı gün', 'Best day')}</small><b>₺${fmt(S.bestDay)}</b></div>
+    <div><small>${L('Kusursuz gün', 'Perfect days')}</small><b>${S.perfect}</b></div><div><small>${L('Giriş serisi', 'Login streak')}</small><b>📅 ${S.streak} ${L('gün', 'days')}</b></div>
+    <div><small>${L('En uzun kombo', 'Longest combo')}</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>${L('Tamamlanan görev', 'Quests done')}</small><b>📋 ${S.questsDone || 0}</b></div>
+    <div><small>${L('Ünlülük', 'Fame')}</small><b>🌟 ${fmt(S.fame)}</b></div><div><small>${L('Röportaj', 'Interviews')}</small><b>🎤 ${S.interviews || 0}</b></div></div>
+    ${S.lastCover ? `<button class="btn2" data-cover style="width:100%;margin-top:8px">${L('📰 Son kapağını gör ve paylaş', '📰 See and share your latest cover')}</button>` : ''}`;
+  v += `<h3>${L('Dükkân', 'Shop')}</h3><div class="inv">` + SHOP_LEVELS.map((SL, i) => invCard(i === 3 ? '🏆' : '🏪', SL.name,
+    i < lv('dukkan') ? L('Geride kaldı', 'Done') : i === lv('dukkan') ? L('Şu anki dükkânın', 'Your current shop') : `${L('Gün', 'Day')} ${SL.day}+ · ₺${fmt(SL.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
   [['esya', L('Eşyalar', 'Items')], ['alet', L('Mutfak Aletleri', 'Kitchen Tools')], ['ekip', L('Çalışanlar', 'Staff')]].forEach(([grp, title]) => {
     v += `<h3>${title}</h3><div class="inv">` + UPGRADES.filter(u => u.grp === grp).map(u => {
       const l = lv(u.id);
-      return invCard(u.emoji, u.name, l ? UP_FX[u.id](l) : 'Mağazada', invDots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
+      return invCard(u.emoji, u.name, l ? UP_FX[u.id](l) : L('Mağazada', 'In the shop'), invDots(l, u.id === 'masa' ? SHOP_LEVELS[SHOP_LEVELS.length - 1].tables - 2 : u.max), !l);
     }).join('') + '</div>';
   });
-  v += '<h3>🌟 Şöhret Ayrıcalıkları</h3><div class="inv">' + FAME_PERKS.map(p => invCard(p.emoji, p.name,
+  v += `<h3>${L('🌟 Şöhret Ayrıcalıkları', '🌟 Fame Perks')}</h3><div class="inv">` + FAME_PERKS.map(p => invCard(p.emoji, p.name,
     fameLv() >= p.lv ? p.desc : `🔒 ${FAME_LEVELS[p.lv].emoji} ${FAME_LEVELS[p.lv].name}`, '', fameLv() < p.lv)).join('') + '</div>';
-  v += '<h3>Menü</h3><div class="inv">' + PRODUCTS.map(p => invCard(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : p.tool ? UPGRADES.find(u => u.id === p.tool).name : SHOP_LEVELS[p.shop].name) : 'Kilitli', S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
+  v += `<h3>${L('Menü', 'Menu')}</h3><div class="inv">` + PRODUCTS.map(p => invCard(p.emoji, p.name, S.unlocked.includes(p.id) ? `₺${basePrice(p.id)}` : shopLocked(p) ? (p.city ? CITY[p.city].name : p.tool ? UPGRADES.find(u => u.id === p.tool).name : SHOP_LEVELS[p.shop].name) : L('Kilitli', 'Locked'), S.unlocked.includes(p.id) ? stars5(recLv(p.id)) : '', !S.unlocked.includes(p.id))).join('') + '</div>';
   return v;
 }
 // Albüm: setler rozet ızgarasında; dokunulan setin parçaları altta açılır
 function albumHTML(){
   const ownN = COL_ITEMS.filter(it => owned(it.id)).length;
-  const bon = [['tip', 'bahşiş'], ['pat', 'sabır'], ['fame', 'ünlülük'], ['off', 'sen yokken kasası']]
-    .filter(([k]) => colBonus(k) > 0).map(([k, w]) => `+%${Math.round(colBonus(k) * 100)} ${w}`);
-  let h = `<div class="album-head"><span class="ah-em">🏺</span><div class="ah-txt"><b>Koleksiyon Albümü</b>
-      <small>${bon.length ? 'Bonusun: ' + bon.join(' · ') : 'Antikacıdan parça al, etkinlik görevlerinden hatıra kazan. Her set kalıcı bonus verir!'}</small>
+  const bon = [['tip', L('bahşiş', 'tips')], ['pat', L('sabır', 'patience')], ['fame', L('ünlülük', 'fame')], ['off', L('sen yokken kasası', 'while-away cash')]]
+    .filter(([k]) => colBonus(k) > 0).map(([k, w]) => L(`+%${Math.round(colBonus(k) * 100)} ${w}`, `+${Math.round(colBonus(k) * 100)}% ${w}`));
+  let h = `<div class="album-head"><span class="ah-em">🏺</span><div class="ah-txt"><b>${L('Koleksiyon Albümü', 'Collection Album')}</b>
+      <small>${bon.length ? L('Bonusun: ', 'Your bonus: ') + bon.join(' · ') : L('Antikacıdan parça al, etkinlik görevlerinden hatıra kazan. Her set kalıcı bonus verir!', 'Buy pieces from the antique dealer and win keepsakes in events. Every set gives a permanent bonus!')}</small>
       ${pbar(ownN, COL_ITEMS.length)}</div></div>`;
   h += '<div class="album">' + COL_SETS.map(st => {
     const n = st.items.filter(it => owned(it.id)).length;
@@ -3553,9 +3553,9 @@ function albumHTML(){
   }).join('') + '</div>';
   const st = COL_SETS.find(s => s.id === albumSet);
   h += st ? `<div class="aset-detail"><h3>${st.emoji} ${st.name}${setDone(st) ? ' ✅' : ''}</h3>
-      <p class="hint">Parça başı +%${Math.round(st.per * 100)}, set tamamlanınca +%${Math.round(st.full * 100)} ${st.what}</p><div class="inv">`
-      + st.items.map(it => invCard(owned(it.id) ? it.emoji : '❔', it.name, owned(it.id) ? 'Koleksiyonunda' : st.event ? 'Etkinlik ödülü' : `₺${fmt(it.cost)}`, '', !owned(it.id))).join('') + '</div></div>'
-    : '<p class="hint" style="text-align:center;margin-top:10px">Bir sete dokun, parçalarını gör.</p>';
+      <p class="hint">${L(`Parça başı +%${Math.round(st.per * 100)}, set tamamlanınca +%${Math.round(st.full * 100)} ${st.what}`, `+${Math.round(st.per * 100)}% per piece, +${Math.round(st.full * 100)}% ${st.what} for the full set`)}</p><div class="inv">`
+      + st.items.map(it => invCard(owned(it.id) ? it.emoji : '❔', it.name, owned(it.id) ? L('Koleksiyonunda', 'In your collection') : st.event ? L('Etkinlik ödülü', 'Event reward') : `₺${fmt(it.cost)}`, '', !owned(it.id))).join('') + '</div></div>'
+    : `<p class="hint" style="text-align:center;margin-top:10px">${L('Bir sete dokun, parçalarını gör.', 'Tap a set to see its pieces.')}</p>`;
   return h;
 }
 // Müdavimler: oyunun kendi karakter çizimiyle portreli kartlar, uğrama gününe göre üç bölüm
@@ -3564,16 +3564,78 @@ const REG_TIERS = [
   {id:'t2', name:'Sık Uğrayanlar',          test:r => r.day > 3 && r.day <= 8},
   {id:'t3', name:'Nadir Konuklar',          test:r => r.day > 8},
 ];
+// İngilizce adlar (EN-5a): koleksiyon, müdavimler, başarımlar, görevler, toplu sipariş, rakipler, ödüller, ünlülük
+if (LANG === 'en'){
+  const put = (list, map) => list.forEach(o => map[o.id] && Object.assign(o, map[o.id]));
+  const items = (st, names) => st.items.forEach((it, i) => names[i] && (it.name = names[i]));
+  const CS = Object.fromEntries(COL_SETS.map(x => [x.id, x]));
+  Object.assign(CS.cayset, {name:'Tea Set', what:'tips'}); items(CS.cayset, ['Tulip Tea Glass', 'Silver Holder', 'Copper Teapot', 'Antique Samovar']);
+  Object.assign(CS.kiraat, {name:'Coffeehouse Corner', what:'customer patience'}); items(CS.kiraat, ['Pearl Backgammon', 'Okey Set', 'Amber Prayer Beads', 'Old Playing Cards']);
+  Object.assign(CS.nostalji, {name:'Nostalgia Shelf', what:'fame gain'}); items(CS.nostalji, ['Valve Radio', 'Cuckoo Clock', 'Gramophone', 'Old Istanbul Photo']);
+  Object.assign(CS.ugur, {name:'Lucky Charms', what:'"while away" cash'}); items(CS.ugur, ['Evil Eye Bead', 'Four-Leaf Clover', 'Gold Coin', 'Yellow Canary']);
+  Object.assign(CS.hatira, {name:'Holiday Memories', what:'tips'});
+  put(REGULARS, {
+    ali:{name:'Uncle Ali', lines:['A tea please, son, nice and strong.', 'Nobody around here makes tea like you.', 'I told my grandchildren about you, they are coming!',
+      'Forty years on this street and I have never seen a shopkeeper like you.', 'You are like my own child now.']},
+    ayse:{name:'Auntie Ayşe', lines:['Thought I would drop by on my way to the market.', "Your pogaca tastes just like my late mother's.", 'I told my daughter about you, she is so curious!',
+      'I knitted you a wool scarf, stay warm this winter.', 'God bless you, dear, never change.']},
+    zeynep:{name:'Zeynep the Student', lines:['Exam week, coffee is a must!', 'Studying here really helps.', 'The whole class comes here now!',
+      'I wrote about you in the school paper.', 'I passed the exam top of the class, thanks to you!']},
+    riza:{name:'Rıza the Taxi Driver', lines:['The taxi is at the door, a quick toastie!', 'I always recommend you to my passengers.', 'Everyone at the taxi rank talks about your tea.',
+      'I bring all the tourists to you!', 'Free rides for you, for life!']},
+    muhtar:{name:'Headman Hüsnü', lines:['Headman work is tiring, I need a coffee.', 'Let us hold the neighbourhood meeting here.', 'We voted you the best shopkeeper in the neighbourhood!',
+      'I had a "Pride of the Neighbourhood" plaque put on your door.', 'This neighbourhood is better with you, son.']},
+    defne:{name:'Defne the Painter', lines:['The light here is perfect for painting.', 'I sketched your shop.', 'The painting was a hit at the exhibition!',
+      'They hung your painting in the gallery, everyone asks about it.', 'I am giving you my best painting as a gift.']},
+    kemal:{name:'Kemal the Barber', lines:['Neighbour, let me have a menemen while my shop is quiet.', 'My customers drink your tea while they get a shave.', 'Free shaves for you, whenever you like.',
+      'Everyone at the barber talks about your shop.', 'So glad we are neighbours, master!']},
+    selim:{name:'Selim the Postman', lines:['Letters can wait, salep cannot!', 'I carry your greetings to the whole neighbourhood.', 'You are getting fan mail!',
+      'Letters even from far-off cities, you are famous!', "You are the neighbourhood's post office now."]},
+  });
+  put(REG_TIERS, {t1:{name:'Neighbourhood Fixtures'}, t2:{name:'Frequent Visitors'}, t3:{name:'Rare Guests'}});
+  const a = (name, desc) => ({name, desc});
+  put(ACH, {ilk:a('First Customer', 'Serve your first customer'), m50:a('Neighbourhood Tea Maker', 'Serve 50 customers'),
+    m250:a('Master Tea Maker', 'Serve 250 customers'), m1000:a('Legendary Tea Maker', 'Serve 1000 customers'),
+    k1000:a('First Thousand', 'Earn ₺1,000 in total'), k25000:a('Capitalist', 'Earn ₺25,000 in total'),
+    menu:a('Full Menu', 'Add every product to the menu'), gorev:a('Quest Hero', 'Complete 30 daily quests'),
+    kombo:a('Combo Master', 'Make 15 customers happy in a row (15 combo)'), tarif:a('Master Recipe', 'Raise a recipe to 5 stars'),
+    kiraat:a('Coffeehouse Owner', 'Grow your shop into a Coffeehouse'), unlu:a('Famous Spot', 'Raise your shop to the top level'),
+    miras:a("Master's Legacy", 'Hand your shop to your apprentice and start over'),
+    kusursuz:a('Perfect Day', 'Serve 15 customers in a day without anyone getting angry'), yildiz:a('Neighbourhood Favourite', 'Reach 100 reputation'),
+    ekip:a('Full Crew', 'Employ 2 apprentices and 2 waiters'), sube1:a('First Branch', 'Open a branch in another city'),
+    sube5:a("Türkiye's Tea Maker", `Open ${TR_GOAL} branches in Türkiye`), dunya1:a('Going Global', 'Open your first branch abroad'),
+    dunya5:a('World Brand', `Open ${WORLD_GOAL} branches abroad`), kurtar:a('Crisis Manager', 'Rescue a branch in crisis'),
+    roportaj:a('Press Friendly', 'Give 5 interviews'), sohret:a('Famous Entrepreneur', 'Reach the "Famous entrepreneur" fame level'),
+    mudavim:a('Neighbourhood Sweetheart', 'Get a regular to 4 hearts'), elest:a('Five Stars', 'Get 5 stars from the food critic'),
+    etkinlik:a('Holiday Spirit', 'Complete an event quest'), koleksiyon:a('Collector', 'Complete a collection set'), seri:a('Loyal Shopkeeper', 'Play 7 days in a row')});
+  Object.assign(QUESTS.sell, {label:q => `${P[q.p].emoji} Sell ${q.n} ${P[q.p].name}`});
+  Object.assign(QUESTS.serve, {label:q => `👥 Serve ${q.n} customers`, short:() => '👥 Serve'});
+  Object.assign(QUESTS.combo, {label:q => `🔥 Reach a ${q.n} combo`, short:() => '🔥 Combo'});
+  Object.assign(QUESTS.tips, {label:q => `💰 Collect ₺${fmt(q.n)} in tips`, short:() => '💰 Tips'});
+  Object.assign(QUESTS.nolose, {label:q => `😊 ${q.n} serves without anyone getting angry`, short:() => '😊 No anger'});
+  ['Wedding hall', 'School trip', 'Factory tea break', 'Neighbourhood football team', 'Town hall meeting', 'Graduation ceremony'].forEach((n, i) => CLIENTS[i] && (CLIENTS[i].name = n));
+  put(RIVALS, {rifat:{name:"Master Rıfat's Place"}, kose:{name:'Corner Coffeehouse'}, simit:{name:'Uncle Simit'}, nesil:{name:'New Wave Café'}});
+  put(AWARDS, {hiz:{name:'Fastest Service', need:'Under 3% of customers leave angry'}, temiz:{name:'Cleanest Shop', need:'Under 1 "dirty" complaint per 100 customers'},
+    dost:{name:'Customer Friendly', need:'Good reviews 3× the bad ones (at least 10)'}, kusursuz:{name:'Flawless Shopkeeper', need:'At least 3 perfect days'},
+    lig:{name:'League Star', need:'At least 2 league wins'}, soz:{name:'True to Your Word', need:'At least 2 bulk orders'}});
+  ['Known in the neighbourhood', 'Known in the city', 'Famous entrepreneur', "Türkiye's tea maker", 'World famous', 'Tea legend', 'Living legend']
+    .forEach((n, i) => FAME_LEVELS[i] && (FAME_LEVELS[i].name = n));
+  [['Call your fans', 'Once a day: customers come twice as often for 25 seconds'], ['Ad deal', 'Ad income of day × ₺25 at the end of each day'],
+   ['Your own tea brand', '+₺5 packaged tea sales per customer served, at day end'], ['World brand', 'Branch manager income +25%'],
+   ['Your mastery book', 'Your book sells: the "while away" cash grows 25%'], ['Tea Museum', '+₺500 ticket income per branch at the end of each day']]
+    .forEach(([name, desc], i) => FAME_PERKS[i] && Object.assign(FAME_PERKS[i], {name, desc}));
+  LEGACY_TITLES.splice(0, LEGACY_TITLES.length, 'Master', 'Grand Master', 'Tea Legend');
+}
 function regularsHTML(){
   const met = r => !!(S.regs[r.id] || {}).met, metN = REGULARS.filter(met).length, maxH = REG_HEARTS.length - 1;
   const best = REGULARS.filter(met).sort((a, b) => regLv(b.id) - regLv(a.id) || (S.regs[b.id].visits || 0) - (S.regs[a.id].visits || 0))[0];
-  let h = `<div class="rhead"><b>💛 Müdavimler</b><span>Tanışılan <b>${metN}/${REGULARS.length}</b></span></div>
-    <p class="hint">Yalnızca ana dükkâna uğrarlar. Mutlu ettikçe kalp kazanırlar: her kalp +%10 bahşiş ve bir hediye. 4 kalpli müdavim seni herkese anlatır (her gün +1 🌟).</p>`;
+  let h = `<div class="rhead"><b>${L('💛 Müdavimler', '💛 Regulars')}</b><span>${L('Tanışılan', 'Met')} <b>${metN}/${REGULARS.length}</b></span></div>
+    <p class="hint">${L('Yalnızca ana dükkâna uğrarlar. Mutlu ettikçe kalp kazanırlar: her kalp +%10 bahşiş ve bir hediye. 4 kalpli müdavim seni herkese anlatır (her gün +1 🌟).', 'They only visit your main shop. Keep them happy to earn hearts: each heart gives +10% tips and a gift. A 4-heart regular tells everyone about you (+1 🌟 a day).')}</p>`;
   if (best){
     const l = regLv(best.id), d = S.regs[best.id];
     h += `<div class="rfeat ${REG_TIERS.find(t => t.test(best)).id}"><canvas class="port" data-reg="${best.id}"></canvas>
-      <div class="rf-info"><span class="tag">EN YAKIN DOSTUN</span><b>${best.name}</b><span class="hearts">${hearts(l)}</span>
-      <small>"${best.lines[l]}"</small><small>Her zamanki: ${regOrder(best).map(p => P[p].emoji).join('')} · ${d.visits || 0} ziyaret · bahşiş +%${10 * l}</small></div></div>`;
+      <div class="rf-info"><span class="tag">${L('EN YAKIN DOSTUN', 'YOUR BEST FRIEND')}</span><b>${best.name}</b><span class="hearts">${hearts(l)}</span>
+      <small>"${best.lines[l]}"</small><small>${L('Her zamanki', 'The usual')}: ${regOrder(best).map(p => P[p].emoji).join('')} · ${L(`${d.visits || 0} ziyaret · bahşiş +%${10 * l}`, `${d.visits || 0} visits · tips +${10 * l}%`)}</small></div></div>`;
   }
   REG_TIERS.forEach(t => {
     const list = REGULARS.filter(t.test);
@@ -3581,7 +3643,7 @@ function regularsHTML(){
       const m = met(r), l = m ? regLv(r.id) : 0;
       return `<div class="rcard ${t.id}${m ? '' : ' locked'}"><canvas class="port" data-reg="${r.id}"${m ? '' : ' data-lock="1"'}></canvas>
         ${m ? '' : '<span class="lock">🔒</span>'}<span class="rname">${m ? r.name : '???'}</span>
-        ${m ? pbar(l, maxH, `${l}/${maxH} ❤️`) : `<small>${S.day >= r.day ? 'Yakında uğrar' : r.day + '. günden sonra'}</small>`}</div>`;
+        ${m ? pbar(l, maxH, `${l}/${maxH} ❤️`) : `<small>${S.day >= r.day ? L('Yakında uğrar', 'Coming soon') : L(r.day + '. günden sonra', 'After day ' + r.day)}</small>`}</div>`;
     }).join('') + '</div>';
   });
   return h;
@@ -3600,14 +3662,14 @@ function drawPortraits(){
 }
 // Ödüller: kupa rafı, dönemin Esnaf Ödülleri ilerlemesi, başarımlar
 function trophiesHTML(){
-  const shelf = [{emoji:'🏆', name:'Lig Birinciliği', n:S.lgWins || 0},
+  const shelf = [{emoji:'🏆', name:L('Lig Birinciliği', 'League Win'), n:S.lgWins || 0},
     ...AWARDS.map(a => ({emoji:a.emoji, name:a.name, n:(S.awards || {})[a.id] || 0}))];
-  let h = `<div class="rhead"><b>🏅 Kupa Rafı</b><span>Toplam <b>${shelf.reduce((s, x) => s + x.n, 0)}</b> kupa</span></div>
+  let h = `<div class="rhead"><b>${L('🏅 Kupa Rafı', '🏅 Trophy Shelf')}</b><span>${L('Toplam', 'Total')} <b>${shelf.reduce((s, x) => s + x.n, 0)}</b> ${L('kupa', 'trophies')}</span></div>
     <div class="shelf">${shelf.map(x => `<div class="cup${x.n ? '' : ' off'}"><span class="ce">${x.emoji}</span>${x.n ? `<i>×${x.n}</i>` : ''}<small>${x.name}</small></div>`).join('')}</div>`;
-  if (S.reviews) h += `<p class="hint">📰 Eleştirmen yazıları: ${S.reviews.n} · En iyi puan <span style="color:#d39a00">${starStr(S.reviews.best)}</span></p>`;
+  if (S.reviews) h += `<p class="hint">${L('📰 Eleştirmen yazıları', '📰 Critic reviews')}: ${S.reviews.n} · ${L('En iyi puan', 'Best score')} <span style="color:#d39a00">${starStr(S.reviews.best)}</span></p>`;
   h += awardsHTML();
   const done = ACH.filter(a => S.ach[a.id]).length;
-  h += `<h3>🏅 Başarımlar (${done}/${ACH.length})</h3>`;
+  h += `<h3>${L('🏅 Başarımlar', '🏅 Achievements')} (${done}/${ACH.length})</h3>`;
   // Tamamlanmamışlar önce, en çok ilerleyen en üstte
   const prog = a => S.ach[a.id] ? 1 : Math.min(1, a.val() / a.goal);
   [...ACH].sort((a, b) => (!!S.ach[a.id] - !!S.ach[b.id]) || prog(b) - prog(a)).forEach(a => {
@@ -4145,7 +4207,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.35.0';
+const APP_VERSION = '2.36.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
