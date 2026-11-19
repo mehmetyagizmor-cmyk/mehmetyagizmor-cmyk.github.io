@@ -3807,6 +3807,7 @@ function profileHTML(){
     <div><small>${L('Kusursuz gün', 'Perfect days')}</small><b>${S.perfect}</b></div><div><small>${L('Giriş serisi', 'Login streak')}</small><b>📅 ${S.streak} ${L('gün', 'days')}</b></div>
     <div><small>${L('En uzun kombo', 'Longest combo')}</small><b>🔥 ${S.bestCombo || 0}</b></div><div><small>${L('Tamamlanan görev', 'Quests done')}</small><b>📋 ${S.questsDone || 0}</b></div>
     <div><small>${L('Ünlülük', 'Fame')}</small><b>🌟 ${fmt(S.fame)}</b></div><div><small>${L('Röportaj', 'Interviews')}</small><b>🎤 ${S.interviews || 0}</b></div></div>
+    <button class="btn2" data-scard style="width:100%;margin-top:8px">${L('🪪 Dükkân kartını paylaş', '🪪 Share your shop card')}</button>
     ${S.lastCover ? `<button class="btn2" data-cover style="width:100%;margin-top:8px">${L('📰 Son kapağını gör ve paylaş', '📰 See and share your latest cover')}</button>` : ''}`;
   v += `<h3>${L('Dükkân', 'Shop')}</h3><div class="inv">` + SHOP_LEVELS.map((SL, i) => invCard(i === 3 ? '🏆' : '🏪', SL.name,
     i < lv('dukkan') ? L('Geride kaldı', 'Done') : i === lv('dukkan') ? L('Şu anki dükkânın', 'Your current shop') : `${L('Gün', 'Day')} ${SL.day}+ · ₺${fmt(SL.cost)}`, '', i > lv('dukkan'))).join('') + '</div>';
@@ -4517,7 +4518,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.42.4';
+const APP_VERSION = '2.43.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4878,6 +4879,7 @@ $('#modal').addEventListener('click', e => {
   if (btn && btn.dataset.ans && IV){ answer(btn.dataset.ans); return; }
   if (id === 'ivOpen'){ hideModal(); openShop({late:true}); return; }
   if (id === 'coverShare'){ shareCover(); return; }
+  if (id === 'scardShare'){ shareShopCard(); return; }
   if (id === 'legacyYes'){
     passLegacy(); setTab('mutfak'); renderUI(); confetti(); SFX.levelUp();
     showModal(`<h2>${L('🎖️ Yeni bir başlangıç!', '🎖️ A fresh start!')}</h2>
@@ -5086,6 +5088,81 @@ async function shareCover(){
   toast(L('📥 Kapak resmi indirildi, istediğin yerde paylaş!', '📥 Cover image downloaded, share it anywhere!'));
 }
 
+// ---------- Dükkân kartı (P-1) ----------
+// Arkadaşlarla karşılaştırmak için paylaşılabilir resim: dükkân, şube sayısı, en kârlı gün, ünlülük… Sunucu yok, veri gitmez
+function drawShopCard(c){
+  const W2 = 600, H2 = 800, F = 'Fredoka, system-ui, sans-serif';
+  const bg = c.createLinearGradient(0, 0, 0, H2); bg.addColorStop(0, '#ffcf86'); bg.addColorStop(1, '#e8772e');
+  c.fillStyle = bg; c.fillRect(0, 0, W2, H2);
+  c.strokeStyle = '#3a2214'; c.lineWidth = 14; c.strokeRect(7, 7, W2 - 14, H2 - 14);
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.fillStyle = '#3a2214'; c.font = `700 26px ${F}`; c.fillText('☕ ÇAY OCAĞI TYCOON', 300, 58);
+  // Dükkân adı ve seviyesi
+  let size = 50; c.font = `700 ${size}px ${F}`;
+  const nm = owner().shopName;
+  while (c.measureText(nm).width > 540 && size > 24){ size--; c.font = `700 ${size}px ${F}`; }
+  c.lineWidth = 8; c.lineJoin = 'round'; c.strokeStyle = '#3a2214'; c.strokeText(nm, 300, 118);
+  c.fillStyle = '#fff6e6'; c.fillText(nm, 300, 118);
+  c.fillStyle = '#3a2214'; c.font = `600 22px ${F}`;
+  c.fillText(`${SHOP_LEVELS[S.branches[0].lv.dukkan || 0].name} · ${conceptOf(S.branches[0]).name}`, 300, 152);
+  // Sahibi: oyunun kendi çizimiyle
+  c.fillStyle = '#fff6e6'; c.beginPath(); c.arc(300, 300, 118, 0, Math.PI * 2); c.fill();
+  c.lineWidth = 8; c.strokeStyle = '#3a2214'; c.stroke();
+  c.save(); c.beginPath(); c.arc(300, 300, 114, 0, Math.PI * 2); c.clip();
+  drawPerson(c, {x:300, y:520, look:owner(), apron:true, mood:'happy', scale:3.2}); c.restore();
+  c.fillStyle = '#3a2214'; c.font = `700 28px ${F}`; c.fillText(displayName(), 300, 456);
+  // Altı istatistik kutusu
+  const F2 = FAME_LEVELS[fameLv()];
+  const stats = [
+    ['🏙️', L('Dükkân', 'Shops'), String(S.branches.length)],
+    ['💰', L('En kârlı gün', 'Best day'), '₺' + fmt(S.bestDay || 0)],
+    ['🌟', L('Ünlülük', 'Fame'), F2.name],
+    ['📅', L('Gün', 'Day'), String(S.day)],
+    ['🏅', L('Başarım', 'Achievements'), `${ACH.filter(a => S.ach[a.id]).length}/${ACH.length}`],
+    ['🔥', L('En uzun kombo', 'Best combo'), String(S.bestCombo || 0)],
+  ];
+  stats.forEach(([em, label, val], i) => {
+    const x = 30 + (i % 2) * 275, y = 486 + Math.floor(i / 2) * 88;
+    c.fillStyle = '#fff6e6'; c.strokeStyle = '#3a2214'; c.lineWidth = 5;
+    c.beginPath(); if (c.roundRect) c.roundRect(x, y, 265, 76, 16); else c.rect(x, y, 265, 76); c.fill(); c.stroke();
+    c.textAlign = 'left'; c.fillStyle = '#3a2214'; c.font = '34px system-ui'; c.fillText(em, x + 14, y + 50);
+    c.fillStyle = '#8b6a52'; c.font = `600 17px ${F}`; c.fillText(label, x + 66, y + 30);
+    let vs = 26; c.font = `700 ${vs}px ${F}`;
+    while (c.measureText(val).width > 185 && vs > 14){ vs--; c.font = `700 ${vs}px ${F}`; }
+    c.fillStyle = '#3a2214'; c.fillText(val, x + 66, y + 60);
+  });
+  c.textAlign = 'center'; c.fillStyle = '#3a2214'; c.font = `700 22px ${F}`;
+  c.fillText(L('Sen de oyna, dükkânını göster! 🍵', 'Play too and show me your shop! 🍵'), 300, 754);
+  c.font = `600 16px ${F}`; c.fillText(HOME_URL.replace(/^https?:\/\//, '').replace(/\/$/, ''), 300, 778);
+}
+let shopCardBlob = null;
+function showShopCard(){
+  showModal(`<h2>${L('🪪 Dükkân kartın', '🪪 Your shop card')}</h2>
+    <canvas id="shopCardCv" class="cover" width="600" height="800"></canvas>
+    <p class="hint" style="text-align:center">${L('Arkadaşlarına gönder, kimin dükkânı daha büyük görün!', 'Send it to your friends and see whose shop is bigger!')}</p>
+    <button class="big" id="scardShare">${L('📤 Paylaş', '📤 Share')}</button>
+    <div class="btns"><button class="btn2" id="modalOk">${L('Kapat', 'Close')}</button></div>`);
+  const cv = $('#shopCardCv');
+  drawShopCard(cv.getContext('2d'));
+  shopCardBlob = null;
+  cv.toBlob(b => shopCardBlob = b, 'image/png');   // Safari paylaşımı dokunuşa bağlı: resim önceden hazır olmalı
+}
+async function shareShopCard(){
+  const b = shopCardBlob;
+  if (!b){ toast(L('Kart hazırlanıyor, bir saniye…', 'Preparing the card, one second…')); return; }
+  const file = new File([b], 'cay-ocagi-dukkan.png', {type:'image/png'});
+  const text = L(`${owner().shopName}: ${S.branches.length} dükkân, en kârlı gün ₺${fmt(S.bestDay || 0)}! Sen de oyna: ${HOME_URL}`,
+    `${owner().shopName}: ${S.branches.length} shops, best day ₺${fmt(S.bestDay || 0)}! Play too: ${HOME_URL}`);
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], text}); return; }
+  } catch(e){ if (e.name === 'AbortError') return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = file.name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  toast(L('📥 Kart indirildi, istediğin yerde paylaş!', '📥 Card downloaded, share it anywhere!'));
+}
+
 // ---------- Etkileşim ----------
 // Yeni şube: önce konsept sorulur
 function showConcepts(cid){
@@ -5184,7 +5261,7 @@ document.addEventListener('pointerdown', e => {
 // Satın almalar "click" ile: listeyi kaydırırken yanlışlıkla bir şey alınmaz
 document.addEventListener('click', e => {
   if (modalOpen()) return;
-  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab],[data-hood],[data-htab],[data-card],[data-pack]');
+  const t = e.target.closest('[data-unlock],[data-buy],[data-qual],[data-fans],[data-open],[data-grow],[data-recipe],[data-branch],[data-switch],[data-cover],[data-pin],[data-fix],[data-col],[data-legacy],[data-ct],[data-inv],[data-aset],[data-sid],[data-stab],[data-hood],[data-htab],[data-card],[data-pack],[data-scard]');
   if (!t) return;
   const d = t.dataset;
   if (d.fans !== undefined){
@@ -5203,6 +5280,7 @@ document.addEventListener('click', e => {
     else openShop();
   }
   else if (d.cover !== undefined && S.lastCover) showCover(false);
+  else if (d.scard !== undefined) showShopCard();
   else if (d.legacy !== undefined){ if (canLegacy() && status !== 'running') showLegacy(); }
   else if (d.fix) fixBranch(+d.fix);
   else if (d.ct) answerContract(d.ct === 'yes');
