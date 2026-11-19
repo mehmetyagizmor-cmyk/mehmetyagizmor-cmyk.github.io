@@ -1507,7 +1507,7 @@ const mainLv = () => S.branches[0].lv.dukkan || 0;   // günlük ödül/görev �
 // Ana dükkân Ünlü Mekân olunca (15. günden sonra) dükkân çırağa devredilir: her şey baştan başlar,
 // her miras puanı kalıcı +%5 satış getirir. Sahip, ünlülük, başarımlar ve koleksiyon kalır
 const LEGACY_DAY = 25;
-const LEGACY_KEEP = ['owner', 'ach', 'col', 'fame', 'interviews', 'lastCover', 'streak', 'lastDate', 'evp', 'rated', 'cayN', 'vipN', 'rateAsks', 'rateNext'];
+const LEGACY_KEEP = ['owner', 'tips', 'ach', 'col', 'fame', 'interviews', 'lastCover', 'streak', 'lastDate', 'evp', 'rated', 'cayN', 'vipN', 'rateAsks', 'rateNext'];
 const LEGACY_TITLES = ['Usta', 'Pir', 'Çay Efsanesi'];
 const legacy = () => S.legacy || {n:0, pts:0};
 const legacyMult = () => 1 + 0.05 * legacy().pts;
@@ -1761,7 +1761,28 @@ function needed(){
 // Art arda mutlu müşteri: bahşiş çarpanı büyür, biri kızarsa sıfırlanır
 const comboMult = n => n >= 15 ? 2.5 : n >= 10 ? 2 : n >= 6 ? 1.5 : n >= 3 ? 1.2 : 1;
 // R-3: kombo kademesinde sahnenin ortasında büyük yazı, kısa sarsıntı ve titreşim
+// İlk kez ipuçları: oyunu durdurmaz, köşede kısa bir kartla bir kez çıkar (S.tips)
+const TIPS = {
+  ctype:{emoji:'🎒', tr:['Müşteri tipleri', '🎒 Öğrenci ucuz ister ve sabırsızdır, 👴 emekli az ister ama bekler, 🧔 esnaf aceleci ama bol bahşiş bırakır.'],
+    en:['Customer types', '🎒 Students order cheap and are impatient, 👴 retirees order little but wait, 🧔 shopkeepers are in a hurry but tip well.']},
+  combo:{emoji:'🔥', tr:['Kombo!', 'Müşterileri art arda mutlu et: kombo büyüdükçe bahşiş katlanır. Biri kızarsa ya da bir süre servis olmazsa biter.'],
+    en:['Combo!', 'Keep customers happy in a row: tips multiply as the combo grows. It ends if someone leaves angry or you stop serving for a while.']},
+  info:{emoji:'📋', tr:['Görevler özetlendi', 'Servis sırasında görevler, sipariş ve lig üstte tek satırda. Ayrıntı için o satıra dokun.'],
+    en:['Quests at a glance', 'While serving, quests, orders and the league sit in one line at the top. Tap it for details.']},
+  pack:{emoji:'📦', tr:['Usta paketin hazır', 'Ortadaki Ekip düğmesine dokun, paketi aç. Çıkan ustayı sağ kola tak: bütün dükkânlarına bonus verir.'],
+    en:['Your master pack is ready', 'Tap the Crew button in the middle and open the pack. Put a master in your right-hand slot for a bonus in every shop.']},
+  hood:{emoji:'🏘️', tr:['Mahalleye yatırım', 'Mahalle sekmesinden fırın, manav, durak gibi binalar kur: her biri kalıcı bonus verir.'],
+    en:['Invest in the town', 'In the Town tab, build the bakery, greengrocer, bus stop and more: each gives a permanent bonus.']},
+};
+function tipOnce(k){
+  const t = TIPS[k];
+  if (!t || !S.owner || (S.tips || {})[k]) return;
+  S.tips = S.tips || {}; S.tips[k] = 1; save();
+  const [name, desc] = L(t.tr, t.en);
+  announce({emoji:t.emoji, name, desc}, L('💡 İpucu', '💡 Tip'));
+}
 function comboPop(n, cm){
+  tipOnce('combo');
   const el = $('#comboPop');
   if (!el) return;
   el.innerHTML = `🔥 ${n}x ${L('KOMBO', 'COMBO')}!<small>${L('bahşiş', 'tips')} x${String(cm).replace('.', L(',', '.'))}</small>`;
@@ -1825,6 +1846,7 @@ function say(x, y, text){
   particles.push({type:'text', small:true, x:Math.max(120, Math.min(W - 120, x)), y, vy:-16, life:2.6, max:2.6, text:'💬 ' + text, color:'#fff6e6', delay:0});
 }
 function custGreet(c){
+  if (c.ct && c.ct !== 'mahalleli') tipOnce('ctype');
   const s = SLOTS[c.seat];
   if (c.tavla) return say(s.x, s.y - 150, '🎲 ' + L('Tavla getir usta, bir el atalım!', 'Bring the backgammon, master!'));
   if (!c.ct || Math.random() > 0.45) return;
@@ -3593,6 +3615,9 @@ function renderUI(){
   const showSum = status === 'running' && chips.length > 0;
   $('#infoSum').hidden = !showSum;
   $('#infoFull').hidden = showSum && !infoOpen;
+  if (showSum) tipOnce('info');
+  if (status !== 'running' && S.packs > 0 && S.day >= 3) tipOnce('pack');
+  if (status !== 'running' && canHood()) tipOnce('hood');
   if (showSum) setHTML('#infoSum', chips.join('') + `<span class="more">${infoOpen ? L('▲ gizle', '▲ hide') : L('▼ ayrıntı', '▼ details')}</span>`);
   $('#money').textContent = '₺' + fmt(S.money);
   $('#moneyRate').textContent = status === 'running' ? `${L('bugün', 'today')} +₺${fmt(R.stats.earned + R.stats.tips)}` : '';
@@ -4492,7 +4517,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.42.3';
+const APP_VERSION = '2.42.4';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
