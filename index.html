@@ -1478,7 +1478,7 @@ const recLv = id => (S.rec || {})[id] || 0;
 const basePrice = id => Math.round(P[id].price * (P[id].ev ? 1 + 0.6 * mainLv() : 1 + 0.25 * recLv(id)) * legacyMult());
 const recipeCost = id => Math.round(P[id].price * 15 * Math.pow(1.9, recLv(id)));
 const itemPrice = id => Math.round(basePrice(id) * ((DE().priceMult || {})[id] || 1) * ((CM().priceMult || {})[id] || 1)
-  * (((EV() || {}).priceMult || {})[id] || 1) * (conceptOf().items && inConcept(id) ? 1.3 : 1) * hoodPrice() * (1 + cardBonus('price')));
+  * (((EV() || {}).priceMult || {})[id] || 1) * (conceptOf().items && inConcept(id) ? 1.3 : 1) * hoodPrice() * (1 + cardBonus('price')) * (R && R.special === id ? 1.25 : 1));
 // Mutfaktaki ürünler: menü + (varsa) etkinlik ürünü en sonda
 const kitchenMenu = () => [...PRODUCTS.filter(p => sellable().includes(p.id)), ...(evProduct() ? [evProduct()] : [])];
 const shopLocked = p => p.city ? !hasCity(p.city) : p.tool ? !lv(p.tool) : (p.shop || 0) > lv('dukkan');
@@ -1814,8 +1814,9 @@ function say(x, y, text){
   particles.push({type:'text', small:true, x:Math.max(120, Math.min(W - 120, x)), y, vy:-16, life:2.6, max:2.6, text:'💬 ' + text, color:'#fff6e6', delay:0});
 }
 function custGreet(c){
-  if (!c.ct || Math.random() > 0.45) return;
   const s = SLOTS[c.seat];
+  if (c.tavla) return say(s.x, s.y - 150, '🎲 ' + L('Tavla getir usta, bir el atalım!', 'Bring the backgammon, master!'));
+  if (!c.ct || Math.random() > 0.45) return;
   say(s.x, s.y - 150, CTYPES[c.ct].emoji + ' ' + sayPick(c.ct));
 }
 // "Veresiye yaz abi!": 3. günden sonra günde en çok bir kez, emekli ya da esnaf parasız çıkar
@@ -1860,6 +1861,35 @@ function veresiyeDay(){
   return out.map(t => `<p class="hint">${t}</p>`).join('');
 }
 
+// ---------- Seviyeye göre yeni oynanış (R-5) ----------
+// Kıraathane (1): tavla oyuncuları uzun oturur, ikinci el çay ister. Nostaljik Kafe (2): her gün günün menüsü seçilir
+const growFeat = l => l === 1 ? L(' · 🎲 tavla oyuncuları', ' · 🎲 backgammon players') : l === 2 ? L(' · ⭐ günün menüsü', ' · ⭐ menu of the day') : '';
+function growNews(l){
+  if (l === 1) announce({emoji:'🎲', name:L('Yeni: Tavla oyuncuları', 'New: Backgammon players'),
+    desc:L('Kıraathanede bazı müşteriler tavla oynar: uzun oturur, ilk siparişten sonra bir el daha çay ister.', 'At the coffeehouse some customers play backgammon: they stay long and order a second round of tea.')}, L('🏪 Dükkân', '🏪 Shop'));
+  if (l === 2) announce({emoji:'⭐', name:L('Yeni: Günün menüsü', 'New: Menu of the day'),
+    desc:L('Her gün açılışta bir ürünü öne çıkar: %25 pahalı satılır ve müşteriler onu daha çok ister.', 'Each morning, feature one product: it sells for 25% more and customers order it more often.')}, L('🏪 Dükkân', '🏪 Shop'));
+}
+// Günün menüsü: menüden üç aday, biri seçilir
+function menuOfDay(){
+  if (lv('dukkan') < 2 || sellable().length < 3 || modalOpen()) return;
+  const cands = [...sellable()].sort(() => Math.random() - 0.5).slice(0, 3);
+  showChoice(L('⭐ Günün menüsü', '⭐ Menu of the day'), L('Bugün hangi ürünü öne çıkaralım? %25 pahalı satılır, müşteriler onu daha çok ister.', 'Which product do we feature today? It sells for 25% more and customers order it more often.'),
+    cands.map(id => ({k:id, html:`${P[id].emoji} <b>${P[id].name}</b> · ₺${itemPrice(id)} → ₺${Math.round(itemPrice(id) * 1.25)}`})),
+    k => { R.special = k; toast(L(`⭐ Günün menüsü: ${P[k].emoji} ${P[k].name}`, `⭐ Menu of the day: ${P[k].emoji} ${P[k].name}`)); });
+}
+// Tavla oyuncusu ikinci el ister: ödedikten sonra kalkmaz, yeni sipariş verir
+function tavlaRound(c){
+  if (!c.tavla || c.round2) return false;
+  c.round2 = true; c.payMul = null;
+  const tea = sellable().includes('cay') ? 'cay' : pick(sellable());
+  c.order = Array.from({length:1 + Math.floor(Math.random() * 2)}, () => ({p:Math.random() < 0.7 ? tea : pick(sellable()), done:false}));
+  c.max = patienceFor(c.order.length) * 1.6; c.patience = c.max;
+  const s = SLOTS[c.seat];
+  say(s.x, s.y - 150, '🎲 ' + L('Bir el daha! Çaylar tazelensin.', 'One more round! Fresh teas, please.'));
+  return true;
+}
+
 // special: 'vip' | 'influencer' | 'turist' | undefined
 function spawnCustomer(special, delayPx = 0){
   const free = freeSeats();
@@ -1878,7 +1908,7 @@ function spawnCustomer(special, delayPx = 0){
   const evp = evProduct(), cw = contractWant();
   let order = [];
   for (let i = 0; i < count; i++){
-    const p = cw && Math.random() < 0.25 ? pick(cw) : evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(pool);
+    const p = cw && Math.random() < 0.25 ? pick(cw) : R.special && sellable().includes(R.special) && Math.random() < 0.3 ? R.special : evp && Math.random() < 0.3 ? evp.id : fav.length && Math.random() < 0.55 ? pick(fav) : pick(pool);
     order.push({p, done:false});
   }
   // Eleştirmen menünün en pahalı 5 ürününden 3-4 parça ister
@@ -1892,13 +1922,15 @@ function spawnCustomer(special, delayPx = 0){
   if (special === 'elestirmen') max *= 0.8;
   if (reg) max *= 1 + 0.08 * regLv(reg.id);   // eski dost biraz daha sabırlıdır
   if (CT) max *= CT.pat;
+  const tavla = !!CT && lv('dukkan') >= 1 && Math.random() < 0.18;   // R-5: kıraathanede tavla oynayanlar
+  if (tavla){ const tea = sellable().includes('cay') ? 'cay' : null; if (tea) order = order.map(o => Math.random() < 0.6 ? {p:tea, done:false} : o); max *= 1.6; }
   const look = reg ? {...reg.look} : {...randomLook(), ...(CT && CT.look || {})};
   if (special === 'vip'){ look.shirt = '#1d1d2b'; look.suit = true; look.hat = 'crown'; }
   if (special === 'influencer'){ look.shirt = '#ff6fae'; look.prop = 'phone'; }
   if (special === 'turist'){ look.shirt = '#21b3a5'; look.hat = 'sun'; look.prop = 'camera'; }
   if (special === 'elestirmen'){ look.shirt = '#3d3d46'; look.glasses = true; look.hat = 'bere'; look.prop = 'note'; }
   const seat = pick(free);
-  const c = {id:R.nextId++, seat, look, order, patience:max, max, special, reg:reg && reg.id, ct,
+  const c = {id:R.nextId++, seat, look, order, patience:max, max, special, reg:reg && reg.id, ct, tavla,
              state:'in', x:rightWall() + 40 + delayPx, y:aisleY(), path:pathIn(seat), walk:0};
   R.customers.push(c);
   SFX.arrive();
@@ -1998,6 +2030,7 @@ function pay(c){
     // 5 yıldız için pahalı ürünlerin tarifleri neredeyse tam olmalı (simülasyonla: iyi oyuncu ~3, ustalaşınca 4-5)
     review(Math.max(1, Math.min(5, 1 + Math.floor(4.4 * (0.35 * ratio + 0.45 * taste + 0.2 * calm)))));
   }
+  if (tavlaRound(c)) return;   // R-5: bir el daha
   leave(c, 'happy');
 }
 
@@ -3585,6 +3618,7 @@ function renderUI(){
   let ev = '';
   if (status === 'running'){
     if (R.dayEvent) ev += `<span class="ev">${R.dayEvent.emoji} <b>${R.dayEvent.name}</b></span>`;
+    if (R.special && P[R.special]) ev += `<span class="ev">⭐ ${L('Günün menüsü', 'Menu of the day')}: <b>${P[R.special].emoji} ${P[R.special].name}</b></span>`;
     R.effects.forEach(e => ev += `<span class="ev">${e.ev.emoji} <b>${e.ev.name}</b> <small>${Math.ceil(e.left)} ${L('sn', 's')}</small></span>`);
   }
   if (status === 'running' && fameLv() >= 1 && !R.fansUsed && DAY_LEN - R.t > 20) ev += `<button class="ev fans" data-fans>📣 <b>${L('Hayranlarını çağır', 'Call your fans')}</b></button>`;
@@ -3632,7 +3666,7 @@ function renderShop(){
   if (next){
     const locked = S.day < next.day;
     s += `<div class="shop-item hl"><div class="em">🏪</div>
-      <div class="info"><b>${L('Büyüt', 'Upgrade')}: ${next.name}</b><small>${locked ? L(`${next.day}. günden itibaren açılır`, `Opens from day ${next.day}`) : L(`${next.tables} masaya kadar yer, yeni görünüm, daha çok müşteri`, `Room for up to ${next.tables} tables, a new look, more customers`)}</small></div>
+      <div class="info"><b>${L('Büyüt', 'Upgrade')}: ${next.name}</b><small>${locked ? L(`${next.day}. günden itibaren açılır`, `Opens from day ${next.day}`) : L(`${next.tables} masaya kadar yer, yeni görünüm, daha çok müşteri`, `Room for up to ${next.tables} tables, a new look, more customers`) + growFeat(lv('dukkan') + 1)}</small></div>
       <button data-grow ${locked || S.money < next.cost ? 'disabled' : ''}>${locked ? `🔒 ${L('Gün', 'Day')} ${next.day}` : '₺' + fmt(next.cost)}</button></div>`;
   } else {
     s += `<div class="shop-item hl"><div class="em">🏆</div><div class="info"><b>${shopLevel().name}</b><small>${L('Dükkânın en üst seviyede!', 'Your shop is at the top level!')}</small></div></div>`;
@@ -4421,7 +4455,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.41.0';
+const APP_VERSION = '2.42.0';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
@@ -4855,7 +4889,7 @@ function resumeDay(){
 function openShop(opt = {}){
   dayDate = today();
   if (S.contract && S.contract.st === 'offer') S.contract = null;   // karar verilmeden açılan dükkân teklifi kaçırır
-  newDay(); status = 'running'; SFX.open(); startDayEvent();
+  newDay(); status = 'running'; SFX.open(); startDayEvent(); menuOfDay();
   if (opt.late){ R.t = DAY_LEN / 6; R.interview = true; }
   if (opt.focus) R.focus = true;
   if (!desktopMQ.matches && tab !== 'mutfak') setTab('mutfak');
@@ -5138,6 +5172,7 @@ document.addEventListener('click', e => {
       S.money -= next.cost; S.lv.dukkan = lv('dukkan') + 1;
       levelUpAt = now(); confetti(); SFX.build(); setTimeout(SFX.levelUp, 450);
       toast(L(`🏪 Dükkânın artık bir ${next.name}!`, `🏪 Your shop is now a ${next.name}!`)); save();
+      growNews(lv('dukkan'));
     }
   } else if (d.branch){
     showConcepts(d.branch);
