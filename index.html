@@ -327,6 +327,12 @@ h3{margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;
 .evbar small{display:block;color:var(--muted);font-size:12px}
 .evbar i{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);transition:width .3s}
 .evbar.soon{background:#0003;border-color:var(--line)}
+/* Dükkân açıkken görev/sipariş/lig/etkinlik tek satırlık özete iner */
+.infosum{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;margin:0 0 10px;padding:6px 8px;border:2px solid var(--ink);border-radius:12px;background:var(--panel2);font:inherit;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;text-align:left}
+.infosum[hidden]{display:none}
+.infosum .ch{padding:2px 8px;border-radius:999px;background:#3a221412;white-space:nowrap;font-variant-numeric:tabular-nums}
+.infosum .ch.ok{background:#3aa64c26;color:var(--good)}
+.infosum .more{margin-left:auto;color:var(--muted);font-size:11px}
 .quest.fail b{color:var(--bad)}
 /* Dükkân kapalıyken görevler tam metinle, alt alta */
 body:not(.running) .quests{flex-direction:column;gap:4px}
@@ -446,6 +452,7 @@ h3{color:var(--muted)}
 /* Kapalı dükkân katmanı düğmelerin altında kalmasın diye düğmeler üstte, katman ortada */
 .overlay{z-index:2}
 #events{z-index:3;left:auto;right:58px}
+.scene:has(.lgbadge:not([hidden])) #events{left:100px}   /* lig rozeti görünürken olay etiketleri onun üstüne binmesin */
 @media(max-width:999px){.fab{width:38px;height:38px;font-size:18px}.fabs{gap:6px;top:6px;right:6px}#events{right:50px}}
 
 /* ---------- UI-2: alt menü, ortada büyük Dükkân düğmesi ---------- */
@@ -722,10 +729,13 @@ h3{color:var(--muted)}
     <section class="panel" id="p-mutfak">
       <h2 data-en="🔥 Kitchen">🔥 Mutfak</h2>
       <div class="coach" id="coach" hidden></div>
-      <div class="evbar" id="evBar"></div>
-      <div class="evbar" id="ctBar"></div>
-      <div class="evbar" id="lgBar"></div>
-      <div class="quests" id="quests"></div>
+      <button class="infosum" id="infoSum" hidden></button>
+      <div id="infoFull">
+        <div class="evbar" id="evBar"></div>
+        <div class="evbar" id="ctBar"></div>
+        <div class="evbar" id="lgBar"></div>
+        <div class="quests" id="quests"></div>
+      </div>
       <p class="hint newbie" data-en="Tap a product → it brews on the stove → lands on the tray. Then tap the customer with the green bubble.">Ürüne dokun → ocakta hazırlanır → tepsiye düşer. Sonra yeşil balonlu müşteriye dokun.</p>
       <div class="products" id="products"></div>
       <div class="row">
@@ -3546,6 +3556,9 @@ function coach(){
 }
 
 let prodKey = '';
+// Dükkân açıkken çubuklar özete iner; özete dokununca tam hali açılır/kapanır
+let infoOpen = false;
+$('#infoSum').addEventListener('click', () => { infoOpen = !infoOpen; SFX.serve(); renderUI(); });
 function renderUI(){
   ensureQuests(); checkQuests(); checkAch();
   setHTML('#quests', questsHTML());
@@ -3564,6 +3577,21 @@ function renderUI(){
   }
   setHTML('#evBar', eb);
   $('#evBar').classList.toggle('soon', !cal.cur);
+  // Servis sırasında ekran ürünlere ve sahneye kalsın: görev, sipariş, lig ve etkinlik tek satırda
+  const chips = [];
+  if (S.quests && S.quests.list){ const qd = S.quests.list.filter(q => q.done).length; chips.push(`<span class="ch${qd === S.quests.list.length ? ' ok' : ''}">📋 ${qd}/${S.quests.list.length}</span>`); }
+  const ctc = S.contract;
+  if (ctc && ctc.st === 'active'){
+    const ids = Object.keys(ctc.need), tot = ids.reduce((s, id) => s + ctc.need[id], 0), got = ids.reduce((s, id) => s + Math.min(ctc.got[id] || 0, ctc.need[id]), 0);
+    chips.push(`<span class="ch${got >= tot ? ' ok' : ''}">📦 ${got}/${tot}</span>`);
+  }
+  const lgNow = standings();
+  if (lgNow) chips.push(`<span class="ch">🏆 ${lgNow.findIndex(x => x.id === 'me') + 1}.</span>`);
+  if (cal.cur){ const ep = evProg(); if (ep) chips.push(`<span class="ch${ep.done ? ' ok' : ''}">${cal.cur.ev.emoji} ${Math.min(ep.n, cal.cur.ev.goal)}/${cal.cur.ev.goal}</span>`); }
+  const showSum = status === 'running' && chips.length > 0;
+  $('#infoSum').hidden = !showSum;
+  $('#infoFull').hidden = showSum && !infoOpen;
+  if (showSum) setHTML('#infoSum', chips.join('') + `<span class="more">${infoOpen ? L('▲ gizle', '▲ hide') : L('▼ ayrıntı', '▼ details')}</span>`);
   $('#money').textContent = '₺' + fmt(S.money);
   $('#moneyRate').textContent = status === 'running' ? `${L('bugün', 'today')} +₺${fmt(R.stats.earned + R.stats.tips)}` : '';
   $('#rep').textContent = Math.round(S.rep) + '%';
@@ -4462,7 +4490,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.42.1';
+const APP_VERSION = '2.42.2';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
