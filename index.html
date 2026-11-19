@@ -2007,6 +2007,7 @@ function pay(c){
   S.money += base + tip - mat; S.total += base + tip - mat; R.stats.mat += mat;
   addFame(0.25 + (c.special === 'influencer' ? 5 : 0) + (autograph ? 0.5 : 0));
   R.stats.served++; R.stats.earned += base; R.stats.tips += tip; S.served++;
+  if (c.payMul === 0) R.stats.free = (R.stats.free || 0) + 1;   // ikram ya da veresiye: servis edildi ama kasaya para girmedi
   const ep = evProg();
   if (ep && !ep.done && ++ep.n >= EV().goal) evReward(ep);
   c.order.forEach(o => R.sold[o.p] = (R.sold[o.p] || 0) + 1);
@@ -2097,7 +2098,7 @@ function startDayEvent(){
       {k:'normal', html:L('🍵 <b>Normal devam</b><br><small>Ekstra masraf yok</small>', '🍵 <b>Carry on as usual</b><br><small>No extra cost</small>')},
     ], k => {
       if (k === 'ekran' && S.money >= cost){
-        S.money -= cost; R.stats.mat += cost;
+        S.money -= cost; R.stats.extra = (R.stats.extra || 0) + cost;
         R.dayEvent = {...ev, spawn:0.38, tip:1.3, name:ev.name + ' 📺'};
         toast(L(`📺 Dev ekran kuruldu: -₺${fmt(cost)}`, `📺 Big screen set up: -₺${fmt(cost)}`)); SFX.build();
       }
@@ -2126,7 +2127,7 @@ function vipChoice(c){
     {k:'masa', off:S.money < cost, html:L(`👑 <b>Özel masa hazırla · ₺${fmt(cost)}</b><br><small>Daha sabırlı bekler ve 3,5 kat öder</small>`, `👑 <b>Prepare a special table · ₺${fmt(cost)}</b><br><small>They wait longer and pay 3.5×</small>`)},
     {k:'normal', html:L('🙂 <b>Normal karşıla</b><br><small>Ekstra masraf yok</small>', '🙂 <b>Welcome them as usual</b><br><small>No extra cost</small>')},
   ], k => {
-    if (k === 'masa' && S.money >= cost){ S.money -= cost; R.stats.mat += cost; c.vipPrep = true; c.max *= 1.4; c.patience = c.max; SFX.build(); }
+    if (k === 'masa' && S.money >= cost){ S.money -= cost; R.stats.extra = (R.stats.extra || 0) + cost; c.vipPrep = true; c.max *= 1.4; c.patience = c.max; SFX.build(); }
   });
   return true;
 }
@@ -2665,7 +2666,7 @@ function endDay(){
   SFX.dayEnd();
   const rent = Math.min(S.money, Math.round(15 * S.day * (lv('mudur') ? 0.75 : 1)));   // kasada ne varsa o kesilir
   S.money -= rent;
-  const st = R.stats, net = st.earned + st.tips - st.mat - rent - (st.loss || 0);
+  const st = R.stats, net = st.earned + st.tips - st.mat - rent - (st.loss || 0) - (st.extra || 0);
   branch().lastEarn = st.earned + st.tips;   // ekip ağacında dükkânın günlük geliri
   const passive = S.branches.reduce((s, b, i) => i === S.cur ? s : s + managedIncome(b), 0);
   S.money += passive; S.total += passive;
@@ -2715,7 +2716,7 @@ function endDay(){
     ${night ? `<p class="banner${night.blocked ? '' : ' bad'}">🌙 ${night.n.emoji} ${night.blocked ? `${night.n.name}${L(' ama güvenlik yakaladı!', ', but security caught it!')}` : `${night.n.name}: -₺${fmt(night.loss)}`}</p>` : ''}
     ${R.focus ? `<p class="hint">${L('🧹 Odak günü: satışlar %20 fazlaydı', '🧹 Focus day: sales were 20% higher')}</p>` : ''}
     <table>
-      <tr><td>${L('Servis edilen müşteri', 'Customers served')}</td><td>${st.served}</td></tr>
+      <tr><td>${L('Servis edilen müşteri', 'Customers served')}</td><td>${st.served}${st.free ? ` <small>(${L(`${st.free} ikram/veresiye`, `${st.free} free/on tab`)})</small>` : ''}</td></tr>
       <tr><td>${L('Kızıp giden müşteri', 'Customers who left angry')}</td><td>${st.lost}</td></tr>
       <tr><td>${L('En uzun kombo', 'Longest combo')}</td><td>🔥 ${st.bestCombo}</td></tr>
       ${R.regsToday.length ? `<tr><td>${L('Gelen müdavimler', 'Regulars who came')}</td><td>${R.regsToday.map(id => REG[id].emoji).join(' ')}</td></tr>` : ''}
@@ -2726,6 +2727,7 @@ function endDay(){
       <tr><td>${Q().emoji} ${L('Malzeme', 'Ingredients')} (${Q().name})</td><td style="color:var(--bad)">-₺${fmt(st.mat)}</td></tr>
       ${st.good + st.bad ? `<tr><td>${L('💬 Müşteri yorumları', '💬 Customer reviews')}</td><td>👍 ${st.good} · 👎 ${st.bad}</td></tr>` : ''}
       <tr><td>${L('Kira ve masraflar', 'Rent and expenses')}</td><td style="color:var(--bad)">-₺${fmt(rent)}</td></tr>
+      ${st.extra ? `<tr><td>${L('📺 Ekstra masraflar (ekran, özel masa)', '📺 Extra costs (screen, special table)')}</td><td style="color:var(--bad)">-₺${fmt(st.extra)}</td></tr>` : ''}
       ${st.loss ? `<tr><td>${L('🔥 Yangın zararı', '🔥 Fire damage')}</td><td style="color:var(--bad)">-₺${fmt(st.loss)}</td></tr>` : ''}
       <tr><td><b>${L('Net kâr', 'Net profit')}</b></td><td style="color:${net < 0 ? 'var(--bad)' : 'var(--good)'}">${net < 0 ? '-' : ''}₺${fmt(Math.abs(net))}</td></tr>
       ${fameInc ? `<tr><td>${fameLv() >= 6 ? L('🌟 Reklam, marka ve müze', '🌟 Ads, brand and museum') : L('🌟 Reklam ve çay markası', '🌟 Ads and tea brand')}</td><td style="color:var(--good)">+₺${fmt(fameInc)}</td></tr>` : ''}
@@ -4490,7 +4492,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.42.2';
+const APP_VERSION = '2.42.3';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
