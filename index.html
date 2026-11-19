@@ -1471,7 +1471,8 @@ const trayCap = () => 3 + lv('tepsi');
 const DE = () => R.dayEvent || {};
 const effect = id => R.effects.some(e => e.id === id);
 const speed = () => (1 + 0.15 * lv('semaver')) * (effect('elektrik') ? 0.5 : 1);
-const prepTime = id => P[id].time / speed() / (P[id].tool ? 1 + 0.25 * (lv(P[id].tool) - 1) : 1);
+const prepTime = id => P[id].time / speed() / (P[id].tool ? 1 + 0.25 * (lv(P[id].tool) - 1) : 1)
+  * (R && R.special === id ? 1.3 : 1);   // günün menüsü özenle hazırlanır: %30 yavaş (pahalı ama ocağı uzun meşgul eder)
 // Tarif seviyesi: her seviye +%25 fiyat; maliyet katlanarak artar (uzun vadeli para hedefi)
 const recLv = id => (S.rec || {})[id] || 0;
 // Etkinlik ürünleri tarif almaz; fiyatı ana dükkânın seviyesiyle büyür (geç oyunda da değerli kalsın)
@@ -1822,7 +1823,10 @@ function custGreet(c){
 // "Veresiye yaz abi!": 3. günden sonra günde en çok bir kez, emekli ya da esnaf parasız çıkar
 let verC = null;
 function maybeVeresiye(c){
-  if (c.payMul != null || c.reg || c.special || !(c.ct === 'emekli' || c.ct === 'esnaf') || S.day < 3 || R.verToday || Math.random() > 0.12) return false;
+  if (c.payMul != null || c.reg || c.special || !(c.ct === 'emekli' || c.ct === 'esnaf') || S.day < 3 || R.verToday) return false;
+  // Günde bir kez karar verilir: günlerin ~%25'inde olur, o gün de rastgele bir emekli/esnafta (bot: eskiden neredeyse her gün çıkıyordu)
+  if (R.verDay == null) R.verDay = Math.random() < 0.25;
+  if (!R.verDay || Math.random() > 0.2) return false;
   R.verToday = true; verC = c;
   c.vName = pick(NAMES[Math.random() < 0.5 ? 'e' : 'k']);
   c.vAmt = c.order.reduce((s, o) => s + itemPrice(o.p), 0);
@@ -1868,13 +1872,13 @@ function growNews(l){
   if (l === 1) announce({emoji:'🎲', name:L('Yeni: Tavla oyuncuları', 'New: Backgammon players'),
     desc:L('Kıraathanede bazı müşteriler tavla oynar: uzun oturur, ilk siparişten sonra bir el daha çay ister.', 'At the coffeehouse some customers play backgammon: they stay long and order a second round of tea.')}, L('🏪 Dükkân', '🏪 Shop'));
   if (l === 2) announce({emoji:'⭐', name:L('Yeni: Günün menüsü', 'New: Menu of the day'),
-    desc:L('Her gün açılışta bir ürünü öne çıkar: %25 pahalı satılır ve müşteriler onu daha çok ister.', 'Each morning, feature one product: it sells for 25% more and customers order it more often.')}, L('🏪 Dükkân', '🏪 Shop'));
+    desc:L('Her gün açılışta bir ürünü öne çıkar: %25 pahalı satılır ve daha çok istenir, ama %30 yavaş pişer.', 'Each morning, feature one product: it sells for 25% more and is ordered more often, but takes 30% longer to make.')}, L('🏪 Dükkân', '🏪 Shop'));
 }
 // Günün menüsü: menüden üç aday, biri seçilir
 function menuOfDay(){
   if (lv('dukkan') < 2 || sellable().length < 3 || modalOpen()) return;
   const cands = [...sellable()].sort(() => Math.random() - 0.5).slice(0, 3);
-  showChoice(L('⭐ Günün menüsü', '⭐ Menu of the day'), L('Bugün hangi ürünü öne çıkaralım? %25 pahalı satılır, müşteriler onu daha çok ister.', 'Which product do we feature today? It sells for 25% more and customers order it more often.'),
+  showChoice(L('⭐ Günün menüsü', '⭐ Menu of the day'), L('Bugün hangi ürünü öne çıkaralım? %25 pahalı satılır ve daha çok istenir, ama özenle hazırlandığı için %30 yavaş pişer.', 'Which product do we feature today? It sells for 25% more and is ordered more often, but takes 30% longer to make.'),
     cands.map(id => ({k:id, html:`${P[id].emoji} <b>${P[id].name}</b> · ₺${itemPrice(id)} → ₺${Math.round(itemPrice(id) * 1.25)}`})),
     k => { R.special = k; toast(L(`⭐ Günün menüsü: ${P[k].emoji} ${P[k].name}`, `⭐ Menu of the day: ${P[k].emoji} ${P[k].name}`)); });
 }
@@ -2074,7 +2078,8 @@ function startDayEvent(){
   R.dayEvent = pick(DAY_EVENTS);
   const ev = R.dayEvent;
   setTimeout(() => {
-    if (ev.id !== 'mac' || modalOpen() || status !== 'running') return announce(ev, L('Bugün', 'Today'));
+    if (ev.id !== 'mac' || modalOpen() || status !== 'running' || R.evChoice) return announce(ev, L('Bugün', 'Today'));
+    R.evChoice = true;   // günde en fazla bir seçimli olay
     // Maç Günü: dev ekran kiralarsan daha kalabalık ve bahşiş bol
     const cost = Math.max(150, 20 * S.day);
     showChoice(`${ev.emoji} ${ev.name}`, ev.desc, [
@@ -2091,7 +2096,8 @@ function startDayEvent(){
 }
 // Influencer ve VIP içeri girince karar
 function influencerChoice(c){
-  if (!c || modalOpen()) return false;
+  if (!c || modalOpen() || R.evChoice) return false;
+  R.evChoice = true;   // günde en fazla bir seçimli olay
   showChoice(L('📸 Influencer geldi!', '📸 An influencer is here!'), L('Telefonu elinde, takipçileri bekliyor. Nasıl karşılarsın?', 'Phone in hand, followers waiting. How do you greet them?'), [
     {k:'ikram', html:L('🎁 <b>Ücretsiz ikram et</b><br><small>Para yok ama daha sabırlı bekler; mutlu giderse ekstra +5⭐ ve +5 🌟</small>', '🎁 <b>On the house</b><br><small>No money, but they wait longer; leave happy for an extra +5⭐ and +5 🌟</small>')},
     {k:'normal', html:L('🙂 <b>Normal müşteri gibi davran</b><br><small>Mutlu giderse +10⭐, kızarsa -10⭐</small>', '🙂 <b>Treat them like anyone else</b><br><small>Leave happy: +10⭐, leave angry: -10⭐</small>')},
@@ -2103,7 +2109,8 @@ function influencerChoice(c){
   return true;
 }
 function vipChoice(c){
-  if (!c || modalOpen()) return false;
+  if (!c || modalOpen() || R.evChoice) return false;
+  R.evChoice = true;   // günde en fazla bir seçimli olay
   const cost = Math.max(100, 15 * S.day);
   showChoice(L('👑 VIP müşteri geldi!', '👑 A VIP customer is here!'), L('Büyük sipariş verecek ve 3 kat ödeyecek. Kızdırırsan -10⭐.', 'They will order big and pay triple. Make them angry and lose 10⭐.'), [
     {k:'masa', off:S.money < cost, html:L(`👑 <b>Özel masa hazırla · ₺${fmt(cost)}</b><br><small>Daha sabırlı bekler ve 3,5 kat öder</small>`, `👑 <b>Prepare a special table · ₺${fmt(cost)}</b><br><small>They wait longer and pay 3.5×</small>`)},
@@ -4455,7 +4462,7 @@ function hideModal(){ $('#modal').classList.remove('show'); }
 const modalOpen = () => $('#modal').classList.contains('show');
 
 // ---------- Uygulama olarak yükleme ----------
-const APP_VERSION = '2.42.0';
+const APP_VERSION = '2.42.1';
 // Play Store paket kimliği (PWABuilder'da verilen Package ID). Boşken puan isteği gösterilmez
 const PLAY_ID = 'io.github.mehmetyagizmor_cmyk.twa';
 // Puan isteği: 5. günden sonra 3 yıldızlı bir günün karnesinde, Android'de, en fazla 3 kez, arada en az 7 gün
